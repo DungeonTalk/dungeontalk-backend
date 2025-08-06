@@ -16,9 +16,8 @@ public record RegisterRequest(
         // @Size(min = 2, max = 128, message = "비밀번호는 최소 2자 이상이어야 합니다.")
         String password
 ) {
-    public Member toEntity(String id,  String encodedPassword) {
+    public Member toEntity(String encodedPassword) {
         return Member.builder()
-                .id(id)
                 .name(this.name)
                 .nickName(this.nickName)
                 .password(encodedPassword)

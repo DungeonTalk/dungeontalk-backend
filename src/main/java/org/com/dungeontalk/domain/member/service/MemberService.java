@@ -24,19 +24,22 @@ public class MemberService {
     @Transactional
     public RegisterResponse register(RegisterRequest registerRequest) {
 
-        /* Name 중복 체크 추가하기 */
+        if (memberRepository.findByName(registerRequest.name()).isPresent()) {
+            throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
+        }
 
-        /* NickName 중복 체크 추가하기 */
-
-        /* UUID 7 적용하기 */
-        String id = "sfsdf"; // 일단 하드 코딩
+        if (memberRepository.findByNickName(registerRequest.nickName()).isPresent()) {
+            throw new IllegalArgumentException("이미 존재하는 닉네임입니다.");
+        }
 
         String encodedPassword = passwordEncoder.encode(registerRequest.password());
-        Member member = registerRequest.toEntity(id,encodedPassword);
+        Member member = registerRequest.toEntity(encodedPassword);
         memberRepository.save(member);
 
         return new RegisterResponse(member.getId(), member.getName(), member.getNickName());
     }
+
+
 
 
 }

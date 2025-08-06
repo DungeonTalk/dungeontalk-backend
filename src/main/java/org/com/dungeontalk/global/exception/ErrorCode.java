@@ -15,6 +15,8 @@ public enum ErrorCode {
     GLOBAL_ERROR("500-GL01", "서버 오류"),
     DATABASE_ERROR("500-DB01","데이터 베이스 오류");
 
+
+
     private final String errorCode;
     private final String message;
 

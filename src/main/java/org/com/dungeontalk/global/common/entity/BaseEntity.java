@@ -28,10 +28,10 @@ public class BaseEntity {
     private String id;
 
     @CreatedDate
-    private LocalDateTime createTime;
+    private LocalDateTime createdAt;
 
     @LastModifiedDate
-    private LocalDateTime updateTime;
+    private LocalDateTime updatedAt;
 
     // UUID 자동 할당
     @PrePersist

@@ -2,6 +2,7 @@ package org.com.dungeontalk.domain.member.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.com.dungeontalk.global.common.entity.BaseEntity;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -11,10 +12,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "member")
 @Getter
-@Setter
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Member extends BaseEntity {
 
 //    @Id
