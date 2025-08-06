@@ -23,10 +23,10 @@ public class Member {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(name = "name", length = 20)
+    @Column(name = "name", length = 20, unique = true)
     private String name;
 
-    @Column(name = "nick_name")
+    @Column(name = "nick_name",  unique = true)
     private String nickName;
 
     @CreationTimestamp
