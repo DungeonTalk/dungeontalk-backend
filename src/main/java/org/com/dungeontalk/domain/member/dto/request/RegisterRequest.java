@@ -21,7 +21,6 @@ public record RegisterRequest(
                 .id(id)
                 .name(this.name)
                 .nickName(this.nickName)
-                .password(this.password)
                 .password(encodedPassword)
                 .build();
     }
