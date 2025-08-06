@@ -21,19 +21,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
-    // ======================= 불필요 API 패스 로직 =========================
-
-    /**
-     * 권한 불필요 API 들을 넘기는 메서드
-     *
-     * @param request 사용자 요청
-     * @return ture/false
-     */
+    // 권한 체크가 불필요한 API들을 패스하는 메서드
     private boolean isPublicApi(HttpServletRequest request) {
         String path = request.getRequestURI();
         return PUBLIC_APIS.stream().anyMatch(path::startsWith);
     }
 
+    // 권한 체크가 불필요한 API 리스트 정의 메서드
     private static final List<String> PUBLIC_APIS = List.of(
             "/v1/member/register",
             "/v1/member/login",
@@ -41,18 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/v3/api-docs"
            );
 
-    // ======================= Filter Chain 로직 =========================
-
-    /**
-     * 필터의 핵심 메서드 (필터 체인)
-     *
-     * @param request     Http 요청 객체
-     * @param response    Http 응답 객체
-     * @param filterChain 필터 체인의 나머지 필터들을 호출할 때 사용
-     *
-     * @throws ServletException
-     * @throws IOException
-     */
+    // 필터 체인
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -64,6 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
+
 
             String accessToken = jwtService.extractAccessToken(request);
 
@@ -85,8 +69,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception ex) {
-            log.error("JWT 인증 중 오류 발생: {}", ex.getMessage());
+            log.error("JWT 인증[필터] 중 오류 발생 : {}", ex.getMessage());
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
         }
     }
+
 }

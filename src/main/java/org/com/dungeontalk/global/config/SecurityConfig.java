@@ -18,7 +18,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(securedEnabled = true, prePostEnabled = true)
 public class SecurityConfig {
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter)
             throws Exception {
@@ -37,7 +36,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(req -> req.
                         requestMatchers("/v1/member/register").permitAll().
                         requestMatchers("/v1/member/login").permitAll().
-                        requestMatchers("/api/**").permitAll().
 
                         requestMatchers("/swagger-ui/**").permitAll().
                         requestMatchers("/swagger-ui/index.html").permitAll().
@@ -49,6 +47,12 @@ public class SecurityConfig {
         return http.build();
 
     }
+
+    /* todo : 이것으로 적용하기 */
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+//    }
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {

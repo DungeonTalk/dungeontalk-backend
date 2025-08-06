@@ -17,14 +17,14 @@ public class CorsConfig {
     public static CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        /* 리소스를 허용할 URL 파일 추가 */
+        // 리소스를 허용할 URL 파일 추가
         ArrayList<String> allowedOriginPatterns = new ArrayList<>();
+        allowedOriginPatterns.add("https://api.dt.com");
         allowedOriginPatterns.add("http://localhost:8080");
         allowedOriginPatterns.add("http://localhost:5173");
-        allowedOriginPatterns.add("http://localhost:5174");
         configuration.setAllowedOrigins(allowedOriginPatterns);
 
-        /* 허용하는 HTTP METHOD 지정 */
+        // 허용하는 HTTP METHOD 지정
         ArrayList<String> allowedHttpMethods = new ArrayList<>();
         allowedHttpMethods.add("GET");
         allowedHttpMethods.add("POST");
@@ -37,6 +37,7 @@ public class CorsConfig {
         // 인증, 인가를 위한 credentials 를 TRUE로 설정
         configuration.setAllowCredentials(true);
 
+        //  URL 패턴별 CORS 등록
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 

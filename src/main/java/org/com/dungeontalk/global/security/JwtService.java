@@ -45,9 +45,7 @@ public class JwtService {
     @Value("${jwt.refreshexpiration}")
     private long REFRESH_TOKEN_EXPIRATION_TIME;
 
-    // ======================= 토큰 생성 로직 =========================
-
-
+    // 엑세스 토큰 생성
     public String generateAccessToken(String id, String name,String nickName) {
         return Jwts.builder()
                 .setSubject("dgt-User")
@@ -60,6 +58,7 @@ public class JwtService {
                 .compact();
     }
 
+    // 리프레시 토큰 생성
     public String generateRefreshToken(String id, String name,String nickName) {
         return Jwts.builder()
                 .setSubject("dgt-User")
@@ -72,22 +71,14 @@ public class JwtService {
                 .compact();
     }
 
-    // ======================= 토큰에서 멤버 객체 추출 로직 =========================
-
+    // 토큰에서 멤버 객체 생성
     public Member getMemberFromToken(String token) {
         String memberId = extractIdFromToken(token);
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(ErrorCode.GLOBAL_ERROR));
     }
 
-    // ======================= 요청에서 엑시스 토큰 추출 로직 =========================
-
-    /**
-     * 사용자 요청으로 부터 엑세스 토큰 추출
-     *
-     * @param request 사용자 요청
-     * @return 엑세스 토큰 반환
-     */
+    // 유저 요청으로 부터 엑세스 토큰 추출
     public String extractAccessToken(HttpServletRequest request) {
         String authorizationHeader = request.getHeader("Authorization");
 
@@ -97,50 +88,31 @@ public class JwtService {
         return null;
     }
 
-    // ======================= 요청에서 유저 고유 번호 추출 로직 =========================
-
+    // Http 요청 객체에서 부터 고유 번호 추출
     public String extractIdFromRequest(HttpServletRequest request) {
         String accessToken = extractAccessToken(request);
         return extractIdFromToken(accessToken);
     }
 
+    // 토큰에서 고유 번호 추출
     public String extractIdFromToken(String token) {
+
         return extractClaims(token).get("id", String.class);
     }
 
-    // ======================= 요청에서 유저 nickName 추출 로직 =========================
-
-    /**
-     * [1단계] HTTP 요청에서 액세스 토큰을 추출하고, JWT 내부의 nickName 클레임을 반환한다.
-     *
-     * @param request HTTP 요청 객체
-     * @return JWT 토큰에서 추출한 유저 nickName (String)
-     */
+    // Http 요청 객체에서 부터 닉네임 추출
     public String extractNickNameFromRequest(HttpServletRequest request) {
         String accessToken = extractAccessToken(request);
         return extractNickNameFromToken(accessToken);
     }
 
-    /**
-     * [2단계] JWT 토큰에서 nickName 클레임 값을 String 타입으로 파싱한다.
-     *
-     * @param token JWT 액세스 토큰
-     * @return nickName 클레임 값 (String)
-     *
-     * @see #extractClaims(String) 클레임 추출 메서드
-     */
+    // 토큰에서 닉네임 추출
     public String extractNickNameFromToken(String token) {
+
         return extractClaims(token).get("nickName", String.class);
     }
 
-    // ======================= RefreshToken 저장 및 refresh token rotation 로직  =========================
-
-    /**
-     * 리프레쉬 토큰 세션 레디스에 저장 메서드
-     *
-     * @param memberId 로그인하는 유저의 고유 번호
-     * @param refreshToken 로그인 한 후 반환된 리프레쉬 토큰(세션에 저장)
-     */
+    // 리프레쉬 토큰 세션 레디스에 저장 메서드
     public void saveRefreshTokenToSessionRedis(Integer memberId,String refreshToken) {
 
         log.info("length : {}",refreshToken.getBytes().length);
@@ -149,8 +121,7 @@ public class JwtService {
 
     }
 
-    // ======================= Util Code =========================
-
+    // 토큰에서 클레임 추출
     public Claims extractClaims(String token) {
         return Jwts.parser() // JWT 파서 객체 생성
                 .setSigningKey(SECRET_KEY)
