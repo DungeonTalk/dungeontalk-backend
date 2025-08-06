@@ -3,6 +3,7 @@ package org.com.dungeontalk.domain.member.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.member.dto.request.RegisterRequest;
+import org.com.dungeontalk.domain.member.dto.response.RegisterResponse;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.security.JwtService;
@@ -21,7 +22,7 @@ public class MemberService {
 
     // 회원가입 메서드
     @Transactional
-    public Member register(RegisterRequest registerRequest) {
+    public RegisterResponse register(RegisterRequest registerRequest) {
 
         /* Name 중복 체크 추가하기 */
 
@@ -32,8 +33,9 @@ public class MemberService {
 
         String encodedPassword = passwordEncoder.encode(registerRequest.password());
         Member member = registerRequest.toEntity(id,encodedPassword);
+        memberRepository.save(member);
 
-        return memberRepository.save(member);
+        return new RegisterResponse(member.getId(), member.getName(), member.getNickName());
     }
 
 
