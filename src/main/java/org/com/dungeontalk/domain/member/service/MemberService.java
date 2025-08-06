@@ -1,4 +1,4 @@
-package org.com.dungeontalk.domain.member.controller;
+package org.com.dungeontalk.domain.member.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
