@@ -19,11 +19,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final JwtService jwtService;
 
-    /**
-     * 회원가입 메서드
-     * @param registerRequest 유저의 회원가입 요청 DTO
-     * @return 회원가입 된 유저 정보 객체
-     */
+    // 회원가입 메서드
     @Transactional
     public Member register(RegisterRequest registerRequest) {
 

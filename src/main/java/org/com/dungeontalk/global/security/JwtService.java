@@ -77,7 +77,7 @@ public class JwtService {
     public Member getMemberFromToken(String token) {
         String memberId = extractIdFromToken(token);
         return memberRepository.findById(memberId)
-                .orElseThrow(() -> new MemberException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new MemberException(ErrorCode.GLOBAL_ERROR));
     }
 
     // ======================= 요청에서 엑시스 토큰 추출 로직 =========================
