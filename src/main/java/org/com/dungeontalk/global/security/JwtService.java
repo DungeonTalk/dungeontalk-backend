@@ -113,9 +113,9 @@ public class JwtService {
     }
 
     // 리프레쉬 토큰 세션 레디스에 저장 메서드
-    public void saveRefreshTokenToSessionRedis(Integer memberId,String refreshToken) {
+    public void saveRefreshTokenToSessionRedis(String memberId,String refreshToken) {
 
-        log.info("length : {}",refreshToken.getBytes().length);
+        // log.info("length : {}",refreshToken.getBytes().length);
         String key = "refresh_token:" + memberId;
         sessionRedis.opsForValue().set(key, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
 

@@ -30,7 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     // 권한 체크가 불필요한 API 리스트 정의 메서드
     private static final List<String> PUBLIC_APIS = List.of(
             "/v1/member/register",
-            "/v1/member/login",
+            "/v1/auth/login",
             "/swagger-ui",
             "/v3/api-docs"
            );
