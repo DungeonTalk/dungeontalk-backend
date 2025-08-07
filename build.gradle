@@ -56,6 +56,7 @@ dependencies {
 
     // jackson
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.0'
+//    implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // DigestUtils
     implementation 'commons-codec:commons-codec:1.15'
@@ -74,6 +75,8 @@ dependencies {
     // redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // Spring Boot WebSocket + STOMP
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
 }
 
