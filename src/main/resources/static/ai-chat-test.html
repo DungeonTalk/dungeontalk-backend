@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 채팅 테스트 페이지</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .main-content {
+            display: flex;
+            height: 600px;
+        }
+        
+        .sidebar {
+            width: 300px;
+            border-right: 1px solid #eee;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+        
+        .message.user {
+            background: #e3f2fd;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.ai {
+            background: #f3e5f5;
+            margin-right: auto;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+        
+        .message.system {
+            background: #fff3e0;
+            text-align: center;
+            font-style: italic;
+            max-width: 100%;
+        }
+        
+        .message-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        input, select, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            min-width: 80px;
+        }
+        
+        button:hover {
+            background: #5a6fd8;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .form-group {
+            margin-bottom: 10px;
+        }
+        
+        label {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .status.connected {
+            background: #e8f5e8;
+            color: #2e7d2e;
+        }
+        
+        .status.disconnected {
+            background: #ffeaea;
+            color: #d32f2f;
+        }
+        
+        .status.processing {
+            background: #fff8e1;
+            color: #f57c00;
+        }
+        
+        .room-info {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .controls button {
+            flex: 1;
+            min-width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎲 던전톡 AI 채팅 테스트</h1>
+            <p>Spring Boot + Python AI 서비스 통합 테스트</p>
+            <div style="background: rgba(255,255,255,0.2); padding: 15px; margin-top: 15px; border-radius: 8px; text-align: left;">
+                <h4 style="margin-top: 0; color: #fff;">📋 사용 순서 (필수!)</h4>
+                <div style="color: #fff; line-height: 1.6;">
+                    <p><strong>1단계:</strong> 로그인 완료 확인 (자동으로 확인됨)</p>
+                    <p><strong>2단계:</strong> WebSocket 연결 → "WebSocket 연결" 버튼 클릭</p>
+                    <p><strong>3단계:</strong> 게임방 생성 → "방 생성" 버튼 클릭</p>
+                    <p><strong>4단계:</strong> 게임방 입장 → "방 입장" 버튼 클릭</p>
+                    <p><strong>5단계:</strong> <span style="background: #ff6b6b; padding: 2px 6px; border-radius: 3px;">🔥 게임 시작</span> → "게임 시작" 버튼 클릭 (중요!)</p>
+                    <p><strong>6단계:</strong> AI 채팅 시작 → 메시지 입력 또는 "AI 응답 생성" 버튼 클릭</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>1️⃣ 연결 상태</h3>
+                <div id="connectionStatus" class="status disconnected">
+                    WebSocket 연결 끊김
+                </div>
+                
+                <h3>2️⃣ WebSocket 연결 (2단계)</h3>
+                <div class="controls">
+                    <button onclick="connectWebSocket()">WebSocket 연결</button>
+                </div>
+                <small style="color: #666;">먼저 WebSocket에 연결해야 채팅이 가능해요</small>
+                
+                <h3>3️⃣ 게임방 설정 (3단계)</h3>
+                <div class="form-group">
+                    <label>닉네임:</label>
+                    <input type="text" id="userNickname" value="테스터1" />
+                </div>
+                
+                <div class="form-group">
+                    <label>게임 ID:</label>
+                    <input type="text" id="gameId" value="test-game-001" />
+                </div>
+                
+                <div class="form-group">
+                    <label>방 이름:</label>
+                    <input type="text" id="roomName" value="테스트 AI 방" />
+                </div>
+                
+                <div class="controls">
+                    <button onclick="createRoom()">방 생성</button>
+                </div>
+                
+                <h3>4️⃣ 게임방 입장 (4단계)</h3>
+                <div class="controls">
+                    <button onclick="joinRoom()">방 입장</button>
+                </div>
+                <small style="color: #666;">방 생성 후 입장해주세요</small>
+                
+                <div class="room-info" id="roomInfo" style="display: none;">
+                    <h4>현재 방 정보</h4>
+                    <p><strong>방 ID:</strong> <span id="currentRoomId">-</span></p>
+                    <p><strong>상태:</strong> <span id="roomStatus">-</span></p>
+                    <p><strong>현재 턴:</strong> <span id="currentTurn">-</span></p>
+                    <p><strong>참여자:</strong> <span id="participants">-</span></p>
+                </div>
+                
+                <h3>5️⃣ 게임 시작 (5단계 - 중요!)</h3>
+                <div class="controls">
+                    <button onclick="startGame()">🔥 게임 시작</button>
+                </div>
+                <small style="color: #ff6b6b; font-weight: bold;">⚠️ 게임 시작을 안 하면 AI 응답이 안 됩니다!</small>
+                
+                <h3>6️⃣ AI 채팅 테스트</h3>
+                <div class="controls">
+                    <button onclick="generateAiResponse()">AI 응답 생성</button>
+                </div>
+                <small style="color: #666;">게임 시작 후 사용 가능</small>
+                
+                <h3>🔧 고급 기능</h3>
+                <div class="controls">
+                    <button onclick="checkAiService()">AI 서비스 상태</button>
+                    <button onclick="endGame()">게임 종료</button>
+                </div>
+            </div>
+            
+            <div class="chat-area">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message system">
+                        AI 채팅 테스트 페이지입니다. 왼쪽 사이드바에서 방을 생성하고 WebSocket에 연결해보세요.
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-group">
+                        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)" />
+                        <button onclick="sendMessage()" id="sendButton">전송</button>
+                    </div>
+                    <small>현재 AI 응답 대기 중에는 메시지 전송이 차단됩니다.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    
+    <script>
+        let stompClient = null;
+        let currentRoomId = null;
+        let currentTurn = 1;
+        let isAiProcessing = false;
+        
+        // WebSocket 연결
+        function connectWebSocket() {
+            if (stompClient && stompClient.connected) {
+                addMessage('system', '이미 WebSocket에 연결되어 있습니다.');
+                return;
+            }
+            
+            // JWT 토큰을 query parameter로 전달
+            const token = localStorage.getItem('authToken');
+            console.log('🔥 localStorage에서 가져온 토큰:', token);
+            console.log('🔥 토큰 타입:', typeof token);
+            
+            if (!token || token === 'undefined' || token === 'null') {
+                addMessage('system', '토큰이 없습니다. 다시 로그인해주세요.');
+                addMessage('system', '브라우저 개발자 도구에서 localStorage를 확인해보세요.');
+                return;
+            }
+            
+            console.log('WebSocket 연결 시도 - 토큰:', token);
+            addMessage('system', `WebSocket 연결 시도 중... (토큰: ${token.substring(0, 20)}...)`);
+            
+            const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(token));
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, function(frame) {
+                updateConnectionStatus(true);
+                addMessage('system', 'WebSocket 연결 성공!');
+                console.log('Connected: ' + frame);
+            }, function(error) {
+                updateConnectionStatus(false);
+                addMessage('system', 'WebSocket 연결 실패: ' + error);
+                console.log('Error: ' + error);
+            });
+        }
+        
+        // 방 생성
+        async function createRoom() {
+            const gameId = document.getElementById('gameId').value;
+            const roomName = document.getElementById('roomName').value;
+            const userNickname = document.getElementById('userNickname').value;
+            
+            try {
+                const response = await fetch('/api/v1/aichat/rooms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({
+                        gameId: gameId,
+                        roomName: roomName,
+                        description: '테스트용 AI 게임방',
+                        maxParticipants: 3,
+                        creatorId: JSON.parse(localStorage.getItem('currentUser')).id
+                    })
+                });
+                
+                if (response.ok) {
+                    const roomData = await response.json();
+                    currentRoomId = roomData.id;
+                    updateRoomInfo(roomData);
+                    addMessage('system', `방 생성 성공: ${roomName} (ID: ${roomData.id})`);
+                } else {
+                    addMessage('system', '방 생성 실패: ' + response.statusText);
+                }
+            } catch (error) {
+                addMessage('system', '방 생성 오류: ' + error.message);
+            }
+        }
+        
+        // 방 입장
+        async function joinRoom() {
+            if (!currentRoomId) {
+                addMessage('system', '먼저 방을 생성해주세요.');
+                return;
+            }
+            
+            const userNickname = document.getElementById('userNickname').value;
+            
+            try {
+                // WebSocket 구독 설정
+                if (stompClient && stompClient.connected) {
+                    stompClient.subscribe('/sub/aichat/room/' + currentRoomId, function(message) {
+                        const messageData = JSON.parse(message.body);
+                        handleWebSocketMessage(messageData);
+                    });
+                    
+                    // 입장 메시지 전송
+                    stompClient.send('/pub/aichat/join', {}, JSON.stringify({
+                        aiGameRoomId: currentRoomId,
+                        gameId: document.getElementById('gameId').value,
+                        senderId: JSON.parse(localStorage.getItem('currentUser')).id,
+                        senderNickname: userNickname,
+                        messageType: 'SYSTEM',
+                        turnNumber: currentTurn
+                    }));
+                    
+                    addMessage('system', `방에 입장했습니다: ${currentRoomId}`);
+                } else {
+                    addMessage('system', '먼저 WebSocket에 연결해주세요.');
+                }
+            } catch (error) {
+                addMessage('system', '방 입장 오류: ' + error.message);
+            }
+        }
+        
+        // 메시지 전송
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || !currentRoomId || !stompClient || !stompClient.connected) {
+                return;
+            }
+            
+            if (isAiProcessing) {
+                addMessage('system', 'AI 응답 대기 중에는 메시지를 보낼 수 없습니다.');
+                return;
+            }
+            
+            const userNickname = document.getElementById('userNickname').value;
+            
+            stompClient.send('/pub/aichat/send', {}, JSON.stringify({
+                aiGameRoomId: currentRoomId,
+                gameId: document.getElementById('gameId').value,
+                senderId: JSON.parse(localStorage.getItem('currentUser')).id,
+                senderNickname: userNickname,
+                content: message,
+                messageType: 'USER',
+                turnNumber: currentTurn
+            }));
+            
+            messageInput.value = '';
+        }
+        
+        // AI 응답 생성
+        async function generateAiResponse() {
+            if (!currentRoomId) {
+                addMessage('system', '먼저 방을 생성하고 입장해주세요.');
+                return;
+            }
+            
+            const userNickname = document.getElementById('userNickname').value;
+            
+            try {
+                isAiProcessing = true;
+                updateSendButton();
+                addMessage('system', 'AI 응답 생성 중...');
+                
+                const response = await fetch(`/api/v1/aichat/ai-service/rooms/${currentRoomId}/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({
+                        gameId: document.getElementById('gameId').value,
+                        currentUser: userNickname,
+                        currentMessage: '최근 상황을 정리해주세요.',
+                        turnNumber: currentTurn
+                    })
+                });
+                
+                if (response.ok) {
+                    const aiResponse = await response.json();
+                    currentTurn++;
+                    updateCurrentTurn();
+                    addMessage('system', `AI 응답 완료 (${aiResponse.aiResponseTime}ms)`);
+                } else {
+                    addMessage('system', 'AI 응답 생성 실패: ' + response.statusText);
+                }
+            } catch (error) {
+                addMessage('system', 'AI 응답 생성 오류: ' + error.message);
+            } finally {
+                isAiProcessing = false;
+                updateSendButton();
+            }
+        }
+        
+        // AI 서비스 상태 확인
+        async function checkAiService() {
+            try {
+                const response = await fetch('http://localhost:8001/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    addMessage('system', `AI 서비스 상태: ${data.status} (${data.llm_provider})`);
+                } else {
+                    addMessage('system', 'AI 서비스 연결 실패');
+                }
+            } catch (error) {
+                addMessage('system', 'AI 서비스 확인 오류: ' + error.message);
+            }
+        }
+        
+        // 게임 시작
+        async function startGame() {
+            if (!currentRoomId) return;
+            
+            try {
+                const response = await fetch(`/api/v1/aichat/rooms/${currentRoomId}/start`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    addMessage('system', '게임이 시작되었습니다!');
+                } else {
+                    addMessage('system', '게임 시작 실패: ' + response.statusText);
+                }
+            } catch (error) {
+                addMessage('system', '게임 시작 오류: ' + error.message);
+            }
+        }
+        
+        // 게임 종료
+        async function endGame() {
+            if (!currentRoomId) return;
+            
+            try {
+                const response = await fetch(`/api/v1/aichat/rooms/${currentRoomId}/end`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    addMessage('system', '게임이 종료되었습니다.');
+                } else {
+                    addMessage('system', '게임 종료 실패: ' + response.statusText);
+                }
+            } catch (error) {
+                addMessage('system', '게임 종료 오류: ' + error.message);
+            }
+        }
+        
+        // WebSocket 메시지 처리
+        function handleWebSocketMessage(messageData) {
+            const messageType = messageData.messageType || messageData.type;
+            const sender = messageData.senderNickname || messageData.sender || 'Unknown';
+            const content = messageData.content || messageData.message;
+            
+            if (messageType === 'USER') {
+                addMessage('user', content, sender);
+            } else if (messageType === 'AI') {
+                addMessage('ai', content, '던전 마스터', messageData.aiResponseTime);
+                isAiProcessing = false;
+                updateSendButton();
+            } else {
+                addMessage('system', content);
+            }
+        }
+        
+        // 메시지 추가
+        function addMessage(type, content, sender, responseTime) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            // 줄바꿈 문자 처리: \n을 <br>로 변환하고 HTML 이스케이프 처리
+            const processedContent = content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/\n/g, '<br>');
+            
+            let messageHtml = `<div>${processedContent}</div>`;
+            
+            if (sender) {
+                messageHtml += `<div class="message-info">${sender}`;
+                if (responseTime) {
+                    messageHtml += ` (응답시간: ${responseTime}ms)`;
+                }
+                messageHtml += `</div>`;
+            }
+            
+            messageDiv.innerHTML = messageHtml;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // 연결 상태 업데이트
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.textContent = 'WebSocket 연결됨';
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = 'WebSocket 연결 끊김';
+            }
+        }
+        
+        // 방 정보 업데이트
+        function updateRoomInfo(roomData) {
+            document.getElementById('roomInfo').style.display = 'block';
+            document.getElementById('currentRoomId').textContent = roomData.id;
+            document.getElementById('roomStatus').textContent = roomData.status;
+            document.getElementById('currentTurn').textContent = roomData.currentTurn;
+            document.getElementById('participants').textContent = roomData.participants ? roomData.participants.join(', ') : '-';
+            currentTurn = roomData.currentTurn || 1;
+        }
+        
+        // 현재 턴 업데이트
+        function updateCurrentTurn() {
+            document.getElementById('currentTurn').textContent = currentTurn;
+        }
+        
+        // 전송 버튼 상태 업데이트
+        function updateSendButton() {
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = isAiProcessing;
+            sendButton.textContent = isAiProcessing ? '대기중...' : '전송';
+        }
+        
+        // 키 입력 처리
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        // JWT 인증 헤더 추가 함수
+        function getAuthHeaders() {
+            const token = localStorage.getItem('authToken');
+            return token ? { 'Authorization': 'Bearer ' + token } : {};
+        }
+        
+        // 로그인 상태 확인
+        function checkLoginStatus() {
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('currentUser');
+            
+            if (!token || !user) {
+                addMessage('system', '로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+                setTimeout(() => {
+                    window.location.href = '/login-test.html';
+                }, 3000);
+                return false;
+            }
+            
+            const userData = JSON.parse(user);
+            document.getElementById('userNickname').value = userData.nickname || userData.id + '님';
+            addMessage('system', `환영합니다, ${userData.nickname}님! 테스트를 시작해보세요.`);
+            return true;
+        }
+        
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            if (!checkLoginStatus()) {
+                return;
+            }
+            addMessage('system', '페이지가 로드되었습니다. 테스트를 시작해보세요!');
+        });
+        
+        // 페이지 언로드 시 연결 해제
+        window.addEventListener('beforeunload', function() {
+            if (stompClient && stompClient.connected) {
+                stompClient.disconnect();
+            }
+        });
+    </script>
+</body>
+</html>
