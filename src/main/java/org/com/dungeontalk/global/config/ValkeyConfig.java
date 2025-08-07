@@ -1,5 +1,6 @@
 package org.com.dungeontalk.global.config;
 
+import org.com.dungeontalk.global.redis.RedisSubscriber;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +10,10 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.PatternTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
@@ -88,4 +93,31 @@ public class ValkeyConfig {
         template.afterPropertiesSet();
         return template;
     }
+
+    // ======================= WebSocket =========================
+    // Redis 메시지 리스너 어댑터 - RedisSubscriber는 여기서 직접 주입
+    @Bean
+    public RedisMessageListenerContainer messageListenerAdapter(RedisConnectionFactory connectionFactory,
+        RedisSubscriber redisSubscriber) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.addMessageListener(redisSubscriber, new PatternTopic("chatroom.*")); // 직접 등록
+        return container;
+    }
+
+    @Bean
+    public ChannelTopic topic() {
+        return new ChannelTopic("chat");
+    }
+
+    // 객체 RedisTemplate - pub/sub 메시지 처리용
+    @Bean
+    public RedisTemplate<String, Object> objectRedisTemplate(RedisConnectionFactory factory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(Object.class));
+        return template;
+    }
+
 }

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.global.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -43,6 +44,11 @@ public class SecurityConfig {
 //                        requestMatchers("/swagger-ui/index.html").permitAll().
 //                        requestMatchers("/v3/api-docs/**").permitAll().
 //                        requestMatchers("/webjars/").permitAll().
+//                        .requestMatchers("/api/chat/room/**").authenticated()                   // 채팅방 생성/입장/퇴장은 인증 필요
+//                        .requestMatchers(HttpMethod.GET, "/api/chat/rooms").permitAll()         // 목록 조회는 공개
+//                        .requestMatchers(HttpMethod.GET, "/api/chat/room/**").permitAll()       // 단일 조회 및 메시지 조회 허용
+//                        .requestMatchers("/ws-chat/**", "/ws-chat").permitAll()                             // WebSocket 엔드포인트 허용 (HandshakeInterceptor에서 인증 처리)
+
 //                        anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // 필터 추가
 
