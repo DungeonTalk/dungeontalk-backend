@@ -23,17 +23,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     // 권한 체크가 불필요한 API들을 패스하는 메서드
     private boolean isPublicApi(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return PUBLIC_APIS.stream().anyMatch(path::startsWith);
+
+        // 일단은 개발 단계이므로, 모든 요청 인증 우회
+        return true;
+//        String path = request.getRequestURI();
+//        return PUBLIC_APIS.stream().anyMatch(path::startsWith);
     }
 
-    // 권한 체크가 불필요한 API 리스트 정의 메서드
-    private static final List<String> PUBLIC_APIS = List.of(
-            "/v1/member/register",
-            "/v1/member/login",
-            "/swagger-ui",
-            "/v3/api-docs"
-           );
+    /*
+    * 권한 체크가 불필요한 API 리스트 정의 메서드
+    *
+    * 일단은 개발 단계이므로 모든 API를 Open함
+    *  */
+//    private static final List<String> PUBLIC_APIS = List.of(
+//            "/v1/member/register",
+//            "/v1/auth/login",
+//           );
 
     // 필터 체인
     @Override
@@ -47,7 +52,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
-
 
             String accessToken = jwtService.extractAccessToken(request);
 

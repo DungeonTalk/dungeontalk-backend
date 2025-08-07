@@ -88,36 +88,18 @@ public class JwtService {
         return null;
     }
 
-    // Http 요청 객체에서 부터 고유 번호 추출
-    public String extractIdFromRequest(HttpServletRequest request) {
-        String accessToken = extractAccessToken(request);
-        return extractIdFromToken(accessToken);
-    }
-
     // 토큰에서 고유 번호 추출
     public String extractIdFromToken(String token) {
 
         return extractClaims(token).get("id", String.class);
     }
 
-    // Http 요청 객체에서 부터 닉네임 추출
-    public String extractNickNameFromRequest(HttpServletRequest request) {
-        String accessToken = extractAccessToken(request);
-        return extractNickNameFromToken(accessToken);
-    }
-
-    // 토큰에서 닉네임 추출
-    public String extractNickNameFromToken(String token) {
-
-        return extractClaims(token).get("nickName", String.class);
-    }
-
     // 리프레쉬 토큰 세션 레디스에 저장 메서드
-    public void saveRefreshTokenToSessionRedis(Integer memberId,String refreshToken) {
+    public void saveRefreshTokenToSessionRedis(String memberId,String refreshToken) {
 
-        log.info("length : {}",refreshToken.getBytes().length);
         String key = "refresh_token:" + memberId;
-        sessionRedis.opsForValue().set(key, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
+        sessionRedis.opsForValue().set(key, refreshToken);
+        //sessionRedis.opsForValue().set(key, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME); -> 문제의 원인, REFRESH_TOKEN_EXPIRATION_TIME
 
     }
 

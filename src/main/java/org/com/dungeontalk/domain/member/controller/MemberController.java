@@ -21,6 +21,10 @@ public class MemberController {
 
     private final MemberService memberService;
 
+    /**
+     * 회원가입 컨트롤러
+     * @param registerRequest - 회원가입 요청 DTO
+     */
     @PostMapping("/register")
     public RsData<RegisterResponse> register(@RequestBody @Valid RegisterRequest registerRequest) {
         RegisterResponse registerResponse = memberService.register(registerRequest);
