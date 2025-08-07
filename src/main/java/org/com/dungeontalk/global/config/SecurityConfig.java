@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req.anyRequest().permitAll())
 
-                // 권한 url 설정
+                // 권한 url 설정 -> 우선은 개발단계니까 모두 허용
 //                .authorizeHttpRequests(req -> req.
 //                        requestMatchers("/v1/member/register").permitAll().
 //                        requestMatchers("/v1/auth/login").permitAll().

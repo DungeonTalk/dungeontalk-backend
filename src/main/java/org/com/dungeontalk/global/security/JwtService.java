@@ -99,7 +99,7 @@ public class JwtService {
 
         String key = "refresh_token:" + memberId;
         sessionRedis.opsForValue().set(key, refreshToken);
-        //sessionRedis.opsForValue().set(key, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME); -> 문제의 원인
+        //sessionRedis.opsForValue().set(key, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME); -> 문제의 원인, REFRESH_TOKEN_EXPIRATION_TIME
 
     }
 

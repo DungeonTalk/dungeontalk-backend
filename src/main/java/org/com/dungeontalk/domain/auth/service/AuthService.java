@@ -26,8 +26,6 @@ import java.util.Optional;
 @Transactional
 public class AuthService {
 
-    private static final String PROVIDER_LOCAL = "LOCAL";
-
     private final MemberRepository memberRepository;
     private final AuthRepository authRepository;
     private final PasswordEncoder passwordEncoder;
