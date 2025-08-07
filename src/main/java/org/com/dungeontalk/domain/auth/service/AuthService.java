@@ -71,7 +71,7 @@ public class AuthService {
         }
 
         // session에 저장
-        // jwtService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
+        jwtService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
 
         return new AuthLoginResponse(
                 member.getId(),
