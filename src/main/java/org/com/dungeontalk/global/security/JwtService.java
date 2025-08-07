@@ -111,4 +111,20 @@ public class JwtService {
                 .getBody();
     }
 
+    public boolean validateToken(String token) {
+
+        try {
+            Claims claims = extractClaims(token);
+            return !claims.getExpiration().before(new Date());
+        } catch (Exception e) {
+            log.error("Token 유효성 검증 실패 : {}", token, e);
+            return false;
+        }
+    }
+
+    public boolean isTokenBlacklisted(String token) {
+        String hashedKey = DigestUtils.sha256Hex(token);
+        return Boolean.TRUE.equals(sessionRedis.hasKey("blacklist:" + hashedKey));
+    }
+
 }
