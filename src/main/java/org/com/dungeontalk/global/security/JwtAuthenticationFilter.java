@@ -32,7 +32,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/v1/member/register",
             "/v1/auth/login",
             "/swagger-ui",
-            "/v3/api-docs"
+            "/v3/api-docs",
+            "/v1/valkey/session/all"
            );
 
     // 필터 체인
@@ -47,7 +48,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
-
 
             String accessToken = jwtService.extractAccessToken(request);
 

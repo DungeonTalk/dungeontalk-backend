@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(req -> req.
                         requestMatchers("/v1/member/register").permitAll().
                         requestMatchers("/v1/auth/login").permitAll().
+                        requestMatchers("/v1/valkey/session/all").permitAll().
 
                         requestMatchers("/swagger-ui/**").permitAll().
                         requestMatchers("/swagger-ui/index.html").permitAll().

@@ -36,34 +36,28 @@ public class AuthService {
     // 로그인 메서드
     public AuthLoginResponse login(AuthLoginRequest request) {
 
-        // 1. 회원 조회 (name 기준)
+        // 회원 조회
         Member member = memberRepository.findByName(request.name())
                 .orElseThrow(() -> new MemberException(ErrorCode.GLOBAL_ERROR));
 
-        // 2. 비밀번호 검증
+        // 비밀번호 검증
         if (!passwordEncoder.matches(request.password(), member.getPassword())) {
             throw new MemberException(ErrorCode.GLOBAL_ERROR);
         }
 
-        // 3. 토큰 생성
+        // 토큰 생성
         String accessToken = jwtService.generateAccessToken(member.getId(), member.getName(), member.getNickName());
         String refreshToken = jwtService.generateRefreshToken(member.getId(), member.getName(), member.getNickName());
-        log.info("엑세스 토큰 생성 : {}",accessToken);
-        log.info("리프레시 토큰 생성 : {}",refreshToken);
 
-        // 4. Auth 엔티티 갱신 또는 생성 (AuthId 사용하지 않음)
+       // Auth 엔티티 생성
         Optional<Auth> existingAuthOpt = authRepository.findByMember(member);
-        log.info("existingAuthOpt : {}", existingAuthOpt);
 
         if (existingAuthOpt.isPresent()) {
-            log.info("1");
             Auth auth = existingAuthOpt.get();
             auth.setAccessToken(accessToken);
             auth.setRefreshToken(refreshToken);
             authRepository.save(auth);
-            log.info("2");
         } else {
-            log.info("3");
             Auth newAuth = Auth.builder()
                     .member(member)
                     .email(member.getName())
@@ -71,17 +65,14 @@ public class AuthService {
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .build();
-            log.info("newAuth: {}", newAuth);
-            log.info("4");
+
             authRepository.save(newAuth);
-            log.info("5");
+
         }
 
-        // RefreshToken을 세션 레디스에 저장
-        // todo : Accesstoken또 추가하기
+        // session에 저장
         // jwtService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
 
-        log.info("7");
         return new AuthLoginResponse(
                 member.getId(),
                 accessToken,

@@ -15,10 +15,10 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 public class ValkeyConfig {
 
     // Session Redis 설정
-    @Value("${spring.data.redis.host}")
+    @Value("${spring.data.session.host}")
     private String sessionRedisHost;
 
-    @Value("${spring.data.redis.port}")
+    @Value("${spring.data.session.port}")
     private int sessionRedisPort;
 
     // Cache Redis 설정
@@ -31,14 +31,7 @@ public class ValkeyConfig {
 
     // ======================= Redis Basic Config =========================
 
-    /**
-     * 기본 이름의 redisTemplate
-     * <p>
-     * description : RedisTemplate의 기본 이름이 필요한 외부 또는 내부 컴포넌트를 에러 없이 동작시키기 위해 사용
-     *
-     * @param connectionFactory
-     * @return
-     */
+    // 기본적인 Redis 탬플릿
     @Bean(name = "redisTemplate")
     public RedisTemplate<String, String> redisTemplate(
             @Qualifier("sessionRedisConnectionFactory") RedisConnectionFactory connectionFactory) {
@@ -47,11 +40,7 @@ public class ValkeyConfig {
 
     // ======================= Session Redis =========================
 
-    /**
-     * Session Redis Connection Factory
-     *
-     * @return
-     */
+    // Session(Valkey) 연결용 팩토리
     @Bean(name = "sessionRedisConnectionFactory")
     @Primary
     public RedisConnectionFactory sessionRedisConnectionFactory() {
@@ -62,18 +51,12 @@ public class ValkeyConfig {
         return new LettuceConnectionFactory(config);
     }
 
-    /**
-     * Session Redis Template (데이터 저장용)
-     *
-     * @param connectionFactory
-     * @return
-     */
+    // Session(Valkey) 저장용 템플릿
     @Bean(name = "sessionRedisTemplate")
     public RedisTemplate<String, String> sessionRedisTemplate(
             @Qualifier("sessionRedisConnectionFactory") RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(new StringRedisSerializer());
 
@@ -82,11 +65,7 @@ public class ValkeyConfig {
 
     // ======================= Cache Redis =========================
 
-    /**
-     * Cache Redis Connection Factory
-     *
-     * @return
-     */
+    // cache(Valkey) 연결용 팩토리
     @Bean(name = "cacheRedisConnectionFactory")
     public RedisConnectionFactory cacheRedisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
@@ -96,12 +75,7 @@ public class ValkeyConfig {
         return new LettuceConnectionFactory(config);
     }
 
-    /**
-     * Cache Redis Template - redis를 직접 다룰 때 사용
-     *
-     * @param connectionFactory
-     * @return
-     */
+    // Cache(Valkey) 저장용 템플릿
     @Bean(name = "cacheRedisTemplate")
     public RedisTemplate<String, String> cacheRedisTemplate(
             @Qualifier("cacheRedisConnectionFactory") RedisConnectionFactory connectionFactory) {
