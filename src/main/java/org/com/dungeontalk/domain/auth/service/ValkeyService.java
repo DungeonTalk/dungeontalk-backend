@@ -23,28 +23,34 @@ public class ValkeyService {
         this.cacheRedis = cacheRedis;
         this.sessionRedis = sessionRedis;
         this.memberRepository = memberRepository;
-
-
-
     }
 
+    // Redis 세션에 단일 키-값 저장
+    public void saveSessionData(String key, String value) {
+        sessionRedis.opsForValue().set(key, value);
+    }
 
-    /**
-     * Redis에 저장된 모든 키와 값을 Map 형태로 반환
-     */
-    public Map<String, String> getAllSessionRedisData() {
-        Map<String, String> data = new HashMap<>();
+    // Redis 세션에 저장된 test키 모두 조회
+    public Map<String, String> getAllTestKeySessionData() {
+        String pattern = "test-key*";  // test-key로 시작하는 모든 키 조회
+        Set<String> keys = sessionRedis.keys(pattern);
+        Map<String, String> result = new HashMap<>();
 
-        // 모든 키 조회 (주의: 대규모 데이터일 경우 성능 문제 발생 가능)
-        Set<String> keys = sessionRedis.keys("*");
-
-        if (keys != null && !keys.isEmpty()) {
+        if (keys != null) {
             for (String key : keys) {
-                String value = sessionRedis.opsForValue().get(key);
-                data.put(key, value);
+                String value = sessionRedis.opsForValue().get(key);  // String 타입 값 조회
+                result.put(key, value);
             }
         }
 
-        return data;
+        return result;
     }
+
+
+    public Set<String> getAllSessionKeys() {
+        // 모든 키 조회 (키만 반환)
+        return sessionRedis.keys("*");
+    }
+
+
 }

@@ -31,18 +31,19 @@ public class SecurityConfig {
                 // 시큐리티 기본 로그인 비활성화
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(req -> req.anyRequest().permitAll())
 
                 // 권한 url 설정
-                .authorizeHttpRequests(req -> req.
-                        requestMatchers("/v1/member/register").permitAll().
-                        requestMatchers("/v1/auth/login").permitAll().
-                        requestMatchers("/v1/valkey/session/all").permitAll().
-
-                        requestMatchers("/swagger-ui/**").permitAll().
-                        requestMatchers("/swagger-ui/index.html").permitAll().
-                        requestMatchers("/v3/api-docs/**").permitAll().
-                        requestMatchers("/webjars/").permitAll().
-                        anyRequest().authenticated())
+//                .authorizeHttpRequests(req -> req.
+//                        requestMatchers("/v1/member/register").permitAll().
+//                        requestMatchers("/v1/auth/login").permitAll().
+//                        requestMatchers("/v1/valkey/session/all").permitAll().
+//
+//                        requestMatchers("/swagger-ui/**").permitAll().
+//                        requestMatchers("/swagger-ui/index.html").permitAll().
+//                        requestMatchers("/v3/api-docs/**").permitAll().
+//                        requestMatchers("/webjars/").permitAll().
+//                        anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // 필터 추가
 
         return http.build();
