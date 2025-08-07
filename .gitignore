@@ -38,3 +38,6 @@ out/
 
 ### pem ###
 .pem
+
+# Environment file
+.env
