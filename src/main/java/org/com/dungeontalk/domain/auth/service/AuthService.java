@@ -12,7 +12,11 @@ import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.MemberException;
+import org.com.dungeontalk.global.security.JwtExtractor;
+import org.com.dungeontalk.global.security.JwtProvider;
+import org.com.dungeontalk.global.security.JwtRedisService;
 import org.com.dungeontalk.global.security.JwtService;
+import org.com.dungeontalk.global.util.TokenHashUtil;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,9 @@ public class AuthService {
     private final AuthRepository authRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final JwtProvider jwtProvider;
+    private final JwtRedisService jwtRedisService;
+    private final JwtExtractor jwtExtractor;
 
     // 로그인 메서드
     public AuthLoginResponse login(AuthLoginRequest request) {
@@ -44,24 +51,25 @@ public class AuthService {
         }
 
         // 토큰 생성
-        String accessToken = jwtService.generateAccessToken(member.getId(), member.getName(), member.getNickName());
-        String refreshToken = jwtService.generateRefreshToken(member.getId(), member.getName(), member.getNickName());
+        String accessToken = jwtProvider.generateAccessToken(member.getId(), member.getName(), member.getNickName());
+        String refreshToken = jwtProvider.generateRefreshToken(member.getId());
+        String hashedRefreshToken = TokenHashUtil.hashToken(refreshToken);
 
        // Auth 엔티티 생성
         Optional<Auth> existingAuthOpt = authRepository.findByMember(member);
 
         if (existingAuthOpt.isPresent()) {
             Auth auth = existingAuthOpt.get();
-            auth.setAccessToken(accessToken);
-            auth.setRefreshToken(refreshToken);
+            auth.setAccessToken(null);
+            auth.setRefreshToken(hashedRefreshToken);
             authRepository.save(auth);
         } else {
             Auth newAuth = Auth.builder()
                     .member(member)
                     .email(member.getName())
                     .tokenType("bearer")
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
+                    .accessToken(null)
+                    .refreshToken(hashedRefreshToken)
                     .build();
 
             authRepository.save(newAuth);
@@ -69,7 +77,7 @@ public class AuthService {
         }
 
         // session에 저장
-        jwtService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
+        jwtRedisService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
 
         return new AuthLoginResponse(
                 member.getId(),
@@ -80,7 +88,7 @@ public class AuthService {
 
     // 로그 아웃 메서드
     public void logout(HttpServletRequest request) {
-        String accessToken = jwtService.extractAccessToken(request);
+        String accessToken = jwtExtractor.extractAccessToken(request);
         if (accessToken == null) {
             log.warn("logout called but access token is missing");
             SecurityContextHolder.clearContext();
