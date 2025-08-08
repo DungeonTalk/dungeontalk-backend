@@ -41,8 +41,8 @@ public class JwtHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
                 return false;
             }
 
-            if (!jwtService.isTokenBlacklisted(token)) {
-                log.warn("❌ WebSocket 인증 실패: Redis에 저장되지 않은 토큰 (로그아웃 상태)");
+            if (jwtService.isTokenBlacklisted(token)) {
+                log.warn("❌ WebSocket 인증 실패: 블랙리스트에 등록된 토큰 (로그아웃 상태)");
                 return false;
             }
 
