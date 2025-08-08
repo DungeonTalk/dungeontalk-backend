@@ -345,9 +345,9 @@
                 
                 if (response.ok) {
                     const roomData = await response.json();
-                    currentRoomId = roomData.id;
-                    updateRoomInfo(roomData);
-                    addMessage('system', `방 생성 성공: ${roomName} (ID: ${roomData.id})`);
+                    currentRoomId = roomData.data.roomId;
+                    updateRoomInfo(roomData.data);
+                    addMessage('system', `방 생성 성공: ${roomName} (ID: ${roomData.data.roomId})`);
                 } else {
                     addMessage('system', '방 생성 실패: ' + response.statusText);
                 }
