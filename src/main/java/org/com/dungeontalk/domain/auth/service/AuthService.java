@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
 import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
+import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
 import org.com.dungeontalk.domain.auth.entity.AuthId;
 import org.com.dungeontalk.domain.auth.repository.AuthRepository;
@@ -85,6 +86,17 @@ public class AuthService {
                 refreshToken
         );
     }
+
+    // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
+    public JwtTokenResponse refreshAccessToken(String refreshToken) {
+        // 1. Refresh Token 검증 (유효성, 만료, DB 저장 여부 등)
+
+        // 2. Refresh Token 기반으로 사용자 정보 조회
+
+        // 3. 새로운 Access Token과 Refresh Token을 반환
+        return null;
+    }
+
 
     // 로그 아웃 메서드
     public void logout(HttpServletRequest request) {
