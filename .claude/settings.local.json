@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config:*)",
+      "Bash(git checkout:*)",
+      "Bash(mkdir:*)",
+      "Bash(./mvnw:*)",
+      "Bash(./gradlew:*)",
+      "Bash(cp:*)",
+      "Bash(python:*)",
+      "Bash(taskkill /F /PID 25484)",
+      "Bash(git restore:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(chmod:*)",
+      "Bash(rm:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": []
+  }
+}
