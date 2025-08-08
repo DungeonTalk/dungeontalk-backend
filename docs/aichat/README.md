@@ -10,7 +10,8 @@ DungeonTalk의 AI 채팅 시스템에 대한 종합적인 문서입니다.
 - [🤖 AI 서비스 연동](./ai-service-integration.md) - Python AI 서비스 연동 방법
 - [🔧 설정 가이드](./configuration.md) - 시스템 설정 및 환경 구성
 - [🧪 테스팅 가이드](./testing-guide.md) - 테스트 도구 및 방법론
-- [🎮 게임 로직](./game-logic.md) - 턴 기반 게임 시스템 및 상태 관리
+- [🎮 게임 로직](./game-logic.md) - 자유형 게임 시스템 및 상태 관리
+- [🎯 게임 페이즈](./game-phases.md) - 게임 페이즈별 상세 설명 및 전환 규칙
 - [🚨 문제 해결](./troubleshooting.md) - 일반적인 오류 해결 및 디버깅
 
 ## 🎯 주요 기능

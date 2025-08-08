@@ -29,15 +29,15 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> WAITING
     WAITING --> TURN_INPUT : 게임 시작
-    TURN_INPUT --> AI_RESPONSE : 사용자 메시지 전송
+    TURN_INPUT --> AI_RESPONSE : 임의의 플레이어 메시지 전송
     AI_RESPONSE --> TURN_INPUT : AI 응답 완료
     TURN_INPUT --> GAME_END : 게임 종료 명령
     AI_RESPONSE --> GAME_END : AI가 게임 종료 선언
     GAME_END --> [*]
     
-    note right of WAITING : 플레이어 대기
-    note right of TURN_INPUT : 플레이어 입력 대기
-    note right of AI_RESPONSE : AI 응답 생성 중
+    note right of WAITING : 최소 인원 미달 시 대기
+    note right of TURN_INPUT : 모든 플레이어가 자유롭게 입력 가능
+    note right of AI_RESPONSE : AI 응답 생성 중, 모든 입력 차단
     note right of GAME_END : 게임 완료
 ```
 
@@ -93,7 +93,14 @@ public void joinGameRoom(String roomId, String userId) {
     // 2. 참여자 추가
     gameRoom.addParticipant(userId);
     
-    // 3. 시스템 메시지 발송
+    // 3. 인원수에 따른 페이즈 변경 확인
+    // WAITING 상태에서 최소 인원이 되면 자동으로 TURN_INPUT으로 변경 가능
+    if (gameRoom.getPhase() == GamePhase.WAITING && 
+        gameRoom.getParticipants().size() >= getMinParticipants()) {
+        // 자동 페이즈 전환은 게임 시작 시에만 발생
+    }
+    
+    // 4. 시스템 메시지 발송
     publishSystemMessage(roomId, userId + "님이 게임방에 참여했습니다");
 }
 
@@ -103,7 +110,7 @@ private void validateJoinable(AiGameRoom gameRoom, String userId) {
         throw new GameException("종료된 게임방입니다");
     }
     
-    // 최대 인원 확인
+    // 최대 인원 확인 (maxParticipants 설정값 사용)
     if (gameRoom.getParticipants().size() >= gameRoom.getMaxParticipants()) {
         throw new GameException("참여 인원이 가득 찼습니다");
     }
@@ -140,7 +147,7 @@ public class GameTurnManager {
         publishSystemMessage(roomId, "🎮 게임이 시작되었습니다! 첫 번째 행동을 입력해주세요.");
     }
     
-    // 사용자 턴 처리
+    // 사용자 턴 처리 (자유형 입력 방식)
     public void processUserTurn(String roomId, String userId, String message) {
         AiGameRoom gameRoom = findGameRoomById(roomId);
         
@@ -151,11 +158,15 @@ public class GameTurnManager {
         AiMessage userMessage = saveUserMessage(roomId, userId, message, gameRoom.getTurnNumber());
         
         // 게임 페이즈 변경: TURN_INPUT → AI_RESPONSE
+        // 임의의 플레이어가 메시지를 전송하면 즉시 AI_RESPONSE로 전환
         gameRoom.setPhase(GamePhase.AI_RESPONSE);
         gameRoomRepository.save(gameRoom);
         
         // 실시간 메시지 발송
         publishUserMessage(userMessage);
+        
+        // AI 응답 생성 트리거 (비동기)
+        triggerAiResponse(roomId);
     }
     
     private void validateTurnInput(AiGameRoom gameRoom, String userId) {
@@ -453,7 +464,9 @@ public class GameEndProcessor {
 1. **턴 제한**: 최대 100턴까지 진행 가능
 2. **메시지 길이**: 사용자 메시지 최대 1,000자
 3. **응답 시간**: AI 응답 최대 30초 타임아웃
-4. **참여자 수**: 게임방당 최대 6명 참여 가능
+4. **참여자 수**: 게임방당 최대 참여자 수는 `maxParticipants` 설정값에 따름
+5. **입력 방식**: 자유형 입력 (임의의 플레이어가 언제든 메시지 전송 가능)
+6. **AI 응답 트리거**: 한 명이 메시지를 보내면 즉시 AI 응답 생성 시작
 
 ### 게임 진행 제약사항
 ```java

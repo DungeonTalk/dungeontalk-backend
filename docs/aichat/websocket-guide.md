@@ -183,11 +183,15 @@ function handleMessage(message) {
     switch (message.type) {
         case 'USER_MESSAGE':
             displayUserMessage(message);
+            // 사용자 메시지 후 자동으로 AI_RESPONSE 페이즈로 전환
+            updateGamePhase('AI_RESPONSE'); 
+            disableMessageInput(); // AI 응답 중에는 입력 차단
             break;
             
         case 'AI_RESPONSE':
             displayAiMessage(message);
-            updateGamePhase('TURN_INPUT'); // AI 응답 후 다음 턴
+            updateGamePhase('TURN_INPUT'); // AI 응답 후 다시 입력 가능
+            enableMessageInput();
             break;
             
         case 'SYSTEM':
@@ -196,10 +200,36 @@ function handleMessage(message) {
             
         case 'GAME_STATE_CHANGED':
             updateGameState(message);
+            handlePhaseChange(message.phase);
             break;
             
         default:
             console.warn('Unknown message type:', message.type);
+    }
+}
+
+function handlePhaseChange(newPhase) {
+    switch (newPhase) {
+        case 'WAITING':
+            showWaitingMessage('다른 플레이어를 기다리는 중...');
+            disableMessageInput();
+            break;
+            
+        case 'TURN_INPUT':
+            hideWaitingMessage();
+            enableMessageInput();
+            showInputPrompt('자유롭게 행동을 입력하세요');
+            break;
+            
+        case 'AI_RESPONSE':
+            disableMessageInput();
+            showLoadingMessage('AI가 응답을 생성하고 있습니다...');
+            break;
+            
+        case 'GAME_END':
+            disableMessageInput();
+            showGameEndMessage();
+            break;
     }
 }
 ```

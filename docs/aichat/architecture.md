@@ -30,16 +30,22 @@ Client → REST API → GameRoomService → MongoDB
 ### 2. 실시간 채팅 플로우
 ```
 Client → WebSocket STOMP → MessageService → MongoDB
-                                         ↓
-Redis Pub/Sub → All Connected Clients
+                               ↓
+                    Phase Change: TURN_INPUT → AI_RESPONSE
+                               ↓
+                    Redis Pub/Sub → All Connected Clients
 ```
 
 ### 3. AI 응답 생성 플로우
 ```
-Client → REST API → AiResponseService → Python AI Service
-                                              ↓
-                   MongoDB ← Response Processing
-                       ↓
+User Message → Phase: AI_RESPONSE → Python AI Service
+                        ↓                    ↓
+            Block All User Input    Generate Response
+                        ↓                    ↓
+                   MongoDB ← AI Response Processing
+                        ↓
+            Phase: AI_RESPONSE → TURN_INPUT
+                        ↓
                 Redis Pub/Sub → All Clients
 ```
 
