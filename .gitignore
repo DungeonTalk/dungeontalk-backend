@@ -36,6 +36,16 @@ out/
 ### VS Code ###
 .vscode/
 
+### Environment Variables ###
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+### Claude Code ###
+.claude/
+
 ### pem ###
 .pem
 

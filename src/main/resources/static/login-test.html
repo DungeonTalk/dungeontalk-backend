@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>던전톡 로그인 테스트</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 400px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background: #5a6fd8;
+        }
+        
+        .register-btn {
+            background: #28a745;
+        }
+        
+        .register-btn:hover {
+            background: #218838;
+        }
+        
+        .test-users {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .test-users h4 {
+            margin-top: 0;
+            color: #666;
+        }
+        
+        .test-user {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .success {
+            color: #28a745;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="header">
+            <h1>🎲 던전톡 로그인</h1>
+            <p>AI 채팅 테스트를 위한 로그인</p>
+        </div>
+        
+        <div class="form-group">
+            <label>사용자 ID:</label>
+            <input type="text" id="userId" placeholder="사용자 ID를 입력하세요" value="testuser1" />
+        </div>
+        
+        <div class="form-group">
+            <label>비밀번호:</label>
+            <input type="password" id="password" placeholder="비밀번호를 입력하세요" value="password123" />
+        </div>
+        
+        <button onclick="login()">로그인</button>
+        <button onclick="register()" class="register-btn">회원가입 (테스트용)</button>
+        
+        <div id="message"></div>
+        
+        <div class="test-users">
+            <h4>테스트용 사용자 생성</h4>
+            <div class="test-user">
+                <span>ID: testuser1</span>
+                <span>PW: password123</span>
+            </div>
+            <div class="test-user">
+                <span>ID: testuser2</span>
+                <span>PW: password123</span>
+            </div>
+            <div class="test-user">
+                <span>ID: gm</span>
+                <span>PW: gmpassword</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 회원가입 (테스트용)
+        async function register() {
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+            
+            if (!userId || !password) {
+                showMessage('사용자 ID와 비밀번호를 입력하세요.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/v1/member/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: userId,           // id → name 변경
+                        nickName: userId + '님',
+                        password: password      // phoneNumber 제거
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage('회원가입 성공! 이제 로그인하세요.', 'success');
+                } else {
+                    const error = await response.text();
+                    showMessage('회원가입 실패: ' + error, 'error');
+                }
+            } catch (error) {
+                showMessage('회원가입 오류: ' + error.message, 'error');
+            }
+        }
+        
+        // 로그인
+        async function login() {
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+            
+            if (!userId || !password) {
+                showMessage('사용자 ID와 비밀번호를 입력하세요.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: userId,       // id → name 변경
+                        password: password
+                    })
+                });
+                
+                if (response.ok) {
+                    const response_data = await response.json();
+                    console.log('🔥 로그인 API 전체 응답:', response_data);
+                    
+                    const loginData = response_data.data; // RsData의 data 필드에 실제 데이터가 있음
+                    console.log('🔥 로그인 데이터:', loginData);
+                    
+                    // JWT 토큰을 localStorage에 저장
+                    localStorage.setItem('authToken', loginData.accessToken);
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        id: loginData.memberId,
+                        nickname: userId + '님' // AuthLoginResponse에는 nickname 필드가 없음
+                    }));
+                    
+                    showMessage('로그인 성공! AI 채팅 페이지로 이동합니다.', 'success');
+                    
+                    // 2초 후 AI 채팅 페이지로 이동
+                    setTimeout(() => {
+                        window.location.href = '/ai-chat-test.html';
+                    }, 2000);
+                    
+                } else {
+                    const error = await response.text();
+                    showMessage('로그인 실패: ' + error, 'error');
+                }
+            } catch (error) {
+                showMessage('로그인 오류: ' + error.message, 'error');
+            }
+        }
+        
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${msg}</div>`;
+        }
+        
+        // 엔터키로 로그인
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+        
+        // 페이지 로드시 기존 로그인 확인
+        window.addEventListener('load', function() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                showMessage('이미 로그인되어 있습니다. AI 채팅 페이지로 이동하시겠습니까?', 'success');
+            }
+        });
+    </script>
+</body>
+</html>

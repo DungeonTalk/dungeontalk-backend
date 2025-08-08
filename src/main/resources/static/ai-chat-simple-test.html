@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 채팅 간단 테스트</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        input, textarea, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        input[type="text"], textarea {
+            width: 300px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            min-width: 100px;
+            margin-left: 10px;
+        }
+        
+        button:hover {
+            background: #5a6fd8;
+        }
+        
+        .response {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 20px;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            color: #2e7d2e;
+            border: 1px solid #c3e6c3;
+        }
+        
+        .error {
+            background: #ffeaea;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎲 AI 채팅 간단 테스트</h1>
+            <p>WebSocket 없이 API 직접 호출로 테스트</p>
+        </div>
+        
+        <!-- 로그인 섹션 -->
+        <div class="section">
+            <h3>1. 로그인 테스트</h3>
+            <div class="form-group">
+                <label>사용자 ID:</label>
+                <input type="text" id="loginId" value="testuser1" />
+                <button onclick="register()">회원가입</button>
+                <button onclick="login()">로그인</button>
+            </div>
+            <div class="form-group">
+                <label>비밀번호:</label>
+                <input type="password" id="loginPassword" value="password123" />
+            </div>
+            <div id="loginResponse" class="response"></div>
+        </div>
+        
+        <!-- AI 게임방 섹션 -->
+        <div class="section">
+            <h3>2. AI 게임방 테스트</h3>
+            <div class="form-group">
+                <label>게임 ID:</label>
+                <input type="text" id="gameId" value="test-game-001" />
+                <button onclick="createAiRoom()">방 생성</button>
+            </div>
+            <div class="form-group">
+                <label>방 이름:</label>
+                <input type="text" id="roomName" value="테스트 AI 방" />
+            </div>
+            <div class="form-group">
+                <label>생성된 방 ID:</label>
+                <input type="text" id="roomId" readonly />
+                <button onclick="getRoomInfo()">방 정보 조회</button>
+            </div>
+            <div id="roomResponse" class="response"></div>
+        </div>
+        
+        <!-- AI 응답 테스트 섹션 -->
+        <div class="section">
+            <h3>3. AI 응답 생성 테스트</h3>
+            <div class="form-group">
+                <label>현재 사용자:</label>
+                <input type="text" id="currentUser" value="테스터1" />
+            </div>
+            <div class="form-group">
+                <label>메시지:</label>
+                <textarea id="userMessage" rows="3">안녕하세요! 새로운 던전 탐험을 시작하고 싶습니다.</textarea>
+            </div>
+            <div class="form-group">
+                <label>턴 번호:</label>
+                <input type="number" id="turnNumber" value="1" min="1" />
+                <button onclick="generateAiResponse()">AI 응답 생성</button>
+            </div>
+            <div id="aiResponse" class="response"></div>
+        </div>
+        
+        <!-- AI 서비스 상태 확인 -->
+        <div class="section">
+            <h3>4. AI 서비스 상태 확인</h3>
+            <div class="form-group">
+                <button onclick="checkAiService()">Python AI 서비스 상태 확인</button>
+                <button onclick="testAiDirectly()">Python AI 직접 테스트</button>
+            </div>
+            <div id="aiServiceResponse" class="response"></div>
+        </div>
+        
+        <!-- 토큰 정보 -->
+        <div class="section">
+            <h3>5. 현재 인증 상태</h3>
+            <div class="form-group">
+                <button onclick="showTokenInfo()">토큰 정보 보기</button>
+                <button onclick="clearTokens()">토큰 삭제</button>
+            </div>
+            <div id="tokenInfo" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        // 공통 함수들
+        function getAuthHeaders() {
+            const token = localStorage.getItem('authToken');
+            return token ? { 'Authorization': 'Bearer ' + token } : {};
+        }
+        
+        function showResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.className = 'response ' + (isError ? 'error' : 'success');
+            
+            if (typeof data === 'object') {
+                element.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } else {
+                element.innerHTML = data;
+            }
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.className = 'response error';
+            element.innerHTML = message;
+        }
+        
+        // 1. 회원가입
+        async function register() {
+            const id = document.getElementById('loginId').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!id || !password) {
+                showError('loginResponse', '사용자 ID와 비밀번호를 입력하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/v1/member/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: id,
+                        nickName: id + '님',
+                        password: password
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResponse('loginResponse', '회원가입 성공: ' + JSON.stringify(data));
+                } else {
+                    const error = await response.text();
+                    showError('loginResponse', '회원가입 실패: ' + error);
+                }
+            } catch (error) {
+                showError('loginResponse', '회원가입 오류: ' + error.message);
+            }
+        }
+        
+        // 2. 로그인
+        async function login() {
+            const id = document.getElementById('loginId').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!id || !password) {
+                showError('loginResponse', '사용자 ID와 비밀번호를 입력하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: id,
+                        password: password
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // JWT 토큰 저장
+                    localStorage.setItem('authToken', data.accessToken);
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        id: data.memberId,
+                        nickname: data.memberNickName || id + '님'
+                    }));
+                    
+                    showResponse('loginResponse', '로그인 성공: ' + JSON.stringify(data));
+                    document.getElementById('currentUser').value = data.memberNickName || id + '님';
+                } else {
+                    const error = await response.text();
+                    showError('loginResponse', '로그인 실패: ' + error);
+                }
+            } catch (error) {
+                showError('loginResponse', '로그인 오류: ' + error.message);
+            }
+        }
+        
+        // 3. AI 게임방 생성
+        async function createAiRoom() {
+            const gameId = document.getElementById('gameId').value;
+            const roomName = document.getElementById('roomName').value;
+            
+            if (!gameId || !roomName) {
+                showError('roomResponse', '게임 ID와 방 이름을 입력하세요.');
+                return;
+            }
+            
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            if (!currentUser.id) {
+                showError('roomResponse', '먼저 로그인해주세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v1/aichat/rooms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({
+                        gameId: gameId,
+                        roomName: roomName,
+                        description: '테스트용 AI 게임방',
+                        maxParticipants: 3,
+                        creatorId: currentUser.id
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('roomId').value = data.id;
+                    showResponse('roomResponse', '방 생성 성공: ' + JSON.stringify(data));
+                } else {
+                    const error = await response.text();
+                    showError('roomResponse', '방 생성 실패: ' + error);
+                }
+            } catch (error) {
+                showError('roomResponse', '방 생성 오류: ' + error.message);
+            }
+        }
+        
+        // 4. 방 정보 조회
+        async function getRoomInfo() {
+            const roomId = document.getElementById('roomId').value;
+            
+            if (!roomId) {
+                showError('roomResponse', '방 ID를 입력하거나 먼저 방을 생성하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/v1/aichat/rooms/${roomId}`, {
+                    method: 'GET',
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResponse('roomResponse', '방 정보: ' + JSON.stringify(data));
+                } else {
+                    const error = await response.text();
+                    showError('roomResponse', '방 정보 조회 실패: ' + error);
+                }
+            } catch (error) {
+                showError('roomResponse', '방 정보 조회 오류: ' + error.message);
+            }
+        }
+        
+        // 5. AI 응답 생성
+        async function generateAiResponse() {
+            const roomId = document.getElementById('roomId').value;
+            const gameId = document.getElementById('gameId').value;
+            const currentUser = document.getElementById('currentUser').value;
+            const message = document.getElementById('userMessage').value;
+            const turnNumber = parseInt(document.getElementById('turnNumber').value);
+            
+            if (!roomId || !gameId || !currentUser || !message) {
+                showError('aiResponse', '모든 필드를 입력해주세요. (방 ID, 게임 ID, 사용자, 메시지)');
+                return;
+            }
+            
+            try {
+                showResponse('aiResponse', 'AI 응답 생성 중...', false);
+                
+                const response = await fetch(`/api/v1/aichat/ai-service/rooms/${roomId}/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({
+                        gameId: gameId,
+                        currentUser: currentUser,
+                        currentMessage: message,
+                        turnNumber: turnNumber
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResponse('aiResponse', 'AI 응답 생성 성공: ' + JSON.stringify(data));
+                    // 턴 번호 증가
+                    document.getElementById('turnNumber').value = turnNumber + 1;
+                } else {
+                    const error = await response.text();
+                    showError('aiResponse', 'AI 응답 생성 실패: ' + error);
+                }
+            } catch (error) {
+                showError('aiResponse', 'AI 응답 생성 오류: ' + error.message);
+            }
+        }
+        
+        // 6. AI 서비스 상태 확인
+        async function checkAiService() {
+            try {
+                const response = await fetch('http://localhost:8001/health');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResponse('aiServiceResponse', 'AI 서비스 상태: ' + JSON.stringify(data));
+                } else {
+                    showError('aiServiceResponse', 'AI 서비스 연결 실패: ' + response.statusText);
+                }
+            } catch (error) {
+                showError('aiServiceResponse', 'AI 서비스 확인 오류: ' + error.message);
+            }
+        }
+        
+        // 7. Python AI 직접 테스트
+        async function testAiDirectly() {
+            try {
+                const response = await fetch('http://localhost:8001/ai-response', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        game_id: "test-game-001",
+                        ai_game_room_id: "test-room-001",
+                        current_user: "테스터",
+                        current_message: "안녕하세요! 새로운 던전을 탐험하고 싶습니다.",
+                        context_messages: [],
+                        turn_number: 1
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResponse('aiServiceResponse', 'Python AI 직접 응답: ' + JSON.stringify(data));
+                } else {
+                    const error = await response.text();
+                    showError('aiServiceResponse', 'Python AI 직접 테스트 실패: ' + error);
+                }
+            } catch (error) {
+                showError('aiServiceResponse', 'Python AI 직접 테스트 오류: ' + error.message);
+            }
+        }
+        
+        // 8. 토큰 정보 표시
+        function showTokenInfo() {
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('currentUser');
+            
+            if (token && user) {
+                const tokenInfo = {
+                    token: token.substring(0, 50) + '...',
+                    user: JSON.parse(user),
+                    tokenLength: token.length
+                };
+                showResponse('tokenInfo', '현재 인증 정보: ' + JSON.stringify(tokenInfo));
+            } else {
+                showError('tokenInfo', '저장된 토큰이 없습니다. 로그인해주세요.');
+            }
+        }
+        
+        // 9. 토큰 삭제
+        function clearTokens() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            showResponse('tokenInfo', '토큰이 삭제되었습니다.');
+        }
+        
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('currentUser');
+            
+            if (token && user) {
+                const userData = JSON.parse(user);
+                document.getElementById('currentUser').value = userData.nickname || userData.id + '님';
+                showResponse('tokenInfo', `기존 로그인 상태 확인됨: ${userData.nickname}`);
+            }
+        });
+    </script>
+</body>
+</html>
