@@ -1,4 +1,4 @@
-# 🏗️ AI Chat System Architecture
+# 🏗️ AI 채팅 시스템 아키텍처
 
 ## 시스템 개요
 

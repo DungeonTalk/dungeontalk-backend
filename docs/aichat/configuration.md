@@ -1,4 +1,4 @@
-# 🔧 AI Chat System Configuration Guide
+# 🔧 AI 채팅 시스템 설정 가이드
 
 ## 환경 설정
 

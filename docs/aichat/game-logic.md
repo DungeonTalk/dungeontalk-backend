@@ -1,4 +1,4 @@
-# 🎮 AI Chat Game Logic Documentation
+# 🎮 AI 채팅 게임 로직 문서
 
 ## 게임 시스템 개요
 

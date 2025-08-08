@@ -1,4 +1,4 @@
-# 🤖 AI Service Integration Guide
+# 🤖 AI 서비스 연동 가이드
 
 ## 개요
 

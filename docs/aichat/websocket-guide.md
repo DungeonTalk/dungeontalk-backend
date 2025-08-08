@@ -1,4 +1,4 @@
-# ⚡ WebSocket Real-time Communication Guide
+# ⚡ WebSocket 실시간 통신 가이드
 
 ## 개요
 

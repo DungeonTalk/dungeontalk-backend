@@ -1,4 +1,4 @@
-# 🚀 AI Chat API Guide
+# 🚀 AI 채팅 API 가이드
 
 ## REST API 엔드포인트
 

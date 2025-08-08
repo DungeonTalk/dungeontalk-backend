@@ -1,4 +1,4 @@
-# AI Chat System Documentation
+# AI 채팅 시스템 문서
 
 DungeonTalk의 AI 채팅 시스템에 대한 종합적인 문서입니다.
 
@@ -6,13 +6,13 @@ DungeonTalk의 AI 채팅 시스템에 대한 종합적인 문서입니다.
 
 - [🏗️ 시스템 아키텍처](./architecture.md) - AI 채팅 시스템의 전체 구조와 컴포넌트
 - [🚀 API 가이드](./api-guide.md) - REST API 및 WebSocket API 사용법
-- [⚡ 실시간 통신](./websocket-guide.md) - WebSocket STOMP 메시징 시스템
-- [🤖 AI 서비스 연동](./ai-service-integration.md) - Python AI 서비스 연동 방법
-- [🔧 설정 가이드](./configuration.md) - 시스템 설정 및 환경 구성
-- [🧪 테스팅 가이드](./testing-guide.md) - 테스트 도구 및 방법론
-- [🎮 게임 로직](./game-logic.md) - 자유형 게임 시스템 및 상태 관리
-- [🎯 게임 페이즈](./game-phases.md) - 게임 페이즈별 상세 설명 및 전환 규칙
-- [🚨 문제 해결](./troubleshooting.md) - 일반적인 오류 해결 및 디버깅
+- [⚡ 실시간 통신 가이드](./websocket-guide.md) - WebSocket STOMP 메시징 시스템
+- [🤖 AI 서비스 연동 가이드](./ai-service-integration.md) - Python AI 서비스 연동 방법
+- [🔧 시스템 설정 가이드](./configuration.md) - 시스템 설정 및 환경 구성
+- [🧪 테스트 가이드](./testing-guide.md) - 테스트 도구 및 방법론
+- [🎮 게임 로직 문서](./game-logic.md) - 자유형 게임 시스템 및 상태 관리
+- [🎯 게임 페이즈 참조서](./game-phases.md) - 게임 페이즈별 상세 설명 및 전환 규칙
+- [🚨 문제 해결 가이드](./troubleshooting.md) - 일반적인 오류 해결 및 디버깅
 
 ## 🎯 주요 기능
 
@@ -39,9 +39,9 @@ DungeonTalk의 AI 채팅 시스템에 대한 종합적인 문서입니다.
 ## 🔗 관련 링크
 
 - [Backend Repository](https://github.com/your-repo/dungeontalk-backend)
-- [API Documentation](./api-guide.md)
-- [Game Logic Guide](./game-logic.md)
-- [Troubleshooting Guide](./troubleshooting.md)
+- [API 가이드](./api-guide.md)
+- [게임 로직 문서](./game-logic.md)
+- [문제 해결 가이드](./troubleshooting.md)
 
 ## 📝 업데이트 로그
 

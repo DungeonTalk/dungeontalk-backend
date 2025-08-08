@@ -1,4 +1,4 @@
-# 🎮 AI Chat Game Phases Reference
+# 🎯 AI 채팅 게임 페이즈 참조서
 
 ## 게임 페이즈 상세 설명
 

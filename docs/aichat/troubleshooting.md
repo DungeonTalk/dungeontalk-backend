@@ -1,4 +1,4 @@
-# 🚨 AI Chat System Troubleshooting Guide
+# 🚨 AI 채팅 시스템 문제 해결 가이드
 
 ## 일반적인 문제 해결
 
