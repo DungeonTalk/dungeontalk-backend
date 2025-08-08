@@ -368,7 +368,10 @@
             try {
                 // WebSocket 구독 설정
                 if (stompClient && stompClient.connected) {
-                    stompClient.subscribe('/sub/aichat/room/' + currentRoomId, function(message) {
+                    const subscriptionPath = '/sub/aichat/room/' + currentRoomId;
+                    console.log('🔥 WebSocket 구독 시도:', subscriptionPath);
+                    stompClient.subscribe(subscriptionPath, function(message) {
+                        console.log('🔥 원시 메시지 수신:', message.body);
                         const messageData = JSON.parse(message.body);
                         handleWebSocketMessage(messageData);
                     });
@@ -417,6 +420,9 @@
                 messageType: 'USER',
                 turnNumber: currentTurn
             }));
+            
+            // 자신의 메시지 즉시 표시
+            addMessage('user', message, userNickname);
             
             messageInput.value = '';
         }
@@ -522,17 +528,25 @@
         
         // WebSocket 메시지 처리
         function handleWebSocketMessage(messageData) {
+            console.log('🔥 WebSocket 메시지 수신:', messageData);
             const messageType = messageData.messageType || messageData.type;
             const sender = messageData.senderNickname || messageData.sender || 'Unknown';
             const content = messageData.content || messageData.message;
             
-            if (messageType === 'USER') {
+            console.log('🔥 처리된 데이터:', { messageType, sender, content });
+            
+            // 자신이 보낸 메시지인지 확인
+            const currentUserId = JSON.parse(localStorage.getItem('currentUser')).id;
+            const isMyMessage = messageData.senderId === currentUserId;
+            
+            if (messageType === 'USER' && !isMyMessage) {
+                // 다른 사람의 메시지만 표시
                 addMessage('user', content, sender);
             } else if (messageType === 'AI') {
                 addMessage('ai', content, '던전 마스터', messageData.aiResponseTime);
                 isAiProcessing = false;
                 updateSendButton();
-            } else {
+            } else if (messageType !== 'USER') {
                 addMessage('system', content);
             }
         }
@@ -543,8 +557,11 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
             
+            // content가 undefined인 경우 처리
+            const safeContent = content || '';
+            
             // 줄바꿈 문자 처리: \n을 <br>로 변환하고 HTML 이스케이프 처리
-            const processedContent = content
+            const processedContent = safeContent
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
