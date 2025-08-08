@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.com.dungeontalk.global.security.JwtProvider;
+import org.com.dungeontalk.global.security.JwtRedisService;
 import org.com.dungeontalk.global.security.JwtService;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -18,6 +20,8 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 public class JwtHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
 
     private final JwtService jwtService;
+    private final JwtProvider jwtProvider;
+    private final JwtRedisService jwtRedisService;
 
     public boolean beforeHandshake(
         ServerHttpRequest request,
@@ -36,12 +40,12 @@ public class JwtHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
                 return false;
             }
 
-            if (!jwtService.validateToken(token)) {
+            if (!jwtProvider.validateToken(token)) {
                 log.warn("❌ WebSocket 인증 실패: 유효하지 않은 토큰");
                 return false;
             }
 
-            if (!jwtService.isTokenBlacklisted(token)) {
+            if (!jwtRedisService.isTokenBlacklisted(token)) {
                 log.warn("❌ WebSocket 인증 실패: Redis에 저장되지 않은 토큰 (로그아웃 상태)");
                 return false;
             }

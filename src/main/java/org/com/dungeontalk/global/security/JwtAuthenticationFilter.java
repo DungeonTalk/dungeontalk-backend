@@ -20,6 +20,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final JwtExtractor jwtExtractor;
 
     // 권한 체크가 불필요한 API들을 패스하는 메서드
     private boolean isPublicApi(HttpServletRequest request) {
@@ -53,7 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String accessToken = jwtService.extractAccessToken(request);
+            String accessToken = jwtExtractor.extractAccessToken(request);
 
             if (accessToken == null || accessToken.isEmpty()) {
                 // 토큰 없으면 401 Unauthorized
@@ -77,5 +78,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
         }
     }
+
+
 
 }
