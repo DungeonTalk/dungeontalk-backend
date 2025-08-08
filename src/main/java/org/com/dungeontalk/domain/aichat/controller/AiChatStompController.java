@@ -4,12 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.com.dungeontalk.domain.aichat.util.AiChatErrorHandler;
+import org.com.dungeontalk.domain.aichat.util.AiChatLogUtils;
 import org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest;
 import org.com.dungeontalk.domain.aichat.service.AiGameMessageService;
 import org.com.dungeontalk.domain.aichat.service.AiGameStateService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
+import org.com.dungeontalk.global.exception.customException.AiChatException;
+
+import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
 @Slf4j
 @Controller
@@ -19,6 +24,7 @@ public class AiChatStompController {
     private final AiGameMessageService aiGameMessageService;
     private final AiGameStateService aiGameStateService;
     private final ObjectMapper objectMapper;
+    private final AiChatErrorHandler errorHandler;
 
     /**
      * 클라이언트로부터 AI 채팅 메시지를 수신하는 엔드포인트
@@ -29,9 +35,9 @@ public class AiChatStompController {
      */
     @MessageMapping("/aichat/send")
     public void sendMessage(@Payload AiGameMessageSendRequest request) throws JsonProcessingException {
-        log.debug("AI 채팅 STOMP 메시지 수신: {}", objectMapper.writeValueAsString(request));
+        AiChatLogUtils.logGameActionStart("AI 채팅 메시지 수신", request.getAiGameRoomId());
 
-        try {
+        errorHandler.executeWithLogging(() -> {
             // AI 응답 처리 중인지 확인
             if (aiGameStateService.isAiProcessing(request.getAiGameRoomId())) {
                 log.warn("AI 응답 처리 중이므로 메시지 전송 차단: roomId={}", request.getAiGameRoomId());
@@ -50,14 +56,9 @@ public class AiChatStompController {
             // 세션 만료 시간 연장
             aiGameStateService.extendSession(request.getAiGameRoomId());
 
-            log.info("AI 채팅 메시지 처리 완료: roomId={}, sender={}, type={}", 
-                     request.getAiGameRoomId(), request.getSenderId(), request.getMessageType());
-
-        } catch (Exception e) {
-            log.error("AI 채팅 메시지 처리 중 오류 발생: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage(), e);
-            throw e;
-        }
+            AiChatLogUtils.logGameAction("AI 채팅 메시지 처리", request.getAiGameRoomId(), 
+                                      request.getSenderId(), request.getMessageType());
+        }, "AI 채팅 메시지 처리", request.getAiGameRoomId());
     }
 
     /**
@@ -81,8 +82,16 @@ public class AiChatStompController {
             log.info("AI 채팅방 입장 완료: roomId={}, participant={}", 
                      request.getAiGameRoomId(), request.getSenderId());
 
+        } catch (AiChatException e) {
+            log.error("AI 채팅방 입장 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
+                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
+            throw e;
+        } catch (JsonProcessingException e) {
+            log.error("AI 채팅방 입장 중 JSON 처리 실패: roomId={}, error={}", 
+                      request.getAiGameRoomId(), e.getMessage());
+            throw e;
         } catch (Exception e) {
-            log.error("AI 채팅방 입장 중 오류 발생: roomId={}, error={}", 
+            log.error("예상치 못한 AI 채팅방 입장 오류: roomId={}, error={}", 
                       request.getAiGameRoomId(), e.getMessage(), e);
             throw e;
         }
@@ -109,8 +118,16 @@ public class AiChatStompController {
             log.info("AI 채팅방 퇴장 완료: roomId={}, participant={}", 
                      request.getAiGameRoomId(), request.getSenderId());
 
+        } catch (AiChatException e) {
+            log.error("AI 채팅방 퇴장 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
+                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
+            throw e;
+        } catch (JsonProcessingException e) {
+            log.error("AI 채팅방 퇴장 중 JSON 처리 실패: roomId={}, error={}", 
+                      request.getAiGameRoomId(), e.getMessage());
+            throw e;
         } catch (Exception e) {
-            log.error("AI 채팅방 퇴장 중 오류 발생: roomId={}, error={}", 
+            log.error("예상치 못한 AI 채팅방 퇴장 오류: roomId={}, error={}", 
                       request.getAiGameRoomId(), e.getMessage(), e);
             throw e;
         }
@@ -128,16 +145,24 @@ public class AiChatStompController {
 
         try {
             request.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.TURN_START);
-            request.setSenderId("SYSTEM");
-            request.setSenderNickname("시스템");
+            request.setSenderId(SYSTEM_SENDER_ID);
+            request.setSenderNickname(SYSTEM_SENDER_NICKNAME);
 
             aiGameMessageService.processMessage(request);
 
             log.info("AI 게임 턴 시작: roomId={}, turn={}", 
                      request.getAiGameRoomId(), request.getTurnNumber());
 
+        } catch (AiChatException e) {
+            log.error("AI 게임 턴 시작 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
+                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
+            throw e;
+        } catch (JsonProcessingException e) {
+            log.error("AI 게임 턴 시작 중 JSON 처리 실패: roomId={}, error={}", 
+                      request.getAiGameRoomId(), e.getMessage());
+            throw e;
         } catch (Exception e) {
-            log.error("AI 게임 턴 시작 중 오류 발생: roomId={}, error={}", 
+            log.error("예상치 못한 AI 게임 턴 시작 오류: roomId={}, error={}", 
                       request.getAiGameRoomId(), e.getMessage(), e);
             throw e;
         }
@@ -155,8 +180,8 @@ public class AiChatStompController {
 
         try {
             request.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.TURN_END);
-            request.setSenderId("SYSTEM");
-            request.setSenderNickname("시스템");
+            request.setSenderId(SYSTEM_SENDER_ID);
+            request.setSenderNickname(SYSTEM_SENDER_NICKNAME);
 
             aiGameMessageService.processMessage(request);
 
@@ -166,8 +191,16 @@ public class AiChatStompController {
             log.info("AI 게임 턴 종료: roomId={}, turn={}", 
                      request.getAiGameRoomId(), request.getTurnNumber());
 
+        } catch (AiChatException e) {
+            log.error("AI 게임 턴 종료 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
+                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
+            throw e;
+        } catch (JsonProcessingException e) {
+            log.error("AI 게임 턴 종료 중 JSON 처리 실패: roomId={}, error={}", 
+                      request.getAiGameRoomId(), e.getMessage());
+            throw e;
         } catch (Exception e) {
-            log.error("AI 게임 턴 종료 중 오류 발생: roomId={}, error={}", 
+            log.error("예상치 못한 AI 게임 턴 종료 오류: roomId={}, error={}", 
                       request.getAiGameRoomId(), e.getMessage(), e);
             throw e;
         }
