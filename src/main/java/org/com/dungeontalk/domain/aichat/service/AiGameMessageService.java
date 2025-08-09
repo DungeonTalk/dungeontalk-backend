@@ -13,8 +13,13 @@ import org.com.dungeontalk.domain.aichat.entity.AiGameMessage;
 import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 import org.com.dungeontalk.domain.aichat.repository.AiGameMessageRepository;
 import org.com.dungeontalk.domain.aichat.repository.AiGameRoomRepository;
-import org.com.dungeontalk.domain.member.entity.Member;
-import org.com.dungeontalk.domain.member.repository.MemberRepository;
+import org.com.dungeontalk.domain.aichat.util.AiGameValidator;
+import org.com.dungeontalk.domain.aichat.service.AiGameRoomService;
+import org.com.dungeontalk.global.exception.ErrorCode;
+import org.com.dungeontalk.global.exception.customException.AiChatException;
+import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
+import org.com.dungeontalk.domain.aichat.config.AiChatConfigHelper;
+import org.com.dungeontalk.domain.aichat.dto.request.AiMessageSaveRequest;
 import org.com.dungeontalk.global.redis.RedisPublisher;
 import org.com.dungeontalk.global.util.UuidV7Creator;
 import org.springframework.data.domain.Pageable;
@@ -35,7 +40,8 @@ public class AiGameMessageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final AiGameMessageRepository aiGameMessageRepository;
     private final AiGameRoomRepository aiGameRoomRepository;
-    private final MemberRepository memberRepository;
+    private final AiGameValidator aiGameValidator;
+    private final AiGameRoomService aiGameRoomService;
     private final RedisPublisher redisPublisher;
     private final ObjectMapper objectMapper;
 
@@ -51,11 +57,11 @@ public class AiGameMessageService {
             case SYSTEM -> messageDto = handleSystemMessage(request);
             case TURN_START -> messageDto = handleTurnStartMessage(request);
             case TURN_END -> messageDto = handleTurnEndMessage(request);
-            default -> throw new IllegalArgumentException("지원하지 않는 메시지 타입: " + request.getMessageType());
+            default -> throw new AiChatException(ErrorCode.AI_GAME_MESSAGE_INVALID_STATE);
         }
 
         // WebSocket 브로드캐스트
-        String destination = "/sub/aichat/room/" + request.getAiGameRoomId();
+        String destination = WEBSOCKET_DESTINATION_PREFIX + request.getAiGameRoomId();
         messagingTemplate.convertAndSend(destination, messageDto);
 
         // Redis 메시지 브로드캐스트
@@ -70,15 +76,13 @@ public class AiGameMessageService {
      */
     @Transactional
     public AiGameMessageDto handleUserMessage(AiGameMessageSendRequest request) {
-        validateGameRoom(request.getAiGameRoomId());
-        validateSender(request.getSenderId());
+        aiGameValidator.validateGameRoomAndSender(request.getAiGameRoomId(), request.getSenderId());
 
-        AiGameRoom room = aiGameRoomRepository.findById(request.getAiGameRoomId())
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다"));
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(request.getAiGameRoomId());
 
         // 턴제 검증
         if (!room.getCurrentPhase().equals(AiGamePhase.TURN_INPUT)) {
-            throw new IllegalStateException("현재 사용자 입력을 받을 수 없는 상태입니다: " + room.getCurrentPhase());
+            throw new AiChatException(ErrorCode.AI_GAME_MESSAGE_INVALID_STATE);
         }
 
         // 다음 메시지 순서 계산
@@ -110,42 +114,59 @@ public class AiGameMessageService {
     }
 
     /**
-     * AI 메시지 저장 (AI 서비스에서 호출)
+     * AI 메시지 저장 (매개변수 객체 패턴 적용)
      */
     @Transactional
-    public AiGameMessageDto saveAiMessage(String aiGameRoomId, String gameId, String content, 
-                                         int turnNumber, Long responseTime, String aiSources) {
-        validateGameRoom(aiGameRoomId);
+    public AiGameMessageDto saveAiMessage(AiMessageSaveRequest request) {
+        request.validate();
+        aiGameValidator.validateGameRoom(request.getAiGameRoomId());
 
-        int nextMessageOrder = getNextMessageOrder(aiGameRoomId, turnNumber);
+        int nextMessageOrder = getNextMessageOrder(request.getAiGameRoomId(), request.getTurnNumber());
 
         AiGameMessage message = AiGameMessage.builder()
                 .id(UuidV7Creator.create())
-                .aiGameRoomId(aiGameRoomId)
-                .gameId(gameId)
-                .senderId("AI_GM")
-                .senderNickname("던전 마스터")
-                .content(content)
+                .aiGameRoomId(request.getAiGameRoomId())
+                .gameId(request.getGameId())
+                .senderId(AI_SENDER_ID)
+                .senderNickname(AI_SENDER_NICKNAME)
+                .content(request.getContent())
                 .messageType(AiMessageType.AI)
-                .turnNumber(turnNumber)
+                .turnNumber(request.getTurnNumber())
                 .messageOrder(nextMessageOrder)
-                .aiResponseTime(responseTime)
-                .aiSources(aiSources)
+                .aiResponseTime(request.getResponseTime())
+                .aiSources(request.getAiSources())
                 .createdAt(LocalDateTime.now())
                 .build();
 
         AiGameMessage saved = aiGameMessageRepository.save(message);
 
         // 게임방 마지막 활동 시간 업데이트
-        AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다"));
-        room.setLastActivity(LocalDateTime.now());
-        aiGameRoomRepository.save(room);
+        updateRoomLastActivity(request.getAiGameRoomId());
 
         log.info("AI 메시지 저장 완료: roomId={}, turn={}, responseTime={}ms", 
-                 aiGameRoomId, turnNumber, responseTime);
+                 request.getAiGameRoomId(), request.getTurnNumber(), request.getResponseTime());
 
         return AiGameMessageDto.fromEntity(saved);
+    }
+
+    /**
+     * AI 메시지 저장 (기존 방식 - 호환성을 위해 유지)
+     * @deprecated 대신 saveAiMessage(AiMessageSaveRequest)를 사용하세요
+     */
+    @Deprecated
+    @Transactional
+    public AiGameMessageDto saveAiMessage(String aiGameRoomId, String gameId, String content, 
+                                         int turnNumber, Long responseTime, String aiSources) {
+        AiMessageSaveRequest request = AiMessageSaveRequest.builder()
+                .aiGameRoomId(aiGameRoomId)
+                .gameId(gameId)
+                .content(content)
+                .turnNumber(turnNumber)
+                .responseTime(responseTime)
+                .aiSources(aiSources)
+                .build();
+        
+        return saveAiMessage(request);
     }
 
     /**
@@ -153,14 +174,14 @@ public class AiGameMessageService {
      */
     @Transactional
     public AiGameMessageDto handleSystemMessage(AiGameMessageSendRequest request) {
-        validateGameRoom(request.getAiGameRoomId());
+        aiGameValidator.validateGameRoom(request.getAiGameRoomId());
 
         AiGameMessage message = AiGameMessage.builder()
                 .id(UuidV7Creator.create())
                 .aiGameRoomId(request.getAiGameRoomId())
                 .gameId(request.getGameId())
-                .senderId("SYSTEM")
-                .senderNickname("시스템")
+                .senderId(SYSTEM_SENDER_ID)
+                .senderNickname(SYSTEM_SENDER_NICKNAME)
                 .content(request.getContent())
                 .messageType(AiMessageType.SYSTEM)
                 .turnNumber(request.getTurnNumber())
@@ -180,20 +201,20 @@ public class AiGameMessageService {
      */
     @Transactional
     public AiGameMessageDto handleTurnStartMessage(AiGameMessageSendRequest request) {
-        validateGameRoom(request.getAiGameRoomId());
+        aiGameValidator.validateGameRoom(request.getAiGameRoomId());
 
-        String content = "턴 " + request.getTurnNumber() + " 시작! 플레이어들의 행동을 기다립니다.";
+        String content = String.format(TURN_START_MESSAGE_TEMPLATE, request.getTurnNumber());
 
         AiGameMessage message = AiGameMessage.builder()
                 .id(UuidV7Creator.create())
                 .aiGameRoomId(request.getAiGameRoomId())
                 .gameId(request.getGameId())
-                .senderId("SYSTEM")
-                .senderNickname("시스템")
+                .senderId(SYSTEM_SENDER_ID)
+                .senderNickname(SYSTEM_SENDER_NICKNAME)
                 .content(content)
                 .messageType(AiMessageType.TURN_START)
                 .turnNumber(request.getTurnNumber())
-                .messageOrder(0) // 턴 시작은 항상 첫 번째
+                .messageOrder(AiChatConfigHelper.getTurnStartMessageOrder())
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -209,20 +230,20 @@ public class AiGameMessageService {
      */
     @Transactional
     public AiGameMessageDto handleTurnEndMessage(AiGameMessageSendRequest request) {
-        validateGameRoom(request.getAiGameRoomId());
+        aiGameValidator.validateGameRoom(request.getAiGameRoomId());
 
-        String content = "턴 " + request.getTurnNumber() + " 완료! 다음 턴을 준비합니다.";
+        String content = String.format(TURN_END_MESSAGE_TEMPLATE, request.getTurnNumber());
 
         AiGameMessage message = AiGameMessage.builder()
                 .id(UuidV7Creator.create())
                 .aiGameRoomId(request.getAiGameRoomId())
                 .gameId(request.getGameId())
-                .senderId("SYSTEM")
-                .senderNickname("시스템")
+                .senderId(SYSTEM_SENDER_ID)
+                .senderNickname(SYSTEM_SENDER_NICKNAME)
                 .content(content)
                 .messageType(AiMessageType.TURN_END)
                 .turnNumber(request.getTurnNumber())
-                .messageOrder(9999) // 턴 종료는 항상 마지막
+                .messageOrder(AiChatConfigHelper.getTurnEndMessageOrder())
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -237,13 +258,13 @@ public class AiGameMessageService {
      * AI 게임방 메시지 히스토리 조회 (페이징)
      */
     public List<AiGameMessageResponse> getMessageHistory(String aiGameRoomId, Pageable pageable) {
-        validateGameRoom(aiGameRoomId);
+        aiGameValidator.validateGameRoom(aiGameRoomId);
 
         List<AiGameMessage> messages = aiGameMessageRepository
                 .findByAiGameRoomIdOrderByCreatedAtDesc(aiGameRoomId, pageable);
 
         return messages.stream()
-                .map(this::convertToResponse)
+                .map(AiGameMessageResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -251,13 +272,13 @@ public class AiGameMessageService {
      * 특정 턴의 메시지들 조회
      */
     public List<AiGameMessageResponse> getTurnMessages(String aiGameRoomId, int turnNumber) {
-        validateGameRoom(aiGameRoomId);
+        aiGameValidator.validateGameRoom(aiGameRoomId);
 
         List<AiGameMessage> messages = aiGameMessageRepository
-                .findByAiGameRoomIdAndTurnNumberOrderByMessageOrder(aiGameRoomId, turnNumber);
+                .findTurnMessages(aiGameRoomId, turnNumber);
 
         return messages.stream()
-                .map(this::convertToResponse)
+                .map(AiGameMessageResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -265,7 +286,7 @@ public class AiGameMessageService {
      * AI 컨텍스트용 최근 턴들의 메시지 조회
      */
     public List<AiGameMessageDto> getContextMessages(String aiGameRoomId, int recentTurnCount, int currentTurn) {
-        validateGameRoom(aiGameRoomId);
+        aiGameValidator.validateGameRoom(aiGameRoomId);
 
         int fromTurn = Math.max(1, currentTurn - recentTurnCount + 1);
         List<AiGameMessage> messages = aiGameMessageRepository
@@ -276,16 +297,6 @@ public class AiGameMessageService {
                 .collect(Collectors.toList());
     }
 
-    private void validateGameRoom(String aiGameRoomId) {
-        if (!aiGameRoomRepository.existsById(aiGameRoomId)) {
-            throw new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId);
-        }
-    }
-
-    private void validateSender(String senderId) {
-        memberRepository.findById(senderId)
-                .orElseThrow(() -> new IllegalArgumentException("발신자 정보를 찾을 수 없습니다: " + senderId));
-    }
 
     private int getNextMessageOrder(String aiGameRoomId, int turnNumber) {
         List<AiGameMessage> turnMessages = aiGameMessageRepository
@@ -301,18 +312,13 @@ public class AiGameMessageService {
                 .orElse(0) + 1;
     }
 
-    private AiGameMessageResponse convertToResponse(AiGameMessage message) {
-        return AiGameMessageResponse.builder()
-                .messageId(message.getId())
-                .aiGameRoomId(message.getAiGameRoomId())
-                .senderId(message.getSenderId())
-                .senderNickname(message.getSenderNickname())
-                .content(message.getContent())
-                .messageType(message.getMessageType())
-                .turnNumber(message.getTurnNumber())
-                .messageOrder(message.getMessageOrder())
-                .aiResponseTime(message.getAiResponseTime())
-                .createdAt(message.getCreatedAt())
-                .build();
+    /**
+     * 게임방 마지막 활동 시간 업데이트 (공통 로직 추출)
+     */
+    private void updateRoomLastActivity(String aiGameRoomId) {
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
+        room.setLastActivity(LocalDateTime.now());
+        aiGameRoomRepository.save(room);
     }
+
 }
