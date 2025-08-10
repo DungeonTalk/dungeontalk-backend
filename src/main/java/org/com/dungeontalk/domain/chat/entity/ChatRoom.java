@@ -5,6 +5,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,7 +36,9 @@ public class ChatRoom {
 
     @Enumerated(EnumType.STRING)
     private ChatMode mode;                  // SINGLE or MULTI
-    private List<String> participants;      // RDB 회원 ID
+    
+    @Builder.Default
+    private List<String> participants = new ArrayList<>();      // RDB 회원 ID
 
 //    @Builder.Default
 //    private List<ChatMessage> messages = new ArrayList<>();

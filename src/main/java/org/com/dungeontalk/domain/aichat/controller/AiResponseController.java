@@ -13,7 +13,6 @@ import org.com.dungeontalk.domain.aichat.service.AiGameMessageService;
 import org.com.dungeontalk.domain.aichat.service.AiGameStateService;
 import org.com.dungeontalk.domain.aichat.service.AiResponseService;
 import org.com.dungeontalk.global.rsData.RsData;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
@@ -28,7 +27,6 @@ public class AiResponseController {
     private final AiGameMessageService aiGameMessageService;
     private final AiGameStateService aiGameStateService;
     private final AiResponseService aiResponseService;
-    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * 내부에서 AI 응답을 생성하고 처리하는 엔드포인트
@@ -75,8 +73,7 @@ public class AiResponseController {
                     .build();
             AiGameMessageDto savedMessage = aiGameMessageService.saveAiMessage(saveRequest);
 
-            // WebSocket 브로드캐스트 및 처리 완료
-            sendWebSocketMessage(roomId, savedMessage);
+            // AI 응답 완료 후 락 해제 및 다음 턴으로 진행 (WebSocket은 saveAiMessage에서 처리됨)
             int nextTurn = completeAiResponseAndProgressToNextTurn(roomId);
 
             log.info("AI 응답 생성 및 처리 완료: roomId={}, nextTurn={}, responseTime={}ms", 
@@ -115,8 +112,7 @@ public class AiResponseController {
                     .build();
             AiGameMessageDto savedMessage = aiGameMessageService.saveAiMessage(saveRequest);
 
-            // WebSocket 브로드캐스트 및 처리 완료
-            sendWebSocketMessage(roomId, savedMessage);
+            // AI 응답 완료 후 락 해제 및 다음 턴으로 진행 (WebSocket은 saveAiMessage에서 처리됨)
             int nextTurn = completeAiResponseAndProgressToNextTurn(roomId);
 
             log.info("AI 응답 처리 완료: roomId={}, nextTurn={}", roomId, nextTurn);
@@ -145,8 +141,7 @@ public class AiResponseController {
                     createErrorSystemMessage(roomId, request)
             );
 
-            // WebSocket으로 에러 메시지 브로드캐스트
-            sendWebSocketMessage(roomId, errorMessage);
+            // 에러 메시지는 handleSystemMessage에서 자동으로 WebSocket 브로드캐스트됨
 
             // 락 해제 및 게임 일시정지
             aiGameStateService.unlockAfterAiResponse(roomId);
@@ -173,14 +168,6 @@ public class AiResponseController {
         return RsData.of("200-1", "처리 상태 조회 완료", response);
     }
 
-    
-    /**
-     * WebSocket 메시지 전송 공통 메서드
-     */
-    private void sendWebSocketMessage(String roomId, Object message) {
-        String destination = WEBSOCKET_DESTINATION_PREFIX + roomId;
-        messagingTemplate.convertAndSend(destination, message);
-    }
     
     /**
      * AI 응답 완료 후 락 해제 및 다음 턴으로 진행하는 공통 메서드

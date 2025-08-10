@@ -60,13 +60,13 @@ public class AiGameMessageService {
             default -> throw new AiChatException(ErrorCode.AI_GAME_MESSAGE_INVALID_STATE);
         }
 
-        // WebSocket 브로드캐스트
-        String destination = WEBSOCKET_DESTINATION_PREFIX + request.getAiGameRoomId();
-        messagingTemplate.convertAndSend(destination, messageDto);
+        // 직접 WebSocket 브로드캐스트 제거 - Redis pub/sub를 통해서만 브로드캐스트
+        // String destination = WEBSOCKET_DESTINATION_PREFIX + request.getAiGameRoomId();
+        // messagingTemplate.convertAndSend(destination, messageDto);
 
-        // Redis 메시지 브로드캐스트
+        // AI 채팅 전용 Redis 메시지 브로드캐스트 (단일 브로드캐스트)
         String json = objectMapper.writeValueAsString(messageDto);
-        redisPublisher.publish(request.getAiGameRoomId(), json);
+        redisPublisher.publishAiChat(request.getAiGameRoomId(), json);
 
         return messageDto;
     }
@@ -143,10 +143,20 @@ public class AiGameMessageService {
         // 게임방 마지막 활동 시간 업데이트
         updateRoomLastActivity(request.getAiGameRoomId());
 
+        // AI 메시지를 WebSocket으로 브로드캐스트
+        AiGameMessageDto messageDto = AiGameMessageDto.fromEntity(saved);
+        try {
+            String json = objectMapper.writeValueAsString(messageDto);
+            redisPublisher.publishAiChat(request.getAiGameRoomId(), json);
+            log.info("AI 메시지 WebSocket 브로드캐스트 완료: roomId={}", request.getAiGameRoomId());
+        } catch (Exception e) {
+            log.error("AI 메시지 브로드캐스트 실패: roomId={}, error={}", request.getAiGameRoomId(), e.getMessage());
+        }
+
         log.info("AI 메시지 저장 완료: roomId={}, turn={}, responseTime={}ms", 
                  request.getAiGameRoomId(), request.getTurnNumber(), request.getResponseTime());
 
-        return AiGameMessageDto.fromEntity(saved);
+        return messageDto;
     }
 
     /**
