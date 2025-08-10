@@ -14,4 +14,8 @@ public class RedisPublisher {
         redisTemplate.convertAndSend("chatroom." + roomId, message);
     }
 
+    public void publishAiChat(String aiGameRoomId, String message) {
+        redisTemplate.convertAndSend("aichat." + aiGameRoomId, message);
+    }
+
 }

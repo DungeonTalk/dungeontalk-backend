@@ -35,14 +35,7 @@ public class RedisSubscriber implements MessageListener {
 
         // 기존 채팅 시스템: 문자열로 전송 (기존 방식 유지)
         messagingTemplate.convertAndSend("/sub/chat/room/" + roomId, payload);
-        
-        // AI 채팅 시스템: 객체로 전송 (새로 추가)
-        try {
-            Object messageData = objectMapper.readValue(payload, Object.class);
-            messagingTemplate.convertAndSend("/sub/aichat/room/" + roomId, messageData);
-        } catch (Exception e) {
-            log.warn("AI 채팅 메시지 처리 실패: {}", payload, e);
-        }
+        log.debug("일반 채팅 메시지 WebSocket 브로드캐스트 완료: /sub/chat/room/{}", roomId);
     }
 
 }

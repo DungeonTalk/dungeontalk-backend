@@ -10,8 +10,11 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class HttpClientConfig {
 
-    @Value("${ai.service.timeout:30000}")
+    @Value("${ai.service.timeout:60000}")  // 30초 → 60초(1분)로 변경
     private int aiServiceTimeout;
+
+    @Value("${ai.service.connect.timeout:10000}")  // 연결 타임아웃 10초
+    private int connectTimeout;
 
     @Bean
     public RestTemplate restTemplate() {
@@ -22,8 +25,8 @@ public class HttpClientConfig {
 
     private ClientHttpRequestFactory clientHttpRequestFactory() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(aiServiceTimeout);
-        factory.setReadTimeout(aiServiceTimeout);
+        factory.setConnectTimeout(connectTimeout);      // 연결 타임아웃 10초
+        factory.setReadTimeout(aiServiceTimeout);       // 읽기 타임아웃 60초 (AI 응답 대기)
         return factory;
     }
 }
