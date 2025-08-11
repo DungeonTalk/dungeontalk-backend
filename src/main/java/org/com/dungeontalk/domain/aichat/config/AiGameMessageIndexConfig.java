@@ -25,15 +25,23 @@ public class AiGameMessageIndexConfig {
 
     private final MongoTemplate mongoTemplate;
     private static final String COLLECTION_NAME = "ai_game_messages";
+    
+    @org.springframework.beans.factory.annotation.Value("${app.mongodb.auto-index:true}")
+    private boolean autoCreateIndex;
 
     @PostConstruct
     public void initIndexes() {
+        if (!autoCreateIndex) {
+            log.info("MongoDB 인덱스 자동 생성이 비활성화되어 있습니다");
+            return;
+        }
+        
         log.info("AI 게임 메시지 MongoDB 인덱스 초기화 시작");
         
         IndexOperations indexOps = mongoTemplate.indexOps(COLLECTION_NAME);
         
         try {
-            // 기존 인덱스 확인
+            // MongoDB 연결 테스트 (인증 확인)
             List<IndexInfo> existingIndexes = indexOps.getIndexInfo();
             log.info("기존 인덱스 개수: {}", existingIndexes.size());
             
@@ -53,7 +61,13 @@ public class AiGameMessageIndexConfig {
             log.info("AI 게임 메시지 인덱스 초기화 완료");
             
         } catch (Exception e) {
-            log.error("인덱스 생성 중 오류 발생", e);
+            // 인증 오류인 경우 로그 레벨 조정
+            if (e.getMessage() != null && e.getMessage().contains("authentication")) {
+                log.warn("MongoDB 인증이 필요합니다. 인덱스 자동 생성을 건너뜁니다: {}", e.getMessage());
+                log.info("해결 방법: application.yml에 MongoDB 인증 정보를 추가하거나 MongoDB를 --noauth 모드로 실행하세요");
+            } else {
+                log.error("인덱스 생성 중 오류 발생", e);
+            }
         }
     }
     

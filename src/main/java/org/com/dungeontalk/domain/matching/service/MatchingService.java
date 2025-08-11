@@ -43,6 +43,37 @@ public class MatchingService {
     private final MatchingWebSocketService webSocketService;
 
     /**
+     * WebSocket 매칭 참가 처리 (컨트롤러 단순화용)
+     */
+    public void handleWebSocketJoinMatching(String userId, WorldType worldType) {
+        try {
+            log.info("WebSocket 매칭 참가 요청: userId={}, worldType={}", userId, worldType);
+            joinMatching(userId, worldType);
+            
+        } catch (MatchingException e) {
+            log.error("WebSocket 매칭 참가 중 매칭 오류: userId={}, error={}", userId, e.getMessage());
+            webSocketService.sendError(userId, e.getMessage());
+        } catch (Exception e) {
+            log.error("WebSocket 매칭 참가 중 예상치 못한 오류: userId={}", userId, e);
+            webSocketService.sendError(userId, "매칭 참가 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
+     * WebSocket 매칭 취소 처리 (컨트롤러 단순화용)
+     */
+    public void handleWebSocketCancelMatching(String userId) {
+        try {
+            log.info("WebSocket 매칭 취소 요청: userId={}", userId);
+            cancelMatching(userId);
+            
+        } catch (Exception e) {
+            log.error("WebSocket 매칭 취소 중 오류: userId={}", userId, e);
+            webSocketService.sendError(userId, "매칭 취소 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
      * 매칭 큐 참가
      */
     public MatchingStatusResponse joinMatching(String userId, WorldType worldType) {

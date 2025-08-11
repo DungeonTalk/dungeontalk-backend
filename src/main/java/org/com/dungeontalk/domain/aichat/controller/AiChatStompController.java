@@ -1,7 +1,6 @@
 package org.com.dungeontalk.domain.aichat.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.aichat.util.AiChatErrorHandler;
@@ -12,9 +11,6 @@ import org.com.dungeontalk.domain.aichat.service.AiGameStateService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
-import org.com.dungeontalk.global.exception.customException.AiChatException;
-
-import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
 @Slf4j
 @Controller
@@ -23,7 +19,6 @@ public class AiChatStompController {
 
     private final AiGameMessageService aiGameMessageService;
     private final AiGameStateService aiGameStateService;
-    private final ObjectMapper objectMapper;
     private final AiChatErrorHandler errorHandler;
 
     /**
@@ -68,33 +63,8 @@ public class AiChatStompController {
      * 입장 시 게임 세션이 시작되고 시스템 메시지가 전송된다.
      */
     @MessageMapping("/aichat/join")
-    public void joinRoom(@Payload AiGameMessageSendRequest request) throws JsonProcessingException {
-        log.debug("AI 채팅방 입장 요청: {}", objectMapper.writeValueAsString(request));
-
-        try {
-            // 입장 시스템 메시지 생성
-            request.setContent(request.getSenderNickname() + "님이 AI 게임에 참여했습니다.");
-            request.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM);
-
-            // 메시지 처리
-            aiGameMessageService.processMessage(request);
-
-            log.info("AI 채팅방 입장 완료: roomId={}, participant={}", 
-                     request.getAiGameRoomId(), request.getSenderId());
-
-        } catch (AiChatException e) {
-            log.error("AI 채팅방 입장 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
-                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
-            throw e;
-        } catch (JsonProcessingException e) {
-            log.error("AI 채팅방 입장 중 JSON 처리 실패: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("예상치 못한 AI 채팅방 입장 오류: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage(), e);
-            throw e;
-        }
+    public void joinRoom(@Payload AiGameMessageSendRequest request) {
+        aiGameMessageService.handleJoinRoom(request);
     }
 
     /**
@@ -104,33 +74,8 @@ public class AiChatStompController {
      * 퇴장 시 시스템 메시지가 전송되고 필요시 게임이 종료된다.
      */
     @MessageMapping("/aichat/leave")
-    public void leaveRoom(@Payload AiGameMessageSendRequest request) throws JsonProcessingException {
-        log.debug("AI 채팅방 퇴장 요청: {}", objectMapper.writeValueAsString(request));
-
-        try {
-            // 퇴장 시스템 메시지 생성
-            request.setContent(request.getSenderNickname() + "님이 AI 게임에서 나갔습니다.");
-            request.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM);
-
-            // 메시지 처리
-            aiGameMessageService.processMessage(request);
-
-            log.info("AI 채팅방 퇴장 완료: roomId={}, participant={}", 
-                     request.getAiGameRoomId(), request.getSenderId());
-
-        } catch (AiChatException e) {
-            log.error("AI 채팅방 퇴장 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
-                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
-            throw e;
-        } catch (JsonProcessingException e) {
-            log.error("AI 채팅방 퇴장 중 JSON 처리 실패: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("예상치 못한 AI 채팅방 퇴장 오류: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage(), e);
-            throw e;
-        }
+    public void leaveRoom(@Payload AiGameMessageSendRequest request) {
+        aiGameMessageService.handleLeaveRoom(request);
     }
 
     /**
@@ -140,32 +85,8 @@ public class AiChatStompController {
      * 일반적으로 게임 로직에서 호출되며, 플레이어에게 턴 시작을 알린다.
      */
     @MessageMapping("/aichat/turn/start")
-    public void startTurn(@Payload AiGameMessageSendRequest request) throws JsonProcessingException {
-        log.debug("AI 게임 턴 시작 요청: {}", objectMapper.writeValueAsString(request));
-
-        try {
-            request.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.TURN_START);
-            request.setSenderId(SYSTEM_SENDER_ID);
-            request.setSenderNickname(SYSTEM_SENDER_NICKNAME);
-
-            aiGameMessageService.processMessage(request);
-
-            log.info("AI 게임 턴 시작: roomId={}, turn={}", 
-                     request.getAiGameRoomId(), request.getTurnNumber());
-
-        } catch (AiChatException e) {
-            log.error("AI 게임 턴 시작 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
-                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
-            throw e;
-        } catch (JsonProcessingException e) {
-            log.error("AI 게임 턴 시작 중 JSON 처리 실패: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("예상치 못한 AI 게임 턴 시작 오류: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage(), e);
-            throw e;
-        }
+    public void startTurn(@Payload AiGameMessageSendRequest request) {
+        aiGameMessageService.handleStartTurn(request);
     }
 
     /**
@@ -175,34 +96,7 @@ public class AiChatStompController {
      * AI 서비스에서 응답 생성 완료 후 호출된다.
      */
     @MessageMapping("/aichat/turn/end")
-    public void endTurn(@Payload AiGameMessageSendRequest request) throws JsonProcessingException {
-        log.debug("AI 게임 턴 종료 요청: {}", objectMapper.writeValueAsString(request));
-
-        try {
-            request.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.TURN_END);
-            request.setSenderId(SYSTEM_SENDER_ID);
-            request.setSenderNickname(SYSTEM_SENDER_NICKNAME);
-
-            aiGameMessageService.processMessage(request);
-
-            // AI 응답 완료 후 락 해제
-            aiGameStateService.unlockAfterAiResponse(request.getAiGameRoomId());
-
-            log.info("AI 게임 턴 종료: roomId={}, turn={}", 
-                     request.getAiGameRoomId(), request.getTurnNumber());
-
-        } catch (AiChatException e) {
-            log.error("AI 게임 턴 종료 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
-                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
-            throw e;
-        } catch (JsonProcessingException e) {
-            log.error("AI 게임 턴 종료 중 JSON 처리 실패: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("예상치 못한 AI 게임 턴 종료 오류: roomId={}, error={}", 
-                      request.getAiGameRoomId(), e.getMessage(), e);
-            throw e;
-        }
+    public void endTurn(@Payload AiGameMessageSendRequest request) {
+        aiGameMessageService.handleEndTurn(request, aiGameStateService);
     }
 }
