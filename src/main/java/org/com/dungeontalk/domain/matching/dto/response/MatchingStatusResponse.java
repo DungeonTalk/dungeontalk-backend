@@ -6,7 +6,7 @@ import org.com.dungeontalk.domain.matching.common.MatchingStatus;
 import org.com.dungeontalk.domain.matching.common.WorldType;
 import org.com.dungeontalk.domain.matching.util.MatchingTimeCalculator;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Builder
@@ -19,13 +19,13 @@ public class MatchingStatusResponse {
     private int totalInQueue;
     private long waitingTimeSeconds;
     private String estimatedWaitTime;
-    private LocalDateTime joinedAt;
+    private Instant joinedAt;
 
     public static MatchingStatusResponse of(String userId, WorldType worldType, 
                                            MatchingStatus status, int queuePosition, 
-                                           int totalInQueue, LocalDateTime joinedAt) {
+                                           int totalInQueue, Instant joinedAt) {
         
-        long waitingSeconds = java.time.Duration.between(joinedAt, LocalDateTime.now()).getSeconds();
+        long waitingSeconds = java.time.Duration.between(joinedAt, Instant.now()).getSeconds();
         // MatchingTimeCalculator는 @Component이므로 static 메서드가 아님
         // 임시로 기존 로직 사용
         String estimatedTime = calculateEstimatedTime(queuePosition);

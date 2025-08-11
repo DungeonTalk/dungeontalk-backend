@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -74,7 +73,7 @@ public class MatchingQueueManager {
         Map<String, String> userInfo = Map.of(
                 "worldType", worldType.name(),
                 "status", MatchingStatus.WAITING.name(),
-                "joinedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                "joinedAt", Instant.now().toString(),
                 "sessionId", UUID.randomUUID().toString()
         );
 

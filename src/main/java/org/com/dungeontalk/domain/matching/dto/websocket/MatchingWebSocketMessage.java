@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.com.dungeontalk.domain.matching.common.WorldType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -15,7 +15,7 @@ public class MatchingWebSocketMessage {
     private String userId;
     private WorldType worldType;
     private Object data;
-    private LocalDateTime timestamp;
+    private Instant timestamp;
 
     public enum MessageType {
         QUEUE_STATUS_UPDATE,     // 큐 상태 업데이트
@@ -40,7 +40,7 @@ public class MatchingWebSocketMessage {
                 .userId(userId)
                 .worldType(worldType)
                 .data(data)
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
     }
 
@@ -59,7 +59,7 @@ public class MatchingWebSocketMessage {
                 .type(MessageType.MATCHING_COMPLETE)
                 .worldType(worldType)
                 .data(data)
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
     }
 
@@ -76,7 +76,7 @@ public class MatchingWebSocketMessage {
                 .userId(userId)
                 .worldType(worldType)
                 .data(cancelData)
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
     }
 
@@ -86,7 +86,7 @@ public class MatchingWebSocketMessage {
                 .type(MessageType.ERROR)
                 .userId(userId)
                 .data(errorMessage)
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
     }
 

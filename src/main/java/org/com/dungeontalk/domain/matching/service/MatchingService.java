@@ -24,7 +24,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +72,7 @@ public class MatchingService {
 
             return MatchingStatusResponse.of(
                     userId, worldType, MatchingStatus.WAITING,
-                    userPosition, queueSize, LocalDateTime.now()
+                    userPosition, queueSize, Instant.now()
             );
 
         } catch (Exception e) {
@@ -130,7 +130,7 @@ public class MatchingService {
 
         WorldType worldType = WorldType.valueOf(worldTypeName);
         MatchingStatus status = MatchingStatus.valueOf(statusName);
-        LocalDateTime joinedAt = LocalDateTime.parse(joinedAtStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        Instant joinedAt = Instant.parse(joinedAtStr);
 
         int queueSize = queueManager.getQueueSize(worldType);
         int userPosition = queueManager.getUserQueuePosition(userId, worldType);
@@ -169,7 +169,7 @@ public class MatchingService {
         return QueueStatsResponse.builder()
                 .queueInfo(queueInfo)
                 .totalWaiting(totalWaiting)
-                .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                .lastUpdated(Instant.now().toString())
                 .build();
     }
 
@@ -303,7 +303,7 @@ public class MatchingService {
                 "worldType", worldType.name(),
                 "aiGameRoomId", aiGameRoomId,
                 "chatRoomId", chatRoomId,
-                "createdAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                "createdAt", Instant.now().toString(),
                 "status", "ACTIVE"
         );
 

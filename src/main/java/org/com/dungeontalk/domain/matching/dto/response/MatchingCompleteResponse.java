@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.com.dungeontalk.domain.matching.common.WorldType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -16,7 +16,7 @@ public class MatchingCompleteResponse {
     private String chatRoomId;
     private WorldType worldType;
     private List<String> participants;
-    private LocalDateTime matchedAt;
+    private Instant matchedAt;
 
     public static MatchingCompleteResponse of(String gameSessionId, String aiGameRoomId, 
                                             String chatRoomId, WorldType worldType, 
@@ -27,7 +27,7 @@ public class MatchingCompleteResponse {
                 .chatRoomId(chatRoomId)
                 .worldType(worldType)
                 .participants(participants)
-                .matchedAt(LocalDateTime.now())
+                .matchedAt(Instant.now())
                 .build();
     }
 }
