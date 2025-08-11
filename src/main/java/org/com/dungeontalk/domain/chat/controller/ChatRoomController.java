@@ -1,6 +1,7 @@
 package org.com.dungeontalk.domain.chat.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.chat.dto.ChatMessageDto;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/chat")
+@RequestMapping("/v1/chat")
 @RequiredArgsConstructor
 public class ChatRoomController {
 
@@ -35,7 +36,7 @@ public class ChatRoomController {
      * 채팅방 생성
      */
     @PostMapping("/room")
-    public RsData<ChatRoomDto> createRoom(@RequestBody ChatRoomCreateRequestDto req) {
+    public RsData<ChatRoomDto> createRoom(@Valid @RequestBody ChatRoomCreateRequestDto req) {
         ChatRoomDto createdRoom = chatRoomService.createRoom(req);
         return RsData.of("200", "채팅방 생성 완료", createdRoom);
     }
@@ -64,7 +65,7 @@ public class ChatRoomController {
     @PostMapping("/room/{roomId}/join/{memberId}")
     public RsData<String> joinRoom(@PathVariable String roomId, @PathVariable String memberId) {
         chatRoomService.joinRoom(roomId, memberId);
-        return RsData.of("200", "채팅방 입장 성공", null);
+        return RsData.of("200", "채팅방 입장 성공", roomId);
     }
 
     /**
@@ -73,7 +74,7 @@ public class ChatRoomController {
     @DeleteMapping("/room/{roomId}/leave/{memberId}")
     public RsData<String> leaveRoom(@PathVariable String roomId, @PathVariable String memberId) {
         chatRoomService.leaveRoom(roomId, memberId);
-        return RsData.of("200", "채팅방 퇴장 성공", null);
+        return RsData.of("200", "채팅방 퇴장 성공", roomId);
     }
 
 
@@ -83,7 +84,7 @@ public class ChatRoomController {
     @PostMapping("/room/{roomId}/message")
     public RsData<ChatMessageDto> sendMessage(
         @PathVariable String roomId,
-        @RequestBody ChatMessageSendRequestDto msg) throws JsonProcessingException {
+        @Valid @RequestBody ChatMessageSendRequestDto msg) throws JsonProcessingException {
 
         if (msg == null || msg.getRoomId() == null) {
             return RsData.of("400", "요청 본문이 비어 있거나 roomId가 누락되었습니다.", null);
