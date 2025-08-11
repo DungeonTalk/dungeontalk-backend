@@ -16,7 +16,6 @@ public class ChatRoomDto {
     private String roomType;
     private String roomName;
     private String mode;
-    private List<String> participants;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -27,7 +26,6 @@ public class ChatRoomDto {
             .roomName(room.getRoomName())
             .roomType(room.getRoomType() != null ? room.getRoomType().name() : "UNKNOWN")
             .mode(room.getMode().name())
-            .participants(room.getParticipants())
             .createdAt(room.getCreatedAt())
             .updatedAt(room.getUpdatedAt())
             .build();

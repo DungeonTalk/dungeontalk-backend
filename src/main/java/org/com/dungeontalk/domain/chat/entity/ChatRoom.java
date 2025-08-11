@@ -38,8 +38,6 @@ public class ChatRoom {
     @Enumerated(EnumType.STRING)
     private ChatMode mode;                  // SINGLE or MULTI
     
-    @Builder.Default
-    private List<String> participants = new ArrayList<>();      // RDB 회원 ID
 
 //    @Builder.Default
 //    private List<ChatMessage> messages = new ArrayList<>();

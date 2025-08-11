@@ -46,25 +46,6 @@ public class ChatRoomService {
             .toList();
     }
 
-    // 참여자 입장
-    public void joinRoom(String roomId, String memberId) {
-        ChatRoom room = chatRoomRepository.findById(roomId)
-            .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));
-
-        if (!room.getParticipants().contains(memberId)) {
-            room.getParticipants().add(memberId);
-            chatRoomRepository.save(room);
-        }
-    }
-
-    // 참여자 퇴장
-    public void leaveRoom(String roomId, String memberId) {
-        ChatRoom room = chatRoomRepository.findById(roomId)
-            .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));
-
-        room.getParticipants().remove(memberId);
-        chatRoomRepository.save(room);
-    }
 
 
 }
