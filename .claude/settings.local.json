@@ -19,7 +19,16 @@
       "Bash(chmod:*)",
       "Bash(rm:*)",
       "Bash(git push:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(for file in \"src/main/java/org/com/dungeontalk/global/redis/AiChatRedisSubscriber.java\" \"src/main/resources/static/dungeon-game.html\")",
+      "Bash(do echo -n \"$file: \")",
+      "Bash(if [ -f \"$file\" ])",
+      "Bash(then echo \"✅ 존재\")",
+      "Bash(else echo \"❌ 누락\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(git fetch:*)"
     ],
     "deny": []
   }

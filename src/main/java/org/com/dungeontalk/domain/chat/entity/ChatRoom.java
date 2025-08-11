@@ -3,7 +3,7 @@ package org.com.dungeontalk.domain.chat.entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -30,22 +30,24 @@ public class ChatRoom {
     @Id
     private String id;
 
-    private String roomName;
+    @Indexed
+    private String roomName;                 // ✅ 누락 보완
 
     @Enumerated(EnumType.STRING)
-    private ChatRoomType roomType;          // PLAYER or GAME
+    private ChatRoomType roomType;           // PLAYER or GAME
 
     @Enumerated(EnumType.STRING)
     private ChatMode mode;                  // SINGLE or MULTI
-    
 
-//    @Builder.Default
-//    private List<ChatMessage> messages = new ArrayList<>();
+//    private List<String> participants;      // RDB 회원 ID
+
+    @Builder.Default
+    private List<ChatMessage> messages = new ArrayList<>();
 
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
 }

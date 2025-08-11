@@ -1,6 +1,6 @@
 package org.com.dungeontalk.domain.chat.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,15 +16,14 @@ public class ChatRoomDto {
     private String roomType;
     private String roomName;
     private String mode;
-
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public static ChatRoomDto fromEntity(ChatRoom room) {
         return ChatRoomDto.builder()
             .id(room.getId())
-            .roomName(room.getRoomName())
             .roomType(room.getRoomType() != null ? room.getRoomType().name() : "UNKNOWN")
+            .roomName(room.getRoomName() != null ? room.getRoomName() : "UNKNOWN")
             .mode(room.getMode().name())
             .createdAt(room.getCreatedAt())
             .updatedAt(room.getUpdatedAt())
