@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>🏰 던전톡 - 랜덤 매칭 RPG</title>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
@@ -557,7 +560,9 @@
         
         // 초기화
         window.addEventListener('load', function() {
-            checkExistingLogin();
+            // 새로고침 시 로컬스토리지 초기화 (테스트 편의용)
+            clearAuthData();
+            console.log('🔄 새로고침 감지 - 로컬스토리지 초기화');
         });
         
         // 기존 로그인 확인
@@ -565,10 +570,43 @@
             authToken = localStorage.getItem('authToken');
             const userInfo = localStorage.getItem('currentUser');
             
-            if (authToken && userInfo) {
-                currentUser = JSON.parse(userInfo);
-                showLoggedInState();
+            console.log('인증 체크:', { 
+                authToken: authToken ? ('존재: ' + authToken.substring(0, 10) + '...') : 'null', 
+                userInfo: userInfo ? '존재' : 'null' 
+            });
+            
+            if (authToken && authToken !== 'null' && authToken.trim() !== '' && userInfo) {
+                try {
+                    currentUser = JSON.parse(userInfo);
+                    console.log('✅ 로그인 상태 확인:', currentUser.name);
+                    showLoggedInState();
+                } catch (e) {
+                    console.error('❌ 사용자 정보 파싱 오류:', e);
+                    clearAuthData();
+                }
+            } else {
+                console.log('⚠️ 로그인 필요');
+                clearAuthData();
             }
+        }
+        
+        function clearAuthData() {
+            authToken = null;
+            currentUser = null;
+            selectedWorld = null;
+            isMatching = false;
+            currentGameSession = null;
+            aiGameRoomId = null;
+            partyRoomId = null;
+            localStorage.clear(); // 모든 로컬스토리지 데이터 삭제
+            
+            // WebSocket 연결 종료
+            if (matchingStompClient && matchingStompClient.connected) {
+                matchingStompClient.disconnect();
+                matchingStompClient = null;
+            }
+            
+            console.log('🗑️ 모든 캐시 데이터 삭제 완료');
         }
         
         // 로그인 상태 UI 업데이트
@@ -729,6 +767,18 @@
         async function startMatching() {
             if (!selectedWorld) {
                 alert('세계관을 선택해주세요.');
+                return;
+            }
+            
+            if (!authToken || authToken === 'null') {
+                console.error('❌ JWT 토큰이 없음');
+                alert('로그인이 필요합니다.');
+                return;
+            }
+            
+            if (!currentUser || !currentUser.id) {
+                console.error('❌ 사용자 정보가 없음');
+                alert('로그인 정보가 유효하지 않습니다.');
                 return;
             }
             
