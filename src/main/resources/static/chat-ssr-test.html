@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>던전톡 채팅 테스트 (SSR)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;margin:0}
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:16px}
+    .card{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+    .card h2{margin:0;padding:14px 16px;border-bottom:1px solid #eee;font-size:16px}
+    .pad{padding:16px}
+    .row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    input,select,button{padding:10px;border:1px solid #ddd;border-radius:10px;font-size:14px}
+    input[type=text]{flex:1}
+    button{background:#667eea;color:#fff;border:0;cursor:pointer}
+    button.gray{background:#9aa1b2}
+    button.red{background:#d64545}
+    .status{padding:10px;border-radius:10px;margin-bottom:10px;font-size:14px}
+    .ok{background:#e8f5e9;color:#2e7d32}.bad{background:#ffebee;color:#c62828}
+    .list{height:520px;overflow:auto;padding:16px}
+    .msg{margin:10px 0;padding:10px 12px;border-radius:10px;max-width:76%}
+    .me{background:#e3f2fd;margin-left:auto;text-align:right}
+    .other{background:#f3e5f5}
+    .sys{background:#fff3e0;text-align:center;max-width:100%}
+    .meta{font-size:12px;color:#666;margin-top:4px}
+    .count{font-weight:700}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="grid">
+    <div class="card">
+      <h2>설정 / 제어</h2>
+      <div class="pad">
+        <div id="conn" class="status bad">WS 끊김</div>
+
+        <div class="row"><label style="width:92px">닉네임</label><input id="nickname"/></div>
+        <div class="row"><label style="width:92px">방 이름</label><input id="roomName" value="테스트 방"/></div>
+        <div class="row"><label style="width:92px">Room Type</label><select id="roomType"><option>PLAYER</option><option>GAME</option></select></div>
+        <div class="row"><label style="width:92px">Mode</label><select id="mode"><option>SINGLE</option><option>MULTI</option></select></div>
+
+        <div class="row">
+          <input id="manualRoomId" placeholder="기존 방 ID 붙여넣기"/>
+          <button class="gray" onclick="useRoom()">설정</button>
+        </div>
+        <div class="row">
+          <button class="gray" onclick="copyInvite()">초대 링크 복사</button>
+          <button class="gray" onclick="loadRoomList()">방 목록 불러오기</button>
+        </div>
+
+        <div class="row">
+          <button onclick="createRoom()">방 생성</button>
+          <button class="gray" onclick="loadMessages()">메시지 로드</button>
+        </div>
+
+        <div class="row">
+          <button onclick="connectWS()">WS 연결</button>
+          <button class="gray" onclick="disconnectWS()">WS 해제</button>
+        </div>
+
+        <div class="row">
+          <button onclick="joinRoom()">입장</button>
+          <button class="red" onclick="leaveRoom()">퇴장</button>
+        </div>
+
+        <div class="row"><span>접속자 수: <span id="cc" class="count">0</span></span></div>
+        <div id="roomInfo" style="font-size:13px;color:#555;margin-top:8px"></div>
+        <div id="roomList" style="margin-top:12px;font-size:13px;color:#333"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>채팅</h2>
+      <div id="list" class="list"></div>
+      <div class="pad">
+        <div class="row">
+          <input id="input" placeholder="메시지를 입력하세요…" onkeypress="if(event.key==='Enter'){sendTalk();}"/>
+          <button onclick="sendTalk()">전송</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SockJS/STOMP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script>
+  // ====== DEBUG UTIL ======
+  const DEBUG = true;
+  const log = (...a)=> DEBUG && console.log('[CHAT]', ...a);
+  const info = (...a)=> DEBUG && console.info('[CHAT]', ...a);
+  const warn = (...a)=> DEBUG && console.warn('[CHAT]', ...a);
+  const err  = (...a)=> DEBUG && console.error('[CHAT]', ...a);
+
+  // 전역 에러/Promise 오류
+  window.addEventListener('error', ev => err('window.error', ev.error || ev.message));
+  window.addEventListener('unhandledrejection', ev => err('unhandledrejection', ev.reason));
+
+  // ===== 설정 =====
+  const WS_ENDPOINT = '/ws-chat';
+  const SUB_PATH = roomId => `/sub/chat/room/${roomId}`;
+  const PUB_PATH = '/pub/chat/send';
+
+  const API_CREATE_ROOM = '/api/chat/room';
+  const API_JOIN_ROOM = (roomId, memberId) => `/api/chat/room/${roomId}/join/${memberId}`;
+  const API_LEAVE_ROOM = (roomId, memberId) => `/api/chat/room/${roomId}/leave/${memberId}`;
+  const API_MESSAGES  = (roomId, page=0, size=30) => `/api/chat/room/${roomId}/messages?page=${page}&size=${size}`;
+  const API_ROOMS     = '/api/chat/room';
+
+  // ===== 상태 =====
+  let stomp = null;
+  let subscription = null;
+  let roomId = null;
+  let member = null;
+  let subscribed = false;
+
+  function authHeaders(){
+    const t = localStorage.getItem('authToken');
+    return t ? { 'Authorization': 'Bearer ' + t } : {};
+  }
+  function now(){ return new Date().toLocaleTimeString(); }
+  function addRow(cls, content, meta){
+    const box = document.getElementById('list');
+    const el = document.createElement('div');
+    el.className = 'msg ' + cls;
+    el.innerHTML = `<div>${content}</div>${meta?`<div class="meta">${meta}</div>`:''}`;
+    box.appendChild(el); box.scrollTop = box.scrollHeight;
+  }
+  function setConn(ok){
+    const el = document.getElementById('conn');
+    el.className = 'status ' + (ok?'ok':'bad');
+    el.textContent = ok?'WS 연결됨':'WS 끊김';
+  }
+  function setCount(n){ document.getElementById('cc').textContent = n; }
+  function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>'); }
+
+  // ===== 초기화 =====
+  (function init(){
+    const userStr = localStorage.getItem('currentUser');
+    const token = localStorage.getItem('authToken');
+    info('init: token present?', !!token, 'userStr:', userStr);
+    if(!userStr || !token){ alert('로그인이 필요합니다.'); location.href='/login-ssr-test.html'; return; }
+    member = JSON.parse(userStr);
+    document.getElementById('nickname').value = member.nickname || (member.id + '님');
+
+    const urlRoomId = new URLSearchParams(location.search).get('roomId');
+    if(urlRoomId){ setRoom(urlRoomId); addRow('sys', `기존 방 설정: ${roomId}`, now()); }
+    addRow('sys', '페이지 로드 완료', now());
+  })();
+
+  // ===== 방 선택/초대/목록 =====
+  function setRoom(id){
+    roomId = id;
+    document.getElementById('manualRoomId').value = id;
+    document.getElementById('roomInfo').textContent = `RoomID=${roomId}`;
+    info('setRoom', roomId);
+  }
+  function useRoom(){
+    const v = document.getElementById('manualRoomId').value.trim();
+    if(!v) return addRow('sys','방 ID를 입력하세요', now());
+    setRoom(v);
+    addRow('sys', `기존 방 설정: ${roomId}`, now());
+  }
+  function copyInvite(){
+    if(!roomId) return addRow('sys','먼저 방을 선택/생성하세요', now());
+    const link = `${location.origin}/chat-ssr-test.html?roomId=${encodeURIComponent(roomId)}`;
+    navigator.clipboard.writeText(link).then(()=>addRow('sys','초대 링크 복사됨', now()));
+  }
+  async function loadRoomList(){
+    try{
+      info('GET rooms');
+      const res = await fetch(API_ROOMS, { headers: authHeaders() });
+      info('GET rooms →', res.status);
+      if(!res.ok) throw new Error(await res.text());
+      const rs = await res.json();
+      const rooms = rs.data || [];
+      const box = document.getElementById('roomList');
+      if(!rooms.length){ box.innerHTML = '<div>열린 방이 없습니다.</div>'; return; }
+      box.innerHTML = rooms.map(r=>`
+        <div style="border:1px solid #eee;padding:8px;border-radius:10px;margin-bottom:6px">
+          <div><b>${escapeHtml(r.roomName || '(이름없음)')}</b></div>
+          <div style="font-size:12px;color:#666">ID: ${r.id} · ${r.roomType}/${r.mode}</div>
+          <div style="margin-top:6px"><button onclick="joinExisting('${r.id}')">참가</button></div>
+        </div>`).join('');
+    }catch(e){ err('rooms error', e); addRow('sys','방 목록 실패: '+e.message, now()); }
+  }
+  async function joinExisting(id){ setRoom(id); await ensureConnected(); await joinRoom(); }
+
+  // ===== 방 생성 =====
+  async function createRoom(){
+    const body = {
+      roomName: document.getElementById('roomName').value.trim() || '테스트 방',
+      roomType: document.getElementById('roomType').value,
+      mode: document.getElementById('mode').value,
+      participantIds: [member.id]
+    };
+    try{
+      info('POST create room', body);
+      const res = await fetch(API_CREATE_ROOM, { method:'POST', headers:{'Content-Type':'application/json', ...authHeaders()}, body: JSON.stringify(body) });
+      info('POST create →', res.status);
+      if(!res.ok) throw new Error(await res.text());
+      const rs = await res.json(); const data = rs.data || rs;
+      setRoom(data.id);
+      addRow('sys', `방 생성 성공: ${roomId}`, now());
+    }catch(e){ err('create error', e); addRow('sys','방 생성 실패: '+e.message, now()); }
+  }
+
+  // ===== WebSocket =====
+  async function ensureConnected(){
+    return new Promise((resolve)=>{
+      if(stomp?.connected){ subscribed = true; info('WS already connected'); return resolve(); }
+      if(!roomId){ addRow('sys','roomId가 없습니다', now()); return resolve(); }
+
+      const token = localStorage.getItem('authToken');
+      const url = `${WS_ENDPOINT}?token=${encodeURIComponent(token)}&roomId=${encodeURIComponent(roomId)}`;
+      info('WS connect', url);
+
+      const sock = new SockJS(url, null, { transports: ['websocket','xhr-streaming','xhr-polling'] });
+      sock.onopen = e => info('[SockJS.open]', e);
+      sock.onclose = e => warn('[SockJS.close]', e);
+      sock.onerror = e => err('[SockJS.error]', e);
+
+      stomp = Stomp.over(sock);
+      // STOMP 디버그 ON
+      stomp.debug = (str)=> DEBUG && console.debug('[STOMP]', str);
+
+      stomp.connect({}, _=>{
+        info('STOMP connected');
+        setConn(true);
+
+        // 중복 구독 방지
+        try{ subscription?.unsubscribe(); }catch(_){}
+        const dest = SUB_PATH(roomId);
+        subscription = stomp.subscribe(dest, msg=>{
+          info('[SUB]', 'dest=', dest, 'raw=', msg.body);
+          let p = msg.body;
+          try{ p = JSON.parse(msg.body); }catch(_){}
+          handleIncoming(p);
+        });
+        subscribed = true;
+        addRow('sys','WS 연결 성공', now());
+        resolve();
+      }, errFrame=>{
+        setConn(false);
+        err('STOMP connect error', errFrame);
+        addRow('sys','WS 연결 실패', now());
+        resolve();
+      });
+    });
+  }
+  function connectWS(){ ensureConnected(); }
+  function disconnectWS(){ try{ subscription?.unsubscribe(); }catch(_){ } try{ stomp?.disconnect(()=>setConn(false)); }catch(_){ } }
+
+  // ===== 입장 / 퇴장 =====
+  async function joinRoom(){
+    if(!roomId) return addRow('sys','roomId가 없습니다', now());
+    if(!subscribed) await ensureConnected();
+    try{
+      info('POST join', roomId, member.id);
+      const r = await fetch(API_JOIN_ROOM(roomId, member.id), { method:'POST', headers: authHeaders() });
+      info('POST join →', r.status);
+      if(!r.ok) throw new Error(await r.text());
+      const dto = { roomId, senderId: member.id, content:'', type:'JOIN' };
+      info('[PUB JOIN]', dto);
+      stomp?.send(PUB_PATH, {}, JSON.stringify(dto));
+      addRow('sys','방 입장 완료', now());
+    }catch(e){ err('join error', e); addRow('sys','입장 실패: '+e.message, now()); }
+  }
+
+  async function leaveRoom(){
+    if(!roomId) return;
+    try{
+      info('DELETE leave', roomId, member.id);
+      const r = await fetch(API_LEAVE_ROOM(roomId, member.id), { method:'DELETE', headers: authHeaders() });
+      info('DELETE leave →', r.status);
+      const dto = { roomId, senderId: member.id, content:'', type:'LEAVE' };
+      info('[PUB LEAVE]', dto);
+      stomp?.send(PUB_PATH, {}, JSON.stringify(dto));
+      addRow('sys','방 퇴장 완료', now());
+    }catch(e){ err('leave error', e); addRow('sys','퇴장 실패: '+e.message, now()); }
+  }
+
+  // ===== 메시지 =====
+  function sendTalk(){
+    const input = document.getElementById('input');
+    const text = (input.value || '').trim();
+    if(!text || !stomp?.connected || !roomId) return;
+    const dto = { roomId, senderId: member.id, content: text, type: 'TALK' };
+    info('[PUB TALK]', dto);
+    stomp.send(PUB_PATH, {}, JSON.stringify(dto));
+    input.value = '';
+  }
+
+  async function loadMessages(){
+    if(!roomId) return addRow('sys','방을 먼저 선택/생성하세요', now());
+    try{
+      info('GET messages', roomId);
+      const res = await fetch(API_MESSAGES(roomId, 0, 30), { headers: authHeaders() });
+      info('GET messages →', res.status);
+      if(!res.ok) throw new Error(await res.text());
+      const rs = await res.json();
+      const items = (rs.data?.content) || [];
+      addRow('sys', `최근 ${items.length}건 로드`, now());
+      items.slice().reverse().forEach(m=>{
+        const who = (m.senderId===member.id)?'me':'other';
+        const nick = m.senderNickname || m.senderNickName || (m.senderId===member.id?'나':'익명');
+        const text = m.message || m.content || '';
+        const when = new Date(m.createdAt).toLocaleTimeString();
+        addRow(who, escapeHtml(text), `${nick} · ${when}`);
+      });
+    }catch(e){ err('messages error', e); addRow('sys','메시지 로드 실패: '+e.message, now()); }
+  }
+
+  // ===== 수신 처리 =====
+  function handleIncoming(p){
+    if(typeof p === 'string'){ info('IN string', p); addRow('sys', p, now()); return; }
+    const t = p.type || p.messageType;
+    info('IN obj', p);
+
+    if(t === 'CONNECTED_COUNT'){ setCount(p.connectedCount ?? 0); return; }
+    if(t === 'PRESENCE'){ setCount(p.connectedCount ?? 0); return; }
+
+    const text = p.content || p.message || '';
+    if(t === 'TALK'){
+      const who = (p.senderId===member.id)?'me':'other';
+      const nick = p.senderNickname || p.senderNickName || '익명';
+      addRow(who, escapeHtml(text), `${nick} · ${now()}`);
+    }else if(t === 'JOIN' || t === 'LEAVE'){
+      addRow('sys', escapeHtml(text), now());
+    }else{
+      addRow('sys', JSON.stringify(p), now());
+    }
+  }
+
+  // 창 닫기 정리
+  window.addEventListener('beforeunload', ()=>{
+    try{ if(roomId && member?.id){ navigator.sendBeacon(API_LEAVE_ROOM(roomId, member.id)); } }catch(_){}
+    try{ subscription?.unsubscribe(); stomp?.disconnect(()=>{}); }catch(_){}
+  });
+</script>
+</body>
+</html>
