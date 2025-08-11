@@ -16,7 +16,6 @@
     .msg{margin-top:12px;font-size:14px}
     .error{color:#d32f2f}.success{color:#2e7d32}
     .hint{margin-top:16px;background:#f8f9fb;border:1px dashed #ddd;border-radius:10px;padding:10px;font-size:13px;color:#555}
-    .row{display:flex;gap:10px}
   </style>
 </head>
 <body>
@@ -48,6 +47,7 @@
   const log = (...a)=> DEBUG && console.log('[AUTH]', ...a);
   const err = (...a)=> DEBUG && console.error('[AUTH]', ...a);
 
+  // (인증 API는 기존 경로 유지 가정)
   const API_LOGIN = '/v1/auth/login';
   const API_REGISTER = '/v1/member/register';
   const NEXT_PAGE = '/chat-ssr-test.html';
@@ -91,11 +91,9 @@
 
       const body = await res.json();
       const data = body.data || body;
-      log('login body', body);
-
-      // 서버 응답 키에 맞춰 저장
       localStorage.setItem('authToken', data.accessToken);
       localStorage.setItem('currentUser', JSON.stringify({ id: data.memberId, nickname: name+'님' }));
+
       show('로그인 성공! 채팅 페이지로 이동합니다.');
       setTimeout(()=>location.href = NEXT_PAGE, 900);
     }catch(e){ err('login error', e); show('로그인 오류: '+e.message,'error'); }

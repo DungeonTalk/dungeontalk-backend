@@ -84,74 +84,69 @@
   </div>
 </div>
 
-<!-- SockJS/STOMP -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 <script>
-  // ====== DEBUG UTIL ======
+  // ===== DEBUG =====
   const DEBUG = true;
   const log = (...a)=> DEBUG && console.log('[CHAT]', ...a);
   const info = (...a)=> DEBUG && console.info('[CHAT]', ...a);
   const warn = (...a)=> DEBUG && console.warn('[CHAT]', ...a);
   const err  = (...a)=> DEBUG && console.error('[CHAT]', ...a);
+  window.addEventListener('error', e=>err('window.error', e.error||e.message));
+  window.addEventListener('unhandledrejection', e=>err('unhandledrejection', e.reason));
 
-  // 전역 에러/Promise 오류
-  window.addEventListener('error', ev => err('window.error', ev.error || ev.message));
-  window.addEventListener('unhandledrejection', ev => err('unhandledrejection', ev.reason));
-
-  // ===== 설정 =====
+  // ===== API PATHS (v1) =====
   const WS_ENDPOINT = '/ws-chat';
-  const SUB_PATH = roomId => `/sub/chat/room/${roomId}`;
+  const SUB_PATH = id => `/sub/chat/room/${id}`;
   const PUB_PATH = '/pub/chat/send';
 
-  const API_CREATE_ROOM = '/api/chat/room';
-  const API_JOIN_ROOM = (roomId, memberId) => `/api/chat/room/${roomId}/join/${memberId}`;
-  const API_LEAVE_ROOM = (roomId, memberId) => `/api/chat/room/${roomId}/leave/${memberId}`;
-  const API_MESSAGES  = (roomId, page=0, size=30) => `/api/chat/room/${roomId}/messages?page=${page}&size=${size}`;
-  const API_ROOMS     = '/api/chat/room';
+  const API_CREATE_ROOM = '/v1/chat/room';
+  const API_JOIN_ROOM   = (rid, mid)=> `/v1/chat/room/${rid}/join/${mid}`;
+  const API_LEAVE_ROOM  = (rid, mid)=> `/v1/chat/room/${rid}/leave/${mid}`;
+  const API_MESSAGES    = (rid, p=0, s=30)=> `/v1/chat/room/${rid}/messages?page=${p}&size=${s}`;
+  const API_ROOMS       = '/v1/chat/room';
 
-  // ===== 상태 =====
-  let stomp = null;
-  let subscription = null;
-  let roomId = null;
-  let member = null;
-  let subscribed = false;
+  // ===== STATE =====
+  let stomp = null, subscription = null;
+  let roomId = null, member = null, subscribed = false;
 
-  function authHeaders(){
+  const authHeaders = ()=> {
     const t = localStorage.getItem('authToken');
-    return t ? { 'Authorization': 'Bearer ' + t } : {};
-  }
-  function now(){ return new Date().toLocaleTimeString(); }
-  function addRow(cls, content, meta){
+    return t ? { Authorization: 'Bearer '+t } : {};
+  };
+  const now = ()=> new Date().toLocaleTimeString();
+  const escapeHtml = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>');
+
+  const setConn = ok => {
+    const el = document.getElementById('conn');
+    el.className = 'status ' + (ok?'ok':'bad');
+    el.textContent = ok?'WS 연결됨':'WS 끊김';
+  };
+  const setCount = n => document.getElementById('cc').textContent = n;
+  const addRow = (cls, content, meta) => {
     const box = document.getElementById('list');
     const el = document.createElement('div');
     el.className = 'msg ' + cls;
     el.innerHTML = `<div>${content}</div>${meta?`<div class="meta">${meta}</div>`:''}`;
     box.appendChild(el); box.scrollTop = box.scrollHeight;
-  }
-  function setConn(ok){
-    const el = document.getElementById('conn');
-    el.className = 'status ' + (ok?'ok':'bad');
-    el.textContent = ok?'WS 연결됨':'WS 끊김';
-  }
-  function setCount(n){ document.getElementById('cc').textContent = n; }
-  function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>'); }
+  };
 
-  // ===== 초기화 =====
+  // ===== INIT =====
   (function init(){
     const userStr = localStorage.getItem('currentUser');
     const token = localStorage.getItem('authToken');
-    info('init: token present?', !!token, 'userStr:', userStr);
-    if(!userStr || !token){ alert('로그인이 필요합니다.'); location.href='/login-ssr-test.html'; return; }
+    info('init: token?', !!token, 'userStr?', !!userStr);
+    if(!userStr || !token){ alert('로그인이 필요합니다.'); location.href='/login-chat-test.html'; return; }
     member = JSON.parse(userStr);
-    document.getElementById('nickname').value = member.nickname || (member.id + '님');
+    document.getElementById('nickname').value = member.nickname || (member.id+'님');
 
     const urlRoomId = new URLSearchParams(location.search).get('roomId');
     if(urlRoomId){ setRoom(urlRoomId); addRow('sys', `기존 방 설정: ${roomId}`, now()); }
-    addRow('sys', '페이지 로드 완료', now());
+    addRow('sys','페이지 로드 완료', now());
   })();
 
-  // ===== 방 선택/초대/목록 =====
+  // ===== ROOM UTILS =====
   function setRoom(id){
     roomId = id;
     document.getElementById('manualRoomId').value = id;
@@ -160,7 +155,7 @@
   }
   function useRoom(){
     const v = document.getElementById('manualRoomId').value.trim();
-    if(!v) return addRow('sys','방 ID를 입력하세요', now());
+    if(!v) return addRow('sys', '방 ID를 입력하세요', now());
     setRoom(v);
     addRow('sys', `기존 방 설정: ${roomId}`, now());
   }
@@ -185,11 +180,11 @@
           <div style="font-size:12px;color:#666">ID: ${r.id} · ${r.roomType}/${r.mode}</div>
           <div style="margin-top:6px"><button onclick="joinExisting('${r.id}')">참가</button></div>
         </div>`).join('');
-    }catch(e){ err('rooms error', e); addRow('sys','방 목록 실패: '+e.message, now()); }
+    }catch(e){ err('rooms error', e); addRow('sys', '방 목록 실패: '+e.message, now()); }
   }
   async function joinExisting(id){ setRoom(id); await ensureConnected(); await joinRoom(); }
 
-  // ===== 방 생성 =====
+  // ===== CREATE ROOM =====
   async function createRoom(){
     const body = {
       roomName: document.getElementById('roomName').value.trim() || '테스트 방',
@@ -198,8 +193,10 @@
       participantIds: [member.id]
     };
     try{
-      info('POST create room', body);
-      const res = await fetch(API_CREATE_ROOM, { method:'POST', headers:{'Content-Type':'application/json', ...authHeaders()}, body: JSON.stringify(body) });
+      info('POST create', body);
+      const res = await fetch(API_CREATE_ROOM, {
+        method:'POST', headers:{'Content-Type':'application/json', ...authHeaders()}, body: JSON.stringify(body)
+      });
       info('POST create →', res.status);
       if(!res.ok) throw new Error(await res.text());
       const rs = await res.json(); const data = rs.data || rs;
@@ -208,7 +205,7 @@
     }catch(e){ err('create error', e); addRow('sys','방 생성 실패: '+e.message, now()); }
   }
 
-  // ===== WebSocket =====
+  // ===== WS =====
   async function ensureConnected(){
     return new Promise((resolve)=>{
       if(stomp?.connected){ subscribed = true; info('WS already connected'); return resolve(); }
@@ -218,43 +215,37 @@
       const url = `${WS_ENDPOINT}?token=${encodeURIComponent(token)}&roomId=${encodeURIComponent(roomId)}`;
       info('WS connect', url);
 
-      const sock = new SockJS(url, null, { transports: ['websocket','xhr-streaming','xhr-polling'] });
-      sock.onopen = e => info('[SockJS.open]', e);
-      sock.onclose = e => warn('[SockJS.close]', e);
-      sock.onerror = e => err('[SockJS.error]', e);
+      const sock = new SockJS(url, null, {transports:['websocket','xhr-streaming','xhr-polling']});
+      sock.onopen = e=>info('[SockJS.open]', e);
+      sock.onclose = e=>warn('[SockJS.close]', e);
+      sock.onerror = e=>err('[SockJS.error]', e);
 
       stomp = Stomp.over(sock);
-      // STOMP 디버그 ON
-      stomp.debug = (str)=> DEBUG && console.debug('[STOMP]', str);
+      stomp.debug = s=> DEBUG && console.debug('[STOMP]', s);
 
       stomp.connect({}, _=>{
         info('STOMP connected');
         setConn(true);
 
-        // 중복 구독 방지
         try{ subscription?.unsubscribe(); }catch(_){}
         const dest = SUB_PATH(roomId);
         subscription = stomp.subscribe(dest, msg=>{
           info('[SUB]', 'dest=', dest, 'raw=', msg.body);
-          let p = msg.body;
-          try{ p = JSON.parse(msg.body); }catch(_){}
+          let p = msg.body; try{ p = JSON.parse(msg.body); }catch(_){}
           handleIncoming(p);
         });
         subscribed = true;
         addRow('sys','WS 연결 성공', now());
         resolve();
       }, errFrame=>{
-        setConn(false);
-        err('STOMP connect error', errFrame);
-        addRow('sys','WS 연결 실패', now());
-        resolve();
+        setConn(false); err('STOMP connect error', errFrame); addRow('sys','WS 연결 실패', now()); resolve();
       });
     });
   }
   function connectWS(){ ensureConnected(); }
-  function disconnectWS(){ try{ subscription?.unsubscribe(); }catch(_){ } try{ stomp?.disconnect(()=>setConn(false)); }catch(_){ } }
+  function disconnectWS(){ try{ subscription?.unsubscribe(); }catch(_){ } try{ stomp?.disconnect(()=>setConn(false)); }catch(_){} }
 
-  // ===== 입장 / 퇴장 =====
+  // ===== JOIN / LEAVE =====
   async function joinRoom(){
     if(!roomId) return addRow('sys','roomId가 없습니다', now());
     if(!subscribed) await ensureConnected();
@@ -283,10 +274,10 @@
     }catch(e){ err('leave error', e); addRow('sys','퇴장 실패: '+e.message, now()); }
   }
 
-  // ===== 메시지 =====
+  // ===== TALK / MESSAGES =====
   function sendTalk(){
     const input = document.getElementById('input');
-    const text = (input.value || '').trim();
+    const text = (input.value||'').trim();
     if(!text || !stomp?.connected || !roomId) return;
     const dto = { roomId, senderId: member.id, content: text, type: 'TALK' };
     info('[PUB TALK]', dto);
@@ -314,7 +305,7 @@
     }catch(e){ err('messages error', e); addRow('sys','메시지 로드 실패: '+e.message, now()); }
   }
 
-  // ===== 수신 처리 =====
+  // ===== INCOMING =====
   function handleIncoming(p){
     if(typeof p === 'string'){ info('IN string', p); addRow('sys', p, now()); return; }
     const t = p.type || p.messageType;
@@ -335,7 +326,7 @@
     }
   }
 
-  // 창 닫기 정리
+  // ===== UNLOAD =====
   window.addEventListener('beforeunload', ()=>{
     try{ if(roomId && member?.id){ navigator.sendBeacon(API_LEAVE_ROOM(roomId, member.id)); } }catch(_){}
     try{ subscription?.unsubscribe(); stomp?.disconnect(()=>{}); }catch(_){}
