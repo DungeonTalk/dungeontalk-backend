@@ -87,21 +87,23 @@ public class AuthService {
         );
     }
 
-    // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
+//    // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
     public JwtTokenResponse refreshAccessToken(String refreshToken) {
 
         // 토큰 서명/포맷 검사
 //        if (!jwtProvider.validateToken(refreshToken)) {
 //            throw new MemberException(ErrorCode.INVALID_JWT_TOKEN);
 //        }
-//
-//        // 토큰 만료 검사
+
+        // 토큰 만료 검사
 //        if (jwtProvider.isTokenExpired(refreshToken)) {
 //            throw new MemberException(ErrorCode.EXPIRED_JWT_TOKEN);
 //        }
 
-        // 사용자 조회
-        Auth auth = authRepository.findByRefreshToken(refreshToken)
+        String hashedRefreshToken = TokenHashUtil.hashToken(refreshToken);
+
+        // 사용자 조회 ->
+        Auth auth = authRepository.findByRefreshToken(hashedRefreshToken)
                 .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         // 새로운 Access Token과 Refresh Token을 반환
@@ -109,14 +111,15 @@ public class AuthService {
         String newRefreshToken = jwtProvider.generateRefreshToken(auth.getId());
 
         // Session에 RT 최신화
-        jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), newRefreshToken);
+        jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), refreshToken);
 
         // RDB에 RT 최신화
-        auth.setAccessToken(newAccessToken);
+        auth.setAccessToken(newRefreshToken);
 
         // 클라이언트에게 JWT 전달
         return new JwtTokenResponse(newAccessToken, newRefreshToken);
     }
+
 
     // 로그 아웃 메서드
     public void logout(HttpServletRequest request) {

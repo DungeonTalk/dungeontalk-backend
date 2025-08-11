@@ -61,6 +61,7 @@ public class JwtProvider {
     }
 
     // JWT 토큰 검증 - 유효성 검사
+    /* 에러 발견 : AuthService의 refresAccessToken에서 발생 */
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
