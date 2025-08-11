@@ -132,12 +132,10 @@ public class ValkeyConfig {
         return template;
     }
 
-    // StringRedisTemplate - ChatRoomMemberManager용
     @Bean
-    public StringRedisTemplate stringRedisTemplate(@Qualifier("sessionRedisConnectionFactory") RedisConnectionFactory factory) {
-        StringRedisTemplate template = new StringRedisTemplate();
-        template.setConnectionFactory(factory);
-        return template;
+    public StringRedisTemplate stringRedisTemplate(
+        @Qualifier("sessionRedisConnectionFactory") RedisConnectionFactory cf) {
+        return new StringRedisTemplate(cf);
     }
 
 }
