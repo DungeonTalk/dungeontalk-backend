@@ -39,9 +39,15 @@ public class AiGameStateService {
      */
     @Transactional
     public AiGameRoomResponse startGameSession(String aiGameRoomId) {
+        log.info("🎮 AI 게임 세션 시작 요청: roomId={}", aiGameRoomId);
+        
         AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
+        log.info("🎮 게임방 현재 상태: roomId={}, status={}, phase={}", 
+                 aiGameRoomId, room.getStatus(), room.getCurrentPhase());
 
         if (room.getStatus() != AiGameStatus.CREATED) {
+            log.warn("🎮 게임방 상태가 잘못됨: roomId={}, status={}, expected=CREATED", 
+                     aiGameRoomId, room.getStatus());
             throw new AiChatException(ErrorCode.AI_GAME_ROOM_INVALID_STATE);
         }
 
@@ -51,12 +57,21 @@ public class AiGameStateService {
         room.setLastActivity(LocalDateTime.now());
 
         AiGameRoom saved = aiGameRoomRepository.save(room);
+        log.info("🎮 게임방 상태 변경 완료: roomId={}, newStatus={}, newPhase={}", 
+                 aiGameRoomId, saved.getStatus(), saved.getCurrentPhase());
 
         // Valkey에 게임 세션 정보 저장
         String sessionKey = AI_GAME_SESSION_PREFIX + aiGameRoomId;
-        valkeyService.setWithExpiration(sessionKey, createSessionData(saved), DEFAULT_SESSION_TIMEOUT_SECONDS);
+        String sessionData = createSessionData(saved);
+        log.info("🎮 Valkey 세션 저장 시도: sessionKey={}, timeout={}초", sessionKey, DEFAULT_SESSION_TIMEOUT_SECONDS);
+        
+        valkeyService.setWithExpiration(sessionKey, sessionData, DEFAULT_SESSION_TIMEOUT_SECONDS);
+        
+        // 저장 확인
+        boolean sessionExists = valkeyService.exists(sessionKey);
+        log.info("🎮 Valkey 세션 저장 결과: sessionKey={}, exists={}", sessionKey, sessionExists);
 
-        log.info("AI 게임 세션 시작: roomId={}, participants={}", 
+        log.info("🎮 AI 게임 세션 시작 완료: roomId={}, participants={}", 
                  aiGameRoomId, saved.getParticipants());
 
         return AiGameRoomResponse.fromEntity(saved);
@@ -207,7 +222,10 @@ public class AiGameStateService {
      */
     public boolean isSessionValid(String aiGameRoomId) {
         String sessionKey = AI_GAME_SESSION_PREFIX + aiGameRoomId;
-        return valkeyService.exists(sessionKey);
+        boolean exists = valkeyService.exists(sessionKey);
+        log.info("🔍 세션 유효성 검증: roomId={}, sessionKey={}, exists={}", 
+                 aiGameRoomId, sessionKey, exists);
+        return exists;
     }
 
     /**

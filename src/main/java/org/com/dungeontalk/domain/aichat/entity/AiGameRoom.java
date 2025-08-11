@@ -11,6 +11,7 @@ import jakarta.persistence.EntityListeners;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -70,7 +71,8 @@ public class AiGameRoom {
     /**
      * 현재 참여중인 플레이어 ID 목록 (PostgreSQL Member 테이블의 ID)
      */
-    private List<String> participants;
+    @Builder.Default
+    private List<String> participants = new ArrayList<>();
 
     /**
      * 게임 설정 (TRPG 세계관, 난이도 등 - JSON 형태 저장 가능)
