@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.member.entity.Member;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,24 +23,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final JwtExtractor jwtExtractor;
 
-    // 권한 체크가 불필요한 API들을 패스하는 메서드
     private boolean isPublicApi(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        List<String> publicApis = List.of(
+                "/v1/member/register",
+                "/v1/auth/login"
+        );
 
-        // 일단은 개발 단계이므로, 모든 요청 인증 우회
-        return true;
-//        String path = request.getRequestURI();
-//        return PUBLIC_APIS.stream().anyMatch(path::startsWith);
+        // 요청 경로가 publicApis 목록 중 하나로 시작하면 true 반환
+        return publicApis.stream().anyMatch(path::startsWith);
     }
-
-    /*
-    * 권한 체크가 불필요한 API 리스트 정의 메서드
-    *
-    * 일단은 개발 단계이므로 모든 API를 Open함
-    *  */
-//    private static final List<String> PUBLIC_APIS = List.of(
-//            "/v1/member/register",
-//            "/v1/auth/login",
-//           );
 
     // 필터 체인
     @Override
@@ -54,21 +47,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
+            System.out.println("공개 API 통과");
             String accessToken = jwtExtractor.extractAccessToken(request);
 
+            System.out.println("엑세스 토큰" + accessToken);
             if (accessToken == null || accessToken.isEmpty()) {
                 // 토큰 없으면 401 Unauthorized
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Access Token is missing");
                 return;
             }
 
+            System.out.println("엑세스 토큰 검증 완료");
             // 토큰 유효성 검사 및 멤버 조회
             Member member = jwtService.getMemberFromToken(accessToken);
+            System.out.println("토큰으로 부터 멤버 추출" + member);
 
             // 인증 정보 생성 및 SecurityContext에 저장
-            JwtAuthenticationToken authentication = new JwtAuthenticationToken(member);
+//            JwtAuthenticationToken authentication = new JwtAuthenticationToken(member);
+//            authentication.setAuthenticated(true);
+//            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+            CustomUserDetails userDetails = new CustomUserDetails(member);
+            JwtAuthenticationToken authentication = new JwtAuthenticationToken(userDetails);
             authentication.setAuthenticated(true);
-            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            System.out.println("authentication : "+ authentication);
 
             // 다음 필터로 이동
             filterChain.doFilter(request, response);

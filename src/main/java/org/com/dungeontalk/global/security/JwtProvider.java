@@ -31,6 +31,7 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .setSubject(id) // 보편적으로 PK가 subject
+                .claim("id",id)
                 .claim("name", name)
                 .claim("nickName", nickName)
                 .setIssuedAt(new Date())
@@ -53,9 +54,19 @@ public class JwtProvider {
     }
 
     // 토큰에서 클레임 추출
+//    public Claims extractClaims(String token) {
+//        return Jwts.parser() // JWT 파서 객체 생성
+//                .setSigningKey(SECRET_KEY)
+//                .parseClaimsJws(token)
+//                .getBody();
+//    }
+
+    // 토큰에서 클레임 추출 ver 2.0
     public Claims extractClaims(String token) {
-        return Jwts.parser() // JWT 파서 객체 생성
-                .setSigningKey(SECRET_KEY)
+        Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
