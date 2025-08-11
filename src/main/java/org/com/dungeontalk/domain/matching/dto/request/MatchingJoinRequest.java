@@ -11,8 +11,8 @@ import jakarta.validation.constraints.NotNull;
 @Setter
 public class MatchingJoinRequest {
 
-    @NotBlank(message = "사용자 ID는 필수입니다")
-    private String userId;
+    @NotBlank(message = "회원 ID는 필수입니다")
+    private String memberId;
 
     @NotNull(message = "세계관 선택은 필수입니다")
     private WorldType worldType;

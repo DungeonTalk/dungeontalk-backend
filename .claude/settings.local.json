@@ -28,7 +28,8 @@
       "Bash(else echo \"❌ 누락\")",
       "Bash(fi)",
       "Bash(done)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(.gradlew --stop)"
     ],
     "deny": []
   }

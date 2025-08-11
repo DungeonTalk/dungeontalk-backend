@@ -17,7 +17,7 @@ import jakarta.validation.Valid;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/matching")
+@RequestMapping("/api/v1/match")
 @RequiredArgsConstructor
 public class MatchingController {
 
@@ -29,9 +29,9 @@ public class MatchingController {
      */
     @PostMapping("/join")
     public RsData<MatchingStatusResponse> joinMatching(@Valid @RequestBody MatchingJoinRequest request) {
-        log.info("매칭 참가 API 호출: userId={}, worldType={}", request.getUserId(), request.getWorldType());
+        log.info("매칭 참가 API 호출: memberId={}, worldType={}", request.getMemberId(), request.getWorldType());
         
-        MatchingStatusResponse response = matchingService.joinMatching(request.getUserId(), request.getWorldType());
+        MatchingStatusResponse response = matchingService.joinMatching(request.getMemberId(), request.getWorldType());
         return RsData.of("200", "매칭 큐 참가 완료", response);
     }
 
@@ -40,9 +40,9 @@ public class MatchingController {
      */
     @DeleteMapping("/cancel")
     public RsData<String> cancelMatching(@Valid @RequestBody MatchingCancelRequest request) {
-        log.info("매칭 취소 API 호출: userId={}", request.getUserId());
+        log.info("매칭 취소 API 호출: memberId={}", request.getMemberId());
         
-        boolean cancelled = matchingService.cancelMatching(request.getUserId());
+        boolean cancelled = matchingService.cancelMatching(request.getMemberId());
         if (cancelled) {
             return RsData.of("200", "매칭 취소 완료", "SUCCESS");
         } else {
@@ -53,11 +53,11 @@ public class MatchingController {
     /**
      * 사용자 매칭 상태 조회
      */
-    @GetMapping("/status/{userId}")
-    public RsData<MatchingStatusResponse> getMatchingStatus(@PathVariable String userId) {
-        log.debug("매칭 상태 조회 API 호출: userId={}", userId);
+    @GetMapping("/status/{memberId}")
+    public RsData<MatchingStatusResponse> getMatchingStatus(@PathVariable String memberId) {
+        log.debug("매칭 상태 조회 API 호출: memberId={}", memberId);
         
-        MatchingStatusResponse response = matchingService.getMatchingStatus(userId);
+        MatchingStatusResponse response = matchingService.getMatchingStatus(memberId);
         return RsData.of("200", "매칭 상태 조회 성공", response);
     }
 
@@ -98,8 +98,7 @@ public class MatchingController {
         log.info("수동 매칭 처리 API 호출: worldType={}", worldType);
         
         try {
-            org.com.dungeontalk.domain.matching.common.WorldType world = 
-                    org.com.dungeontalk.domain.matching.common.WorldType.valueOf(worldType.toUpperCase());
+            WorldType world = WorldType.valueOf(worldType.toUpperCase());
             
             MatchingCompleteResponse response = matchingService.processMatching(world);
             

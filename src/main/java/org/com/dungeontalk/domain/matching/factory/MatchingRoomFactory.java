@@ -58,7 +58,6 @@ public class MatchingRoomFactory {
         
         ChatRoomCreateRequestDto request = new ChatRoomCreateRequestDto();
         request.setRoomName(buildChatRoomName(context.getWorldType()));
-        request.setRoomType(ChatRoomType.GAME);
         request.setMode(ChatMode.MULTI);
         request.setParticipantIds(context.getParticipants());
         

@@ -12,7 +12,7 @@ import java.time.Instant;
 @Builder
 public class MatchingStatusResponse {
 
-    private String userId;
+    private String memberId;
     private WorldType worldType;
     private MatchingStatus status;
     private int currentPosition;
@@ -21,7 +21,7 @@ public class MatchingStatusResponse {
     private String estimatedWaitTime;
     private Instant joinedAt;
 
-    public static MatchingStatusResponse of(String userId, WorldType worldType, 
+    public static MatchingStatusResponse of(String memberId, WorldType worldType, 
                                            MatchingStatus status, int queuePosition, 
                                            int totalInQueue, Instant joinedAt) {
         
@@ -31,7 +31,7 @@ public class MatchingStatusResponse {
         String estimatedTime = calculateEstimatedTime(queuePosition);
         
         return MatchingStatusResponse.builder()
-                .userId(userId)
+                .memberId(memberId)
                 .worldType(worldType)
                 .status(status)
                 .currentPosition(queuePosition)

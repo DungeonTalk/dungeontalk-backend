@@ -16,19 +16,20 @@ import java.util.List;
 public class MatchingWebSocketService {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final MatchingWebSocketMessageFactory messageFactory;
 
     /**
      * 개별 사용자에게 큐 상태 업데이트 전송
      */
-    public void sendQueueStatusUpdate(String userId, WorldType worldType, int currentPosition, 
+    public void sendQueueStatusUpdate(String memberId, WorldType worldType, int currentPosition, 
                                     int totalInQueue, long waitingTime) {
-        MatchingWebSocketMessage message = MatchingWebSocketMessage.queueStatusUpdate(
-                userId, worldType, currentPosition, totalInQueue, waitingTime);
+        MatchingWebSocketMessage message = messageFactory.createQueueStatusUpdate(
+                memberId, worldType, currentPosition, totalInQueue, waitingTime);
 
-        String destination = MatchingConstants.WS_TOPIC_USER_STATUS + userId;
+        String destination = MatchingConstants.WS_TOPIC_USER_STATUS + memberId;
         messagingTemplate.convertAndSend(destination, message);
 
-        log.debug("큐 상태 업데이트 전송: userId={}, destination={}", userId, destination);
+        log.debug("큐 상태 업데이트 전송: memberId={}, destination={}", memberId, destination);
     }
 
     /**
@@ -36,12 +37,12 @@ public class MatchingWebSocketService {
      */
     public void sendMatchingComplete(List<String> participants, WorldType worldType,
                                    String gameSessionId, String aiGameRoomId, String chatRoomId) {
-        MatchingWebSocketMessage message = MatchingWebSocketMessage.matchingComplete(
+        MatchingWebSocketMessage message = messageFactory.createMatchingComplete(
                 participants, worldType, gameSessionId, aiGameRoomId, chatRoomId);
 
         // 각 참가자에게 개별 전송
-        for (String userId : participants) {
-            String destination = MatchingConstants.WS_TOPIC_USER_STATUS + userId;
+        for (String memberId : participants) {
+            String destination = MatchingConstants.WS_TOPIC_USER_STATUS + memberId;
             messagingTemplate.convertAndSend(destination, message);
         }
 
@@ -51,13 +52,13 @@ public class MatchingWebSocketService {
     /**
      * 매칭 취소 알림 전송
      */
-    public void sendMatchingCancelled(String userId, WorldType worldType) {
-        MatchingWebSocketMessage message = MatchingWebSocketMessage.matchingCancelled(userId, worldType);
+    public void sendMatchingCancelled(String memberId, WorldType worldType) {
+        MatchingWebSocketMessage message = messageFactory.createMatchingCancelled(memberId, worldType);
 
-        String destination = MatchingConstants.WS_TOPIC_USER_STATUS + userId;
+        String destination = MatchingConstants.WS_TOPIC_USER_STATUS + memberId;
         messagingTemplate.convertAndSend(destination, message);
 
-        log.info("매칭 취소 알림 전송: userId={}", userId);
+        log.info("매칭 취소 알림 전송: memberId={}", memberId);
     }
 
     /**
@@ -88,12 +89,12 @@ public class MatchingWebSocketService {
     /**
      * 에러 메시지 전송
      */
-    public void sendError(String userId, String errorMessage) {
-        MatchingWebSocketMessage message = MatchingWebSocketMessage.error(userId, errorMessage);
+    public void sendError(String memberId, String errorMessage) {
+        MatchingWebSocketMessage message = messageFactory.createError(memberId, errorMessage);
 
-        String destination = MatchingConstants.WS_TOPIC_USER_STATUS + userId;
+        String destination = MatchingConstants.WS_TOPIC_USER_STATUS + memberId;
         messagingTemplate.convertAndSend(destination, message);
 
-        log.warn("에러 메시지 전송: userId={}, error={}", userId, errorMessage);
+        log.warn("에러 메시지 전송: memberId={}, error={}", memberId, errorMessage);
     }
 }

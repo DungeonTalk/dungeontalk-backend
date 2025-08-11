@@ -23,7 +23,7 @@ public class MatchingWebSocketController {
     @MessageMapping("/matching/join")
     @SendToUser("/sub/matching/user")
     public void joinMatching(@Payload MatchingJoinRequest request) {
-        matchingService.handleWebSocketJoinMatching(request.getUserId(), request.getWorldType());
+        matchingService.handleWebSocketJoinMatching(request.getMemberId(), request.getWorldType());
     }
 
     /**
@@ -32,6 +32,6 @@ public class MatchingWebSocketController {
     @MessageMapping("/matching/cancel")
     @SendToUser("/sub/matching/user")
     public void cancelMatching(@Payload MatchingCancelRequest request) {
-        matchingService.handleWebSocketCancelMatching(request.getUserId());
+        matchingService.handleWebSocketCancelMatching(request.getMemberId());
     }
 }

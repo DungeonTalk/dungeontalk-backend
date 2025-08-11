@@ -9,6 +9,6 @@ import jakarta.validation.constraints.NotBlank;
 @Setter
 public class MatchingCancelRequest {
 
-    @NotBlank(message = "사용자 ID는 필수입니다")
-    private String userId;
+    @NotBlank(message = "회원 ID는 필수입니다")
+    private String memberId;
 }

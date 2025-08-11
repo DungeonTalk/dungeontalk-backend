@@ -16,6 +16,7 @@ import org.com.dungeontalk.domain.matching.common.WorldType;
 import org.com.dungeontalk.domain.matching.dto.response.MatchingCompleteResponse;
 import org.com.dungeontalk.domain.matching.dto.response.MatchingStatusResponse;
 import org.com.dungeontalk.domain.matching.dto.response.QueueStatsResponse;
+import org.com.dungeontalk.domain.matching.dto.response.WorldQueueInfo;
 import org.com.dungeontalk.domain.matching.exception.MatchingException;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.util.UuidV7Creator;
@@ -45,55 +46,55 @@ public class MatchingService {
     /**
      * WebSocket 매칭 참가 처리 (컨트롤러 단순화용)
      */
-    public void handleWebSocketJoinMatching(String userId, WorldType worldType) {
+    public void handleWebSocketJoinMatching(String memberId, WorldType worldType) {
         try {
-            log.info("WebSocket 매칭 참가 요청: userId={}, worldType={}", userId, worldType);
-            joinMatching(userId, worldType);
+            log.info("WebSocket 매칭 참가 요청: memberId={}, worldType={}", memberId, worldType);
+            joinMatching(memberId, worldType);
             
         } catch (MatchingException e) {
-            log.error("WebSocket 매칭 참가 중 매칭 오류: userId={}, error={}", userId, e.getMessage());
-            webSocketService.sendError(userId, e.getMessage());
+            log.error("WebSocket 매칭 참가 중 매칭 오류: memberId={}, error={}", memberId, e.getMessage());
+            webSocketService.sendError(memberId, e.getMessage());
         } catch (Exception e) {
-            log.error("WebSocket 매칭 참가 중 예상치 못한 오류: userId={}", userId, e);
-            webSocketService.sendError(userId, "매칭 참가 중 오류가 발생했습니다.");
+            log.error("WebSocket 매칭 참가 중 예상치 못한 오류: memberId={}", memberId, e);
+            webSocketService.sendError(memberId, "매칭 참가 중 오류가 발생했습니다.");
         }
     }
 
     /**
      * WebSocket 매칭 취소 처리 (컨트롤러 단순화용)
      */
-    public void handleWebSocketCancelMatching(String userId) {
+    public void handleWebSocketCancelMatching(String memberId) {
         try {
-            log.info("WebSocket 매칭 취소 요청: userId={}", userId);
-            cancelMatching(userId);
+            log.info("WebSocket 매칭 취소 요청: memberId={}", memberId);
+            cancelMatching(memberId);
             
         } catch (Exception e) {
-            log.error("WebSocket 매칭 취소 중 오류: userId={}", userId, e);
-            webSocketService.sendError(userId, "매칭 취소 중 오류가 발생했습니다.");
+            log.error("WebSocket 매칭 취소 중 오류: memberId={}", memberId, e);
+            webSocketService.sendError(memberId, "매칭 취소 중 오류가 발생했습니다.");
         }
     }
 
     /**
      * 매칭 큐 참가
      */
-    public MatchingStatusResponse joinMatching(String userId, WorldType worldType) {
-        log.info("매칭 참가 요청: userId={}, worldType={}", userId, worldType);
+    public MatchingStatusResponse joinMatching(String memberId, WorldType worldType) {
+        log.info("매칭 참가 요청: memberId={}, worldType={}", memberId, worldType);
 
         // 1. 중복 참가 체크
-        if (queueManager.isUserInQueue(userId)) {
+        if (queueManager.isUserInQueue(memberId)) {
             throw new MatchingException(ErrorCode.MATCHING_USER_ALREADY_IN_QUEUE);
         }
 
         try {
             // 2. 큐에 사용자 추가
-            queueManager.addToQueue(userId, worldType);
+            queueManager.addToQueue(memberId, worldType);
 
             // 3. 현재 상태 조회
             int queueSize = queueManager.getQueueSize(worldType);
-            int userPosition = queueManager.getUserQueuePosition(userId, worldType);
+            int userPosition = queueManager.getUserQueuePosition(memberId, worldType);
 
             // 4. WebSocket으로 상태 업데이트 전송
-            webSocketService.sendQueueStatusUpdate(userId, worldType, userPosition, queueSize, 0);
+            webSocketService.sendQueueStatusUpdate(memberId, worldType, userPosition, queueSize, 0);
 
             // 5. 매칭 가능한지 확인하고 처리
             if (queueManager.canProcessMatching(worldType)) {
@@ -102,12 +103,12 @@ public class MatchingService {
             }
 
             return MatchingStatusResponse.of(
-                    userId, worldType, MatchingStatus.WAITING,
+                    memberId, worldType, MatchingStatus.WAITING,
                     userPosition, queueSize, Instant.now()
             );
 
         } catch (Exception e) {
-            log.error("매칭 참가 중 오류 발생: userId={}, worldType={}", userId, worldType, e);
+            log.error("매칭 참가 중 오류 발생: memberId={}, worldType={}", memberId, worldType, e);
             throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, e.getMessage());
         }
     }
@@ -115,19 +116,19 @@ public class MatchingService {
     /**
      * 매칭 취소
      */
-    public boolean cancelMatching(String userId) {
-        log.info("매칭 취소 요청: userId={}", userId);
+    public boolean cancelMatching(String memberId) {
+        log.info("매칭 취소 요청: memberId={}", memberId);
 
         // 사용자 정보 조회 (WebSocket 알림용)
-        Map<Object, Object> userInfo = queueManager.getUserMatchingInfo(userId);
+        Map<Object, Object> userInfo = queueManager.getUserMatchingInfo(memberId);
         WorldType worldType = null;
         if (!userInfo.isEmpty()) {
             worldType = WorldType.valueOf((String) userInfo.get("worldType"));
         }
 
-        boolean removed = queueManager.removeFromQueue(userId);
+        boolean removed = queueManager.removeFromQueue(memberId);
         if (!removed) {
-            log.warn("매칭 취소 실패: 사용자가 대기 중이 아님 - userId={}", userId);
+            log.warn("매칭 취소 실패: 사용자가 대기 중이 아님 - memberId={}", memberId);
             // 예외 대신 false 반환하도록 변경 (이미 취소된 상태일 수 있음)
             return false;
         }
@@ -135,10 +136,10 @@ public class MatchingService {
         // WebSocket으로 취소 알림 전송 (worldType이 있을 때만)
         if (worldType != null) {
             try {
-                webSocketService.sendMatchingCancelled(userId, worldType);
-                log.info("매칭 취소 WebSocket 알림 전송 완료: userId={}", userId);
+                webSocketService.sendMatchingCancelled(memberId, worldType);
+                log.info("매칭 취소 WebSocket 알림 전송 완료: memberId={}", memberId);
             } catch (Exception e) {
-                log.warn("매칭 취소 WebSocket 알림 전송 실패: userId={}, error={}", userId, e.getMessage());
+                log.warn("매칭 취소 WebSocket 알림 전송 실패: memberId={}, error={}", memberId, e.getMessage());
             }
         }
 
@@ -148,8 +149,8 @@ public class MatchingService {
     /**
      * 사용자 매칭 상태 조회
      */
-    public MatchingStatusResponse getMatchingStatus(String userId) {
-        Map<Object, Object> userInfo = queueManager.getUserMatchingInfo(userId);
+    public MatchingStatusResponse getMatchingStatus(String memberId) {
+        Map<Object, Object> userInfo = queueManager.getUserMatchingInfo(memberId);
         
         if (userInfo.isEmpty()) {
             throw new MatchingException(ErrorCode.MATCHING_USER_NOT_IN_QUEUE);
@@ -164,16 +165,16 @@ public class MatchingService {
         Instant joinedAt = Instant.parse(joinedAtStr);
 
         int queueSize = queueManager.getQueueSize(worldType);
-        int userPosition = queueManager.getUserQueuePosition(userId, worldType);
+        int userPosition = queueManager.getUserQueuePosition(memberId, worldType);
 
-        return MatchingStatusResponse.of(userId, worldType, status, userPosition, queueSize, joinedAt);
+        return MatchingStatusResponse.of(memberId, worldType, status, userPosition, queueSize, joinedAt);
     }
 
     /**
      * 전체 큐 통계 조회
      */
     public QueueStatsResponse getQueueStats() {
-        Map<WorldType, QueueStatsResponse.WorldQueueInfo> queueInfo = new HashMap<>();
+        Map<WorldType, WorldQueueInfo> queueInfo = new HashMap<>();
         int totalWaiting = 0;
 
         for (WorldType worldType : WorldType.values()) {
@@ -190,7 +191,7 @@ public class MatchingService {
                 }
             }
 
-            queueInfo.put(worldType, QueueStatsResponse.WorldQueueInfo.of(
+            queueInfo.put(worldType, WorldQueueInfo.of(
                     worldType, currentWaiting, averageWaitTime
             ));
 
@@ -315,7 +316,6 @@ public class MatchingService {
                 .append(worldType.getDisplayName())
                 .append(" 채팅방")
                 .toString());
-        request.setRoomType(ChatRoomType.GAME);
         request.setMode(ChatMode.MULTI);
         request.setParticipantIds(participants);
 

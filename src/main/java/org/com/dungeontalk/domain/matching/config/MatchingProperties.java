@@ -1,13 +1,14 @@
 package org.com.dungeontalk.domain.matching.config;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
  * 매칭 도메인 설정 속성
  */
-@Data
+@Getter
 @Component
 @ConfigurationProperties(prefix = "app.matching")
 public class MatchingProperties {
@@ -27,7 +28,8 @@ public class MatchingProperties {
      */
     private final Timing timing = new Timing();
 
-    @Data
+    @Getter
+    @Setter
     public static class ThreadPool {
         /**
          * 기본 스레드 수
@@ -50,7 +52,8 @@ public class MatchingProperties {
         private int keepAliveSeconds = 60;
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class Ttl {
         /**
          * 사용자 상태 TTL (초)
@@ -68,7 +71,8 @@ public class MatchingProperties {
         private long matchingLockTimeoutSeconds = 10L;
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class Timing {
         /**
          * 매칭 예상 소요 시간 (초)

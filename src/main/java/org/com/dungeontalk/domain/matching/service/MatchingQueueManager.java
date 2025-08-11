@@ -48,17 +48,17 @@ public class MatchingQueueManager {
     /**
      * 사용자가 이미 큐에 있는지 확인
      */
-    public boolean isUserInQueue(String userId) {
-        String userKey = MatchingConstants.USER_KEY_PREFIX + userId;
+    public boolean isUserInQueue(String memberId) {
+        String userKey = MatchingConstants.USER_KEY_PREFIX + memberId;
         return Boolean.TRUE.equals(redisTemplate.hasKey(userKey));
     }
 
     /**
      * 큐에 사용자 추가
      */
-    public void addToQueue(String userId, WorldType worldType) {
+    public void addToQueue(String memberId, WorldType worldType) {
         String queueKey = worldType.getQueueKey();
-        String userKey = MatchingConstants.USER_KEY_PREFIX + userId;
+        String userKey = MatchingConstants.USER_KEY_PREFIX + memberId;
 
         // 큐 크기 확인
         Long currentSize = redisTemplate.opsForList().size(queueKey);
@@ -67,7 +67,7 @@ public class MatchingQueueManager {
         }
 
         // 큐에 사용자 추가 (FIFO를 위해 leftPush 사용)
-        redisTemplate.opsForList().leftPush(queueKey, userId);
+        redisTemplate.opsForList().leftPush(queueKey, memberId);
 
         // 사용자 상태 저장
         Map<String, String> userInfo = Map.of(
@@ -83,16 +83,16 @@ public class MatchingQueueManager {
         // 통계 업데이트
         updateQueueStats(worldType, 1);
 
-        log.info("사용자 큐 추가 완료: userId={}, worldType={}, queueSize={}", 
-                userId, worldType, currentSize != null ? currentSize + 1 : 1);
+        log.info("사용자 큐 추가 완료: memberId={}, worldType={}, queueSize={}", 
+                memberId, worldType, currentSize != null ? currentSize + 1 : 1);
     }
 
     /**
      * 큐에서 사용자 제거 (취소 시)
      */
-    public boolean removeFromQueue(String userId) {
-        String userKey = MatchingConstants.USER_KEY_PREFIX + userId;
-        
+    public boolean removeFromQueue(String memberId) {
+        String userKey = MatchingConstants.USER_KEY_PREFIX + memberId;
+
         // 사용자 정보 조회
         Map<Object, Object> userInfo = redisTemplate.opsForHash().entries(userKey);
         if (userInfo.isEmpty()) {
@@ -104,7 +104,7 @@ public class MatchingQueueManager {
         String queueKey = worldType.getQueueKey();
 
         // 큐에서 사용자 제거
-        Long removed = redisTemplate.opsForList().remove(queueKey, 0, userId);
+        Long removed = redisTemplate.opsForList().remove(queueKey, 0, memberId);
         
         // 사용자 상태 삭제
         redisTemplate.delete(userKey);
@@ -112,7 +112,7 @@ public class MatchingQueueManager {
         // 통계 업데이트
         if (removed != null && removed > 0) {
             updateQueueStats(worldType, -1);
-            log.info("사용자 큐 제거 완료: userId={}, worldType={}", userId, worldType);
+            log.info("사용자 큐 제거 완료: memberId={}, worldType={}", memberId, worldType);
             return true;
         }
 
@@ -157,8 +157,8 @@ public class MatchingQueueManager {
     /**
      * 사용자 상태를 MATCHED로 변경
      */
-    private void markUserAsMatched(String userId) {
-        String userKey = MatchingConstants.USER_KEY_PREFIX + userId;
+    private void markUserAsMatched(String memberId) {
+        String userKey = MatchingConstants.USER_KEY_PREFIX + memberId;
         redisTemplate.opsForHash().put(userKey, "status", MatchingStatus.MATCHED.name());
     }
 
@@ -193,8 +193,8 @@ public class MatchingQueueManager {
     /**
      * 사용자 매칭 정보 조회
      */
-    public Map<Object, Object> getUserMatchingInfo(String userId) {
-        String userKey = MatchingConstants.USER_KEY_PREFIX + userId;
+    public Map<Object, Object> getUserMatchingInfo(String memberId) {
+        String userKey = MatchingConstants.USER_KEY_PREFIX + memberId;
         return redisTemplate.opsForHash().entries(userKey);
     }
 
@@ -223,13 +223,13 @@ public class MatchingQueueManager {
     /**
      * 매칭 완료된 사용자들의 상태 정리
      */
-    public void cleanupMatchedUsers(List<String> userIds) {
-        for (String userId : userIds) {
-            String userKey = MatchingConstants.USER_KEY_PREFIX + userId;
+    public void cleanupMatchedUsers(List<String> memberIds) {
+        for (String memberId : memberIds) {
+            String userKey = MatchingConstants.USER_KEY_PREFIX + memberId;
             redisTemplate.delete(userKey);
         }
         
-        log.info("매칭 완료 사용자 상태 정리 완료: userIds={}", userIds);
+        log.info("매칭 완료 사용자 상태 정리 완료: memberIds={}", memberIds);
     }
 
     /**
@@ -239,17 +239,17 @@ public class MatchingQueueManager {
         String queueKey = worldType.getQueueKey();
         String statsKey = worldType.getStatsKey();
         
-        Set<String> userIds = null;
+        Set<String> memberIds = null;
         try {
             // 리스트 형태로 저장된 큐에서 사용자 ID 조회
-            List<String> queueUserIds = redisTemplate.opsForList().range(queueKey, 0, -1);
-            if (queueUserIds != null && !queueUserIds.isEmpty()) {
-                userIds = new LinkedHashSet<>(queueUserIds);
-                for (String userId : userIds) {
-                    String userKey = MatchingConstants.USER_KEY_PREFIX + userId;
+            List<String> queueMemberIds = redisTemplate.opsForList().range(queueKey, 0, -1);
+            if (queueMemberIds != null && !queueMemberIds.isEmpty()) {
+                memberIds = new LinkedHashSet<>(queueMemberIds);
+                for (String memberId : memberIds) {
+                    String userKey = MatchingConstants.USER_KEY_PREFIX + memberId;
                     redisTemplate.delete(userKey);
                 }
-                log.info("큐 내 사용자 상태 정리 완료: worldType={}, userCount={}", worldType, userIds.size());
+                log.info("큐 내 사용자 상태 정리 완료: worldType={}, memberCount={}", worldType, memberIds.size());
             }
         } catch (QueryTimeoutException e) {
             log.error("큐 정리 중 타임아웃 발생: worldType={}", worldType, e);
@@ -269,7 +269,7 @@ public class MatchingQueueManager {
         redisTemplate.delete(queueKey);
         redisTemplate.delete(statsKey);
         
-        log.info("큐 초기화 완료: worldType={}, cleanedUsers={}", worldType, 
-                userIds != null ? userIds.size() : 0);
+        log.info("큐 초기화 완료: worldType={}, cleanedMembers={}", worldType, 
+                memberIds != null ? memberIds.size() : 0);
     }
 }
