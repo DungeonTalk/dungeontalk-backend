@@ -701,7 +701,7 @@
             }
             
             try {
-                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken));
+                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=matching');
                 matchingStompClient = Stomp.over(socket);
                 
                 matchingStompClient.connect({}, function(frame) {
@@ -923,7 +923,7 @@
             console.log('================================');
             
             try {
-                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken));
+                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=' + encodeURIComponent(aiGameRoomId));
                 aiStompClient = Stomp.over(socket);
                 
                 aiStompClient.connect({}, function(frame) {
@@ -978,7 +978,7 @@
             }
             
             try {
-                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken));
+                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=' + encodeURIComponent(partyRoomId));
                 partyStompClient = Stomp.over(socket);
                 
                 partyStompClient.connect({}, function(frame) {
