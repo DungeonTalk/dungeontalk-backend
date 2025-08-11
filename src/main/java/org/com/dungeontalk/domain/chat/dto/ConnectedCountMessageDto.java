@@ -10,4 +10,12 @@ public class ConnectedCountMessageDto {
     private String roomId;
     private long connectedCount;
     private MessageType type;  // 항상 CONNECTED_COUNT
+
+    public static ConnectedCountMessageDto of(String roomId, long count) {
+        return ConnectedCountMessageDto.builder()
+            .roomId(roomId)
+            .connectedCount(count)
+            .type(MessageType.CONNECTED_COUNT)
+            .build();
+    }
 }
