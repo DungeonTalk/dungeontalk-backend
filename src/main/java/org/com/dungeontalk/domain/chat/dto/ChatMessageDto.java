@@ -1,6 +1,8 @@
 package org.com.dungeontalk.domain.chat.dto;
 
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Instant;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,10 +18,13 @@ public class ChatMessageDto {
     private String roomId;
     private String senderId;
     private String receiverId;
-    private String senderNickName;
+
+    @JsonProperty("senderNickname")
+    @JsonAlias("senderNickname")
+    private String senderNickname;
     private String content;
     private MessageType type;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     // 닉네임 포함 변환
     public static ChatMessageDto fromEntity(ChatMessage msg, String senderNickname) {
@@ -28,7 +33,7 @@ public class ChatMessageDto {
             .roomId(msg.getRoomId())
             .senderId(msg.getSenderId())
             .receiverId(msg.getReceiverId())
-            .senderNickName(senderNickname)
+            .senderNickname(senderNickname)
             .content(msg.getContent())
             .type(msg.getType())
             .createdAt(msg.getCreatedAt())
