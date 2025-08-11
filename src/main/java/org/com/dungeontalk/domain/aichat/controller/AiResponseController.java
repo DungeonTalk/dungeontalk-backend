@@ -3,13 +3,19 @@ package org.com.dungeontalk.domain.aichat.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.aichat.dto.AiGameMessageDto;
+import org.com.dungeontalk.domain.aichat.dto.request.AiErrorRequest;
+import org.com.dungeontalk.domain.aichat.dto.request.AiGenerateRequest;
+import org.com.dungeontalk.domain.aichat.dto.request.AiMessageSaveRequest;
+import org.com.dungeontalk.domain.aichat.dto.request.AiResponseRequest;
 import org.com.dungeontalk.domain.aichat.dto.response.AiGameMessageResponse;
+import org.com.dungeontalk.domain.aichat.dto.response.ProcessingStatusResponse;
 import org.com.dungeontalk.domain.aichat.service.AiGameMessageService;
 import org.com.dungeontalk.domain.aichat.service.AiGameStateService;
 import org.com.dungeontalk.domain.aichat.service.AiResponseService;
-import org.springframework.http.ResponseEntity;
+import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
 import java.util.List;
 
@@ -29,7 +35,7 @@ public class AiResponseController {
      * 프론트엔드에서 직접 호출하여 AI 응답을 요청할 때 사용
      */
     @PostMapping("/rooms/{roomId}/generate")
-    public ResponseEntity<AiGameMessageResponse> generateAndProcessAiResponse(
+    public RsData<AiGameMessageResponse> generateAndProcessAiResponse(
             @PathVariable String roomId,
             @RequestBody AiGenerateRequest request) {
         
@@ -40,13 +46,13 @@ public class AiResponseController {
         boolean locked = aiGameStateService.lockForAiResponse(roomId);
         if (!locked) {
             log.warn("AI 응답 처리 중 락 설정 실패 (이미 처리중): roomId={}", roomId);
-            return ResponseEntity.badRequest().build();
+            return RsData.of("400-1", "AI 응답이 이미 처리 중입니다", null);
         }
 
         try {
             // 컨텍스트 메시지 조회
             List<AiGameMessageDto> contextMessages = aiGameMessageService
-                    .getContextMessages(roomId, 5, request.getTurnNumber());
+                    .getContextMessages(roomId, DEFAULT_CONTEXT_MESSAGE_COUNT, request.getTurnNumber());
 
             // Python AI 서비스에서 응답 생성
             AiResponseService.AiResponseResult aiResult = aiResponseService.generateAiResponse(
@@ -59,46 +65,29 @@ public class AiResponseController {
             );
 
             // AI 메시지 저장
-            AiGameMessageDto savedMessage = aiGameMessageService.saveAiMessage(
-                    roomId,
-                    request.getGameId(),
-                    aiResult.getContent(),
-                    request.getTurnNumber(),
-                    aiResult.getResponseTime(),
-                    aiResult.getSources() != null ? String.join(",", aiResult.getSources()) : null
-            );
+            AiMessageSaveRequest saveRequest = AiMessageSaveRequest.builder()
+                    .aiGameRoomId(roomId)
+                    .gameId(request.getGameId())
+                    .content(aiResult.getContent())
+                    .turnNumber(request.getTurnNumber())
+                    .responseTime(aiResult.getResponseTime())
+                    .aiSources(aiResult.getSources() != null ? String.join(",", aiResult.getSources()) : null)
+                    .build();
+            AiGameMessageDto savedMessage = aiGameMessageService.saveAiMessage(saveRequest);
 
-            // WebSocket으로 실시간 브로드캐스트
-            String destination = "/sub/aichat/room/" + roomId;
-            messagingTemplate.convertAndSend(destination, savedMessage);
-
-            // AI 응답 완료 후 락 해제 및 다음 턴으로 진행
-            aiGameStateService.unlockAfterAiResponse(roomId);
-            int nextTurn = aiGameStateService.nextTurn(roomId);
+            // WebSocket 브로드캐스트 및 처리 완료
+            sendWebSocketMessage(roomId, savedMessage);
+            int nextTurn = completeAiResponseAndProgressToNextTurn(roomId);
 
             log.info("AI 응답 생성 및 처리 완료: roomId={}, nextTurn={}, responseTime={}ms", 
                      roomId, nextTurn, aiResult.getResponseTime());
 
-            AiGameMessageResponse response = AiGameMessageResponse.builder()
-                    .messageId(savedMessage.getMessageId())
-                    .aiGameRoomId(savedMessage.getAiGameRoomId())
-                    .senderId(savedMessage.getSenderId())
-                    .senderNickname(savedMessage.getSenderNickname())
-                    .content(savedMessage.getContent())
-                    .messageType(savedMessage.getMessageType())
-                    .turnNumber(savedMessage.getTurnNumber())
-                    .messageOrder(savedMessage.getMessageOrder())
-                    .aiResponseTime(savedMessage.getAiResponseTime())
-                    .createdAt(savedMessage.getCreatedAt())
-                    .build();
+            AiGameMessageResponse response = AiGameMessageResponse.fromDto(savedMessage);
 
-            return ResponseEntity.ok(response);
+            return RsData.of("200-1", "AI 응답 생성 및 처리 완료", response);
 
         } catch (Exception e) {
-            log.error("AI 응답 생성 및 처리 중 오류 발생: roomId={}, error={}", roomId, e.getMessage(), e);
-            // 오류 발생 시 락 해제
-            aiGameStateService.unlockAfterAiResponse(roomId);
-            return ResponseEntity.internalServerError().build();
+            return handleAiResponseError(roomId, e, "AI 응답 생성 중 오류가 발생했습니다");
         }
     }
 
@@ -107,7 +96,7 @@ public class AiResponseController {
      * AI 응답을 저장하고 WebSocket으로 브로드캐스트한다.
      */
     @PostMapping("/rooms/{roomId}/response")
-    public ResponseEntity<AiGameMessageResponse> receiveAiResponse(
+    public RsData<AiGameMessageResponse> receiveAiResponse(
             @PathVariable String roomId,
             @RequestBody AiResponseRequest request) {
 
@@ -116,47 +105,27 @@ public class AiResponseController {
 
         try {
             // AI 메시지 저장
-            AiGameMessageDto savedMessage = aiGameMessageService.saveAiMessage(
-                    roomId,
-                    request.getGameId(),
-                    request.getContent(),
-                    request.getTurnNumber(),
-                    request.getResponseTime(),
-                    request.getAiSources()
-            );
+            AiMessageSaveRequest saveRequest = AiMessageSaveRequest.builder()
+                    .aiGameRoomId(roomId)
+                    .gameId(request.getGameId())
+                    .content(request.getContent())
+                    .turnNumber(request.getTurnNumber())
+                    .responseTime(request.getResponseTime())
+                    .aiSources(request.getAiSources())
+                    .build();
+            AiGameMessageDto savedMessage = aiGameMessageService.saveAiMessage(saveRequest);
 
-            // WebSocket으로 실시간 브로드캐스트
-            String destination = "/sub/aichat/room/" + roomId;
-            messagingTemplate.convertAndSend(destination, savedMessage);
-
-            // AI 응답 완료 후 락 해제 (다음 턴으로 진행)
-            aiGameStateService.unlockAfterAiResponse(roomId);
-            
-            // 다음 턴으로 진행
-            int nextTurn = aiGameStateService.nextTurn(roomId);
+            // WebSocket 브로드캐스트 및 처리 완료
+            sendWebSocketMessage(roomId, savedMessage);
+            int nextTurn = completeAiResponseAndProgressToNextTurn(roomId);
 
             log.info("AI 응답 처리 완료: roomId={}, nextTurn={}", roomId, nextTurn);
 
-            AiGameMessageResponse response = AiGameMessageResponse.builder()
-                    .messageId(savedMessage.getMessageId())
-                    .aiGameRoomId(savedMessage.getAiGameRoomId())
-                    .senderId(savedMessage.getSenderId())
-                    .senderNickname(savedMessage.getSenderNickname())
-                    .content(savedMessage.getContent())
-                    .messageType(savedMessage.getMessageType())
-                    .turnNumber(savedMessage.getTurnNumber())
-                    .messageOrder(savedMessage.getMessageOrder())
-                    .aiResponseTime(savedMessage.getAiResponseTime())
-                    .createdAt(savedMessage.getCreatedAt())
-                    .build();
-
-            return ResponseEntity.ok(response);
+            AiGameMessageResponse response = AiGameMessageResponse.fromDto(savedMessage);
+            return RsData.of("200-1", "AI 응답 생성 및 처리 완료", response);
 
         } catch (Exception e) {
-            log.error("AI 응답 처리 중 오류 발생: roomId={}, error={}", roomId, e.getMessage(), e);
-            // 오류 발생 시 락 해제
-            aiGameStateService.unlockAfterAiResponse(roomId);
-            return ResponseEntity.internalServerError().build();
+            return handleAiResponseError(roomId, e, "AI 응답 처리 중 오류가 발생했습니다");
         }
     }
 
@@ -164,7 +133,7 @@ public class AiResponseController {
      * AI 응답 생성 실패 시 호출하는 엔드포인트
      */
     @PostMapping("/rooms/{roomId}/response/error")
-    public ResponseEntity<Void> reportAiError(
+    public RsData<Void> reportAiError(
             @PathVariable String roomId,
             @RequestBody AiErrorRequest request) {
 
@@ -177,18 +146,17 @@ public class AiResponseController {
             );
 
             // WebSocket으로 에러 메시지 브로드캐스트
-            String destination = "/sub/aichat/room/" + roomId;
-            messagingTemplate.convertAndSend(destination, errorMessage);
+            sendWebSocketMessage(roomId, errorMessage);
 
             // 락 해제 및 게임 일시정지
             aiGameStateService.unlockAfterAiResponse(roomId);
             aiGameStateService.pauseGame(roomId, "AI 응답 생성 오류: " + request.getErrorMessage());
 
-            return ResponseEntity.ok().build();
+            return RsData.of("200-1", "AI 오류 처리 완료", null);
 
         } catch (Exception e) {
             log.error("AI 에러 처리 중 오류 발생: roomId={}, error={}", roomId, e.getMessage(), e);
-            return ResponseEntity.internalServerError().build();
+            return RsData.of("500-1", "AI 에러 처리 중 오류가 발생했습니다", null);
         }
     }
 
@@ -196,13 +164,39 @@ public class AiResponseController {
      * AI 응답 처리 상태 확인 엔드포인트
      */
     @GetMapping("/rooms/{roomId}/processing-status")
-    public ResponseEntity<ProcessingStatusResponse> getProcessingStatus(@PathVariable String roomId) {
+    public RsData<ProcessingStatusResponse> getProcessingStatus(@PathVariable String roomId) {
         
         boolean isProcessing = aiGameStateService.isAiProcessing(roomId);
         boolean isSessionValid = aiGameStateService.isSessionValid(roomId);
 
         ProcessingStatusResponse response = new ProcessingStatusResponse(roomId, isProcessing, isSessionValid);
-        return ResponseEntity.ok(response);
+        return RsData.of("200-1", "처리 상태 조회 완료", response);
+    }
+
+    
+    /**
+     * WebSocket 메시지 전송 공통 메서드
+     */
+    private void sendWebSocketMessage(String roomId, Object message) {
+        String destination = WEBSOCKET_DESTINATION_PREFIX + roomId;
+        messagingTemplate.convertAndSend(destination, message);
+    }
+    
+    /**
+     * AI 응답 완료 후 락 해제 및 다음 턴으로 진행하는 공통 메서드
+     */
+    private int completeAiResponseAndProgressToNextTurn(String roomId) {
+        aiGameStateService.unlockAfterAiResponse(roomId);
+        return aiGameStateService.nextTurn(roomId);
+    }
+    
+    /**
+     * AI 응답 에러 처리 공통 메서드
+     */
+    private RsData<AiGameMessageResponse> handleAiResponseError(String roomId, Exception e, String errorMessage) {
+        log.error("AI 응답 오류 발생: roomId={}, error={}", roomId, e.getMessage(), e);
+        aiGameStateService.unlockAfterAiResponse(roomId);
+        return RsData.of("500-1", errorMessage, null);
     }
 
     private org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest createErrorSystemMessage(
@@ -213,94 +207,14 @@ public class AiResponseController {
         
         systemMessage.setAiGameRoomId(roomId);
         systemMessage.setGameId(request.getGameId());
-        systemMessage.setSenderId("SYSTEM");
-        systemMessage.setSenderNickname("시스템");
+        systemMessage.setSenderId(SYSTEM_SENDER_ID);
+        systemMessage.setSenderNickname(SYSTEM_SENDER_NICKNAME);
         systemMessage.setContent("AI 응답 생성 중 오류가 발생했습니다: " + request.getErrorMessage());
         systemMessage.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM);
         systemMessage.setTurnNumber(request.getTurnNumber());
-        systemMessage.setMessageOrder(9998); // 에러 메시지는 마지막에서 두번째
+        systemMessage.setMessageOrder(ERROR_MESSAGE_ORDER);
         
         return systemMessage;
     }
 
-    // Inner classes for request/response DTOs
-    public static class AiGenerateRequest {
-        private String gameId;
-        private String currentUser;
-        private String currentMessage;
-        private int turnNumber;
-
-        // Getters and Setters
-        public String getGameId() { return gameId; }
-        public void setGameId(String gameId) { this.gameId = gameId; }
-        
-        public String getCurrentUser() { return currentUser; }
-        public void setCurrentUser(String currentUser) { this.currentUser = currentUser; }
-        
-        public String getCurrentMessage() { return currentMessage; }
-        public void setCurrentMessage(String currentMessage) { this.currentMessage = currentMessage; }
-        
-        public int getTurnNumber() { return turnNumber; }
-        public void setTurnNumber(int turnNumber) { this.turnNumber = turnNumber; }
-    }
-
-    public static class AiResponseRequest {
-        private String gameId;
-        private String content;
-        private int turnNumber;
-        private Long responseTime;
-        private String aiSources;
-
-        // Getters and Setters
-        public String getGameId() { return gameId; }
-        public void setGameId(String gameId) { this.gameId = gameId; }
-        
-        public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
-        
-        public int getTurnNumber() { return turnNumber; }
-        public void setTurnNumber(int turnNumber) { this.turnNumber = turnNumber; }
-        
-        public Long getResponseTime() { return responseTime; }
-        public void setResponseTime(Long responseTime) { this.responseTime = responseTime; }
-        
-        public String getAiSources() { return aiSources; }
-        public void setAiSources(String aiSources) { this.aiSources = aiSources; }
-    }
-
-    public static class AiErrorRequest {
-        private String gameId;
-        private int turnNumber;
-        private String errorMessage;
-        private String errorCode;
-
-        // Getters and Setters
-        public String getGameId() { return gameId; }
-        public void setGameId(String gameId) { this.gameId = gameId; }
-        
-        public int getTurnNumber() { return turnNumber; }
-        public void setTurnNumber(int turnNumber) { this.turnNumber = turnNumber; }
-        
-        public String getErrorMessage() { return errorMessage; }
-        public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
-        
-        public String getErrorCode() { return errorCode; }
-        public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
-    }
-
-    public static class ProcessingStatusResponse {
-        private final String roomId;
-        private final boolean isProcessing;
-        private final boolean isSessionValid;
-
-        public ProcessingStatusResponse(String roomId, boolean isProcessing, boolean isSessionValid) {
-            this.roomId = roomId;
-            this.isProcessing = isProcessing;
-            this.isSessionValid = isSessionValid;
-        }
-
-        public String getRoomId() { return roomId; }
-        public boolean isProcessing() { return isProcessing; }
-        public boolean isSessionValid() { return isSessionValid; }
-    }
 }

@@ -4,12 +4,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.aichat.common.AiGamePhase;
 import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
+import org.com.dungeontalk.domain.aichat.dto.SessionDataDto;
 import org.com.dungeontalk.domain.aichat.dto.response.AiGameRoomResponse;
 import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 import org.com.dungeontalk.domain.aichat.repository.AiGameRoomRepository;
 import org.com.dungeontalk.domain.auth.service.ValkeyService;
+import org.com.dungeontalk.global.exception.ErrorCode;
+import org.com.dungeontalk.global.exception.customException.AiChatException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,39 +30,36 @@ public class AiGameStateService {
     private final AiGameRoomRepository aiGameRoomRepository;
     private final ValkeyService valkeyService;
     private final AiGameRoomService aiGameRoomService;
+    private final ObjectMapper objectMapper;
 
-    private static final String AI_GAME_SESSION_PREFIX = "ai_game_session:";
-    private static final String AI_GAME_TURN_LOCK_PREFIX = "ai_game_turn_lock:";
-    private static final int SESSION_TIMEOUT_SECONDS = 3600; // 1시간
+    // 상수들을 AiChatConstants로 이동
 
     /**
      * 게임 세션 시작
      */
     @Transactional
     public AiGameRoomResponse startGameSession(String aiGameRoomId) {
-        AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
 
         if (room.getStatus() != AiGameStatus.CREATED) {
-            throw new IllegalStateException("시작할 수 없는 게임 상태입니다: " + room.getStatus());
+            throw new AiChatException(ErrorCode.AI_GAME_ROOM_INVALID_STATE);
         }
 
         // MongoDB에서 게임 상태 변경
         room.setStatus(AiGameStatus.ACTIVE);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         AiGameRoom saved = aiGameRoomRepository.save(room);
 
         // Valkey에 게임 세션 정보 저장
         String sessionKey = AI_GAME_SESSION_PREFIX + aiGameRoomId;
-        valkeyService.setWithExpiration(sessionKey, createSessionData(saved), SESSION_TIMEOUT_SECONDS);
+        valkeyService.setWithExpiration(sessionKey, createSessionData(saved), DEFAULT_SESSION_TIMEOUT_SECONDS);
 
         log.info("AI 게임 세션 시작: roomId={}, participants={}", 
                  aiGameRoomId, saved.getParticipants());
 
-        return convertToResponse(saved);
+        return AiGameRoomResponse.fromEntity(saved);
     }
 
     /**
@@ -64,16 +67,14 @@ public class AiGameStateService {
      */
     @Transactional
     public void changePhase(String aiGameRoomId, AiGamePhase newPhase) {
-        AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
 
         if (room.getStatus() != AiGameStatus.ACTIVE) {
-            throw new IllegalStateException("진행할 수 없는 게임 상태입니다: " + room.getStatus());
+            throw new AiChatException(ErrorCode.AI_GAME_ROOM_INVALID_STATE);
         }
 
         room.setCurrentPhase(newPhase);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         aiGameRoomRepository.save(room);
 
@@ -88,8 +89,7 @@ public class AiGameStateService {
      */
     @Transactional
     public int nextTurn(String aiGameRoomId) {
-        AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
 
         if (room.getStatus() != AiGameStatus.ACTIVE) {
             throw new IllegalStateException("턴을 진행할 수 없는 게임 상태입니다: " + room.getStatus());
@@ -99,7 +99,6 @@ public class AiGameStateService {
         room.setCurrentTurn(newTurn);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         aiGameRoomRepository.save(room);
 
@@ -115,7 +114,7 @@ public class AiGameStateService {
      */
     public boolean lockForAiResponse(String aiGameRoomId) {
         String lockKey = AI_GAME_TURN_LOCK_PREFIX + aiGameRoomId;
-        boolean locked = valkeyService.setIfNotExists(lockKey, "AI_PROCESSING", 300); // 5분 타임아웃
+        boolean locked = valkeyService.setIfNotExists(lockKey, "AI_PROCESSING", DEFAULT_TURN_LOCK_TIMEOUT_SECONDS);
 
         if (locked) {
             changePhase(aiGameRoomId, AiGamePhase.AI_RESPONSE);
@@ -143,13 +142,11 @@ public class AiGameStateService {
      */
     @Transactional
     public void endGame(String aiGameRoomId) {
-        AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
 
         room.setStatus(AiGameStatus.COMPLETED);
         room.setCurrentPhase(AiGamePhase.GAME_END);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         aiGameRoomRepository.save(room);
 
@@ -167,8 +164,7 @@ public class AiGameStateService {
      */
     @Transactional
     public void pauseGame(String aiGameRoomId, String reason) {
-        AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
 
         if (room.getStatus() != AiGameStatus.ACTIVE) {
             throw new IllegalStateException("일시정지할 수 없는 게임 상태입니다: " + room.getStatus());
@@ -176,7 +172,6 @@ public class AiGameStateService {
 
         room.setStatus(AiGameStatus.PAUSED);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         aiGameRoomRepository.save(room);
 
@@ -192,17 +187,15 @@ public class AiGameStateService {
      */
     @Transactional
     public void resumeGame(String aiGameRoomId) {
-        AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
 
         if (room.getStatus() != AiGameStatus.PAUSED) {
-            throw new IllegalStateException("재개할 수 없는 게임 상태입니다: " + room.getStatus());
+            throw new AiChatException(ErrorCode.AI_GAME_ROOM_INVALID_STATE);
         }
 
         room.setStatus(AiGameStatus.ACTIVE);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         aiGameRoomRepository.save(room);
 
@@ -231,7 +224,7 @@ public class AiGameStateService {
     public void extendSession(String aiGameRoomId) {
         String sessionKey = AI_GAME_SESSION_PREFIX + aiGameRoomId;
         if (valkeyService.exists(sessionKey)) {
-            valkeyService.expire(sessionKey, SESSION_TIMEOUT_SECONDS);
+            valkeyService.expire(sessionKey, DEFAULT_SESSION_TIMEOUT_SECONDS);
             log.debug("AI 게임 세션 연장: roomId={}", aiGameRoomId);
         }
     }
@@ -248,8 +241,7 @@ public class AiGameStateService {
             if (room.getStatus() == AiGameStatus.ACTIVE || room.getStatus() == AiGameStatus.PAUSED) {
                 room.setStatus(AiGameStatus.COMPLETED);
                 room.setCurrentPhase(AiGamePhase.GAME_END);
-                room.setUpdatedAt(LocalDateTime.now());
-                
+                        
                 // Valkey 정리
                 String sessionKey = AI_GAME_SESSION_PREFIX + room.getId();
                 String lockKey = AI_GAME_TURN_LOCK_PREFIX + room.getId();
@@ -263,8 +255,19 @@ public class AiGameStateService {
     }
 
     private String createSessionData(AiGameRoom room) {
-        return String.format("{\"roomId\":\"%s\",\"gameId\":\"%s\",\"status\":\"%s\",\"phase\":\"%s\",\"turn\":%d}",
-                room.getId(), room.getGameId(), room.getStatus(), room.getCurrentPhase(), room.getCurrentTurn());
+        try {
+            SessionDataDto sessionData = new SessionDataDto(
+                    room.getId(),
+                    room.getGameId(),
+                    room.getStatus(),
+                    room.getCurrentPhase(),
+                    room.getCurrentTurn()
+            );
+            return objectMapper.writeValueAsString(sessionData);
+        } catch (JsonProcessingException e) {
+            log.error("세션 데이터 JSON 변환 실패: {}", e.getMessage());
+            throw new AiChatException(ErrorCode.AI_RESPONSE_PROCESSING_ERROR, e);
+        }
     }
 
     private void updateSessionPhase(String aiGameRoomId, AiGamePhase newPhase) {
@@ -272,9 +275,11 @@ public class AiGameStateService {
         if (valkeyService.exists(sessionKey)) {
             String sessionData = valkeyService.get(sessionKey);
             // JSON 업데이트 로직 (간단하게 재생성)
-            AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId).orElse(null);
-            if (room != null) {
-                valkeyService.setWithExpiration(sessionKey, createSessionData(room), SESSION_TIMEOUT_SECONDS);
+            try {
+                AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
+                valkeyService.setWithExpiration(sessionKey, createSessionData(room), DEFAULT_SESSION_TIMEOUT_SECONDS);
+            } catch (AiChatException e) {
+                log.warn("세션 업데이트 중 게임방을 찾을 수 없음: {}", aiGameRoomId);
             }
         }
     }
@@ -282,27 +287,13 @@ public class AiGameStateService {
     private void updateSessionTurn(String aiGameRoomId, int newTurn) {
         String sessionKey = AI_GAME_SESSION_PREFIX + aiGameRoomId;
         if (valkeyService.exists(sessionKey)) {
-            AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId).orElse(null);
-            if (room != null) {
-                valkeyService.setWithExpiration(sessionKey, createSessionData(room), SESSION_TIMEOUT_SECONDS);
+            try {
+                AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
+                valkeyService.setWithExpiration(sessionKey, createSessionData(room), DEFAULT_SESSION_TIMEOUT_SECONDS);
+            } catch (AiChatException e) {
+                log.warn("세션 업데이트 중 게임방을 찾을 수 없음: {}", aiGameRoomId);
             }
         }
     }
 
-    private AiGameRoomResponse convertToResponse(AiGameRoom room) {
-        return AiGameRoomResponse.builder()
-                .id(room.getId())
-                .gameId(room.getGameId())
-                .roomName(room.getRoomName())
-                .description(room.getDescription())
-                .status(room.getStatus())
-                .currentPhase(room.getCurrentPhase())
-                .currentTurn(room.getCurrentTurn())
-                .maxParticipants(room.getMaxParticipants())
-                .currentParticipantCount(room.getCurrentParticipantCount())
-                .participants(room.getParticipants())
-                .lastActivity(room.getLastActivity())
-                .createdAt(room.getCreatedAt())
-                .build();
-    }
 }

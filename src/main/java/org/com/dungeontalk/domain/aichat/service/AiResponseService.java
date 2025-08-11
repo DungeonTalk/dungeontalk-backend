@@ -7,7 +7,11 @@ import org.com.dungeontalk.domain.aichat.dto.AiGameMessageDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.com.dungeontalk.global.exception.ErrorCode;
+import org.com.dungeontalk.global.exception.customException.AiChatException;
 
 import java.util.List;
 import java.util.Map;
@@ -83,9 +87,15 @@ public class AiResponseService {
                 throw new RuntimeException("AI 서비스 응답 오류: " + response.getStatusCode());
             }
 
+        } catch (ResourceAccessException e) {
+            log.error("AI 서비스 연결 시간 초과 또는 네트워크 오류: roomId={}, error={}", aiGameRoomId, e.getMessage());
+            throw new AiChatException(ErrorCode.AI_RESPONSE_TIMEOUT_ERROR, e);
+        } catch (RestClientException e) {
+            log.error("AI 서비스 호출 실패: roomId={}, error={}", aiGameRoomId, e.getMessage(), e);
+            throw new AiChatException(ErrorCode.AI_RESPONSE_PROCESSING_ERROR, e);
         } catch (Exception e) {
-            log.error("Python AI 서비스 호출 실패: roomId={}, error={}", aiGameRoomId, e.getMessage(), e);
-            throw new RuntimeException("AI 응답 생성 실패: " + e.getMessage(), e);
+            log.error("예상치 못한 AI 서비스 오류: roomId={}, error={}", aiGameRoomId, e.getMessage(), e);
+            throw new AiChatException(ErrorCode.AI_RESPONSE_PROCESSING_ERROR, e);
         }
     }
 
@@ -106,8 +116,14 @@ public class AiResponseService {
             }
             
             return false;
-        } catch (Exception e) {
+        } catch (ResourceAccessException e) {
+            log.warn("AI 서비스 연결 시간 초과: {}", e.getMessage());
+            return false;
+        } catch (RestClientException e) {
             log.warn("AI 서비스 상태 확인 실패: {}", e.getMessage());
+            return false;
+        } catch (Exception e) {
+            log.warn("예상치 못한 AI 서비스 상태 확인 오류: {}", e.getMessage());
             return false;
         }
     }

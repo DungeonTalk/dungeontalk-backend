@@ -5,9 +5,12 @@ import lombok.Getter;
 import lombok.Setter;
 import org.com.dungeontalk.domain.aichat.common.AiGamePhase;
 import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
+import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Setter
@@ -15,6 +18,7 @@ import java.util.List;
 public class AiGameRoomResponse {
 
     private String id;
+    private String roomId; // 프론트엔드 호환성을 위한 필드 (id와 동일한 값)
     private String gameId;
     private String roomName;
     private String description;
@@ -40,5 +44,28 @@ public class AiGameRoomResponse {
      */
     public boolean isActive() {
         return this.status == AiGameStatus.ACTIVE;
+    }
+
+    /**
+     * Entity에서 Response DTO로 변환
+     */
+    public static AiGameRoomResponse fromEntity(AiGameRoom room) {
+        return AiGameRoomResponse.builder()
+                .id(room.getId())
+                .roomId(room.getId()) // 프론트엔드 호환성을 위해 동일한 값 설정
+                .gameId(room.getGameId())
+                .roomName(room.getRoomName())
+                .description(room.getDescription())
+                .status(room.getStatus())
+                .currentPhase(room.getCurrentPhase())
+                .currentTurn(room.getCurrentTurn())
+                .maxParticipants(room.getMaxParticipants())
+                .currentParticipantCount(room.getCurrentParticipantCount())
+                .participants(Optional.ofNullable(room.getParticipants())
+                        .map(ArrayList::new)
+                        .orElseGet(ArrayList::new))
+                .lastActivity(room.getLastActivity())
+                .createdAt(room.getCreatedAt())
+                .build();
     }
 }

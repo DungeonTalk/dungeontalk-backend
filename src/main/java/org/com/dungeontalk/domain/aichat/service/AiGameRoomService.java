@@ -12,13 +12,18 @@ import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 import org.com.dungeontalk.domain.aichat.repository.AiGameRoomRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
+import org.com.dungeontalk.global.exception.ErrorCode;
+import org.com.dungeontalk.global.exception.customException.AiChatException;
 import org.com.dungeontalk.global.util.UuidV7Creator;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -49,8 +54,6 @@ public class AiGameRoomService {
                 .participants(new ArrayList<>())
                 .gameSettings(request.getGameSettings())
                 .lastActivity(LocalDateTime.now())
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
 
         // 생성자를 첫 번째 참여자로 추가
@@ -60,7 +63,7 @@ public class AiGameRoomService {
         log.info("AI 게임방 생성 완료: roomId={}, gameId={}, creator={}", 
                  saved.getId(), saved.getGameId(), request.getCreatorId());
 
-        return convertToResponse(saved);
+        return AiGameRoomResponse.fromEntity(saved);
     }
 
     /**
@@ -71,21 +74,19 @@ public class AiGameRoomService {
         validateParticipant(request.getParticipantId());
 
         AiGameRoom room = aiGameRoomRepository.findById(request.getAiGameRoomId())
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + request.getAiGameRoomId()));
+                .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
 
         if (!room.canJoin()) {
-            throw new IllegalStateException("입장할 수 없는 게임방입니다. 상태: " + room.getStatus() + 
-                                          ", 참여자 수: " + room.getCurrentParticipantCount() + "/" + room.getMaxParticipants());
+            throw new AiChatException(ErrorCode.AI_GAME_ROOM_CANNOT_JOIN);
         }
 
         if (room.getParticipants().contains(request.getParticipantId())) {
-            throw new IllegalStateException("이미 참여중인 게임방입니다.");
+            throw new AiChatException(ErrorCode.AI_GAME_ROOM_ALREADY_JOINED);
         }
 
         // 참여자 추가
         room.getParticipants().add(request.getParticipantId());
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         // 정원이 찼으면 게임 시작
         if (room.getCurrentParticipantCount() >= room.getMaxParticipants()) {
@@ -97,7 +98,7 @@ public class AiGameRoomService {
         log.info("AI 게임방 참여 완료: roomId={}, participant={}, currentCount={}", 
                  saved.getId(), request.getParticipantId(), saved.getCurrentParticipantCount());
 
-        return convertToResponse(saved);
+        return AiGameRoomResponse.fromEntity(saved);
     }
 
     /**
@@ -106,15 +107,14 @@ public class AiGameRoomService {
     @Transactional
     public void leaveAiGameRoom(String aiGameRoomId, String participantId) {
         AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+                .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
 
         if (!room.getParticipants().contains(participantId)) {
-            throw new IllegalStateException("참여하지 않은 게임방입니다.");
+            throw new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_PARTICIPATING);
         }
 
         room.getParticipants().remove(participantId);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         // 참여자가 모두 나가면 게임 종료
         if (room.getParticipants().isEmpty()) {
@@ -132,9 +132,9 @@ public class AiGameRoomService {
      */
     public AiGameRoomResponse getAiGameRoom(String aiGameRoomId) {
         AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+                .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
         
-        return convertToResponse(room);
+        return AiGameRoomResponse.fromEntity(room);
     }
 
     /**
@@ -142,9 +142,9 @@ public class AiGameRoomService {
      */
     public AiGameRoomResponse getAiGameRoomByGameId(String gameId) {
         AiGameRoom room = aiGameRoomRepository.findByGameId(gameId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 게임의 AI 게임방을 찾을 수 없습니다: " + gameId));
+                .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
         
-        return convertToResponse(room);
+        return AiGameRoomResponse.fromEntity(room);
     }
 
     /**
@@ -153,8 +153,16 @@ public class AiGameRoomService {
     public List<AiGameRoomResponse> getAvailableRooms() {
         List<AiGameRoom> rooms = aiGameRoomRepository.findAvailableRooms();
         return rooms.stream()
-                .map(this::convertToResponse)
+                .map(AiGameRoomResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 입장 가능한 AI 게임방 목록 조회 (페이징 지원)
+     */
+    public Page<AiGameRoomResponse> getAvailableRooms(Pageable pageable) {
+        Page<AiGameRoom> rooms = aiGameRoomRepository.findAvailableRooms(pageable);
+        return rooms.map(AiGameRoomResponse::fromEntity);
     }
 
     /**
@@ -163,8 +171,16 @@ public class AiGameRoomService {
     public List<AiGameRoomResponse> getUserParticipatingRooms(String participantId) {
         List<AiGameRoom> rooms = aiGameRoomRepository.findByParticipantsContaining(participantId);
         return rooms.stream()
-                .map(this::convertToResponse)
+                .map(AiGameRoomResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 특정 사용자가 참여중인 AI 게임방 목록 조회 (페이징 지원)
+     */
+    public Page<AiGameRoomResponse> getUserParticipatingRooms(String participantId, Pageable pageable) {
+        Page<AiGameRoom> rooms = aiGameRoomRepository.findByParticipantsContaining(participantId, pageable);
+        return rooms.map(AiGameRoomResponse::fromEntity);
     }
 
     /**
@@ -173,16 +189,15 @@ public class AiGameRoomService {
     @Transactional
     public AiGameRoomResponse updateGamePhase(String aiGameRoomId, AiGamePhase newPhase) {
         AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+                .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
 
         room.setCurrentPhase(newPhase);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         AiGameRoom saved = aiGameRoomRepository.save(room);
         log.info("AI 게임방 페이즈 업데이트: roomId={}, newPhase={}", aiGameRoomId, newPhase);
 
-        return convertToResponse(saved);
+        return AiGameRoomResponse.fromEntity(saved);
     }
 
     /**
@@ -191,43 +206,51 @@ public class AiGameRoomService {
     @Transactional
     public AiGameRoomResponse nextTurn(String aiGameRoomId) {
         AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("AI 게임방을 찾을 수 없습니다: " + aiGameRoomId));
+                .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
 
         room.setCurrentTurn(room.getCurrentTurn() + 1);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
         room.setLastActivity(LocalDateTime.now());
-        room.setUpdatedAt(LocalDateTime.now());
 
         AiGameRoom saved = aiGameRoomRepository.save(room);
         log.info("AI 게임방 턴 증가: roomId={}, newTurn={}", aiGameRoomId, saved.getCurrentTurn());
 
-        return convertToResponse(saved);
+        return AiGameRoomResponse.fromEntity(saved);
     }
 
     private void validateCreator(String creatorId) {
         memberRepository.findById(creatorId)
-                .orElseThrow(() -> new IllegalArgumentException("생성자 정보를 찾을 수 없습니다: " + creatorId));
+                .orElseThrow(() -> new AiChatException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
     private void validateParticipant(String participantId) {
         memberRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("참여자 정보를 찾을 수 없습니다: " + participantId));
+                .orElseThrow(() -> new AiChatException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
-    private AiGameRoomResponse convertToResponse(AiGameRoom room) {
-        return AiGameRoomResponse.builder()
-                .id(room.getId())
-                .gameId(room.getGameId())
-                .roomName(room.getRoomName())
-                .description(room.getDescription())
-                .status(room.getStatus())
-                .currentPhase(room.getCurrentPhase())
-                .currentTurn(room.getCurrentTurn())
-                .maxParticipants(room.getMaxParticipants())
-                .currentParticipantCount(room.getCurrentParticipantCount())
-                .participants(new ArrayList<>(room.getParticipants()))
-                .lastActivity(room.getLastActivity())
-                .createdAt(room.getCreatedAt())
-                .build();
+    /**
+     * 게임방 엔티티 조회 (공통 메서드)
+     * 다른 서비스에서 게임방 엔티티가 필요할 때 사용
+     * 
+     * @param aiGameRoomId 게임방 ID
+     * @return AiGameRoom 엔티티
+     * @throws AiChatException 게임방을 찾을 수 없는 경우
+     */
+    public AiGameRoom getGameRoomEntity(String aiGameRoomId) {
+        return aiGameRoomRepository.findById(aiGameRoomId)
+                .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
     }
+
+    /**
+     * 게임방 존재 여부만 확인 (가벼운 검증용)
+     * 
+     * @param aiGameRoomId 게임방 ID
+     * @throws AiChatException 게임방을 찾을 수 없는 경우
+     */
+    public void validateGameRoomExists(String aiGameRoomId) {
+        if (!aiGameRoomRepository.existsById(aiGameRoomId)) {
+            throw new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND);
+        }
+    }
+
 }
