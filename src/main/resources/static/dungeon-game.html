@@ -549,6 +549,7 @@
         let authToken = null;
         let currentUser = null;
         let selectedWorld = null;
+        let gameSessionStarted = false;
         let matchingStompClient = null;
         let aiStompClient = null;
         let partyStompClient = null;
@@ -594,6 +595,7 @@
             authToken = null;
             currentUser = null;
             selectedWorld = null;
+            gameSessionStarted = false;
             isMatching = false;
             currentGameSession = null;
             aiGameRoomId = null;
@@ -916,6 +918,21 @@
         // 게임 세션 시작
         async function startGameSession(matchData) {
             try {
+                // 중복 요청 방지
+                if (gameSessionStarted) {
+                    console.log('🔄 게임 세션이 이미 시작됨, 중복 요청 무시');
+                    return;
+                }
+                
+                // JWT 토큰 유효성 검사
+                if (!authToken || authToken === 'null' || authToken.trim() === '') {
+                    console.error('❌ JWT 토큰이 없거나 유효하지 않음:', authToken);
+                    throw new Error('인증 토큰이 필요합니다. 다시 로그인해주세요.');
+                }
+                
+                gameSessionStarted = true;
+                console.log('🔑 JWT 토큰 확인됨, AI 게임 세션 시작 요청:', aiGameRoomId);
+                
                 // AI 게임방 세션 시작
                 const sessionResponse = await fetch(`/api/v1/aichat/rooms/${aiGameRoomId}/start`, {
                     method: 'POST',
@@ -945,12 +962,30 @@
                     addUserMessage('system', `참여자: ${matchData.participants.join(', ')}`);
                     
                 } else {
-                    console.error('AI 게임 세션 시작 실패');
-                    alert('AI 게임 세션 시작 실패: ' + (sessionResult.msg || '알 수 없는 오류'));
+                    console.error('❌ AI 게임 세션 시작 실패:', {
+                        status: sessionResponse.status,
+                        statusText: sessionResponse.statusText,
+                        result: sessionResult
+                    });
+                    
+                    if (sessionResponse.status === 401) {
+                        alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                        clearAuthData();
+                        showLoginModal();
+                    } else {
+                        alert('AI 게임 세션 시작 실패: ' + (sessionResult.msg || '알 수 없는 오류'));
+                    }
+                    gameSessionStarted = false; // 실패 시 플래그 리셋
                 }
             } catch (error) {
-                console.error('게임 세션 시작 오류:', error);
-                alert('게임 세션 시작 오류: ' + error.message);
+                console.error('❌ 게임 세션 시작 오류:', error);
+                gameSessionStarted = false; // 에러 시 플래그 리셋
+                if (error.message.includes('인증')) {
+                    clearAuthData();
+                    showLoginModal();
+                } else {
+                    alert('게임 세션 시작 오류: ' + error.message);
+                }
             }
         }
         

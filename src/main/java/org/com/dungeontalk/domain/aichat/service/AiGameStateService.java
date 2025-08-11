@@ -45,6 +45,12 @@ public class AiGameStateService {
         log.info("🎮 게임방 현재 상태: roomId={}, status={}, phase={}", 
                  aiGameRoomId, room.getStatus(), room.getCurrentPhase());
 
+        if (room.getStatus() == AiGameStatus.ACTIVE) {
+            log.info("🎮 게임방이 이미 활성화됨: roomId={}, status={}", 
+                     aiGameRoomId, room.getStatus());
+            return AiGameRoomResponse.fromEntity(room);
+        }
+        
         if (room.getStatus() != AiGameStatus.CREATED) {
             log.warn("🎮 게임방 상태가 잘못됨: roomId={}, status={}, expected=CREATED", 
                      aiGameRoomId, room.getStatus());
