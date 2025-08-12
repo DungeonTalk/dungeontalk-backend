@@ -31,7 +31,8 @@ public class ValkeyController {
     @GetMapping("/session/all")
     public Map<String, String> getAllSessionData() {
 
-        return valkeyService.getAllTestKeySessionData();
+        //return valkeyService.getAllTestKeySessionData();
+        return valkeyService.getAllSessionKeyValues();
     }
 
     // 현재 모든 세션의 데이터를 키값만 조회

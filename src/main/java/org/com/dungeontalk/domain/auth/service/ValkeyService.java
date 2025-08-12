@@ -31,6 +31,20 @@ public class ValkeyService {
         sessionRedis.opsForValue().set(key, value);
     }
 
+    public Map<String, String> getAllSessionKeyValues() {
+        Set<String> keys = sessionRedis.keys("*");  // 모든 키 조회
+        Map<String, String> result = new HashMap<>();
+
+        if (keys != null && !keys.isEmpty()) {
+            for (String key : keys) {
+                String value = sessionRedis.opsForValue().get(key);  // String 타입 값 조회
+                result.put(key, value);
+            }
+        }
+
+        return result;
+    }
+
     // Redis 세션에 저장된 test키 모두 조회
     public Map<String, String> getAllTestKeySessionData() {
         String pattern = "test-key*";  // test-key로 시작하는 모든 키 조회

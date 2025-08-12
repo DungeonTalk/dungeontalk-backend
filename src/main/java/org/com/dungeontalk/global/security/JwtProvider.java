@@ -73,33 +73,64 @@ public class JwtProvider {
 
     // JWT 토큰 검증 - 유효성 검사
     /* 에러 발견 : AuthService의 refresAccessToken에서 발생 */
+//    public boolean validateToken(String token) {
+//        try {
+//            Jwts.parserBuilder()
+//                    .setSigningKey(SECRET_KEY)
+//                    .build()
+//                    .parseClaimsJws(token); // 토큰 파싱 및 서명, 포맷, 만료 검증 수행
+//            return true;
+//        } catch (JwtException | IllegalArgumentException e) {
+//            // 서명 불일치, 토큰 만료, 형식 오류 등 예외 발생 시 false 반환
+//            return false;
+//        }
+//    }
+//
+//    // JWT 토큰 검증 - 토큰 만료 여부 확인
+//    public boolean isTokenExpired(String token) {
+//        try {
+//            Claims claims = Jwts.parserBuilder()
+//                    .setSigningKey(SECRET_KEY)
+//                    .build()
+//                    .parseClaimsJws(token)
+//                    .getBody();
+//
+//            Date expiration = claims.getExpiration();
+//            return expiration.before(new Date());  // true면 만료됨
+//        } catch (JwtException | IllegalArgumentException e) {
+//            // 토큰 파싱 실패(포맷 오류, 서명 불일치 등)도 만료로 간주할 수 있음
+//            return true;
+//        }
+//    }
+
+    // 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {
+            Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
             Jwts.parserBuilder()
-                    .setSigningKey(SECRET_KEY)
+                    .setSigningKey(key)
                     .build()
-                    .parseClaimsJws(token); // 토큰 파싱 및 서명, 포맷, 만료 검증 수행
+                    .parseClaimsJws(token); // 서명, 포맷, 만료 검증
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            // 서명 불일치, 토큰 만료, 형식 오류 등 예외 발생 시 false 반환
             return false;
         }
     }
 
-    // JWT 토큰 검증 - 토큰 만료 여부 확인
+    // 토큰 만료 여부 검사
     public boolean isTokenExpired(String token) {
         try {
+            Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
             Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(SECRET_KEY)
+                    .setSigningKey(key)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
 
             Date expiration = claims.getExpiration();
-            return expiration.before(new Date());  // true면 만료됨
+            return expiration.before(new Date());
         } catch (JwtException | IllegalArgumentException e) {
-            // 토큰 파싱 실패(포맷 오류, 서명 불일치 등)도 만료로 간주할 수 있음
-            return true;
+            return true;  // 파싱 실패도 만료로 처리
         }
     }
 

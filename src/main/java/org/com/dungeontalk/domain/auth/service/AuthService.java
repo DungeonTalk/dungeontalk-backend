@@ -1,28 +1,24 @@
 package org.com.dungeontalk.domain.auth.service;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
 import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
-import org.com.dungeontalk.domain.auth.entity.AuthId;
 import org.com.dungeontalk.domain.auth.manager.AuthRedisManager;
 import org.com.dungeontalk.domain.auth.repository.AuthRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.MemberException;
-import org.com.dungeontalk.global.security.*;
-import org.com.dungeontalk.global.util.TokenHashUtil;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.com.dungeontalk.global.security.JwtProvider;
+import org.com.dungeontalk.global.security.JwtRedisService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -33,12 +29,9 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final AuthRepository authRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
     private final JwtProvider jwtProvider;
     private final JwtRedisService jwtRedisService;
-    private final JwtExtractor jwtExtractor;
     private final AuthRedisManager authRedisManager;
-
 
     // 로그인 메서드
     public AuthLoginResponse login(AuthLoginRequest request) {
@@ -55,7 +48,6 @@ public class AuthService {
         // 토큰 생성
         String accessToken = jwtProvider.generateAccessToken(member.getId(), member.getName(), member.getNickName());
         String refreshToken = jwtProvider.generateRefreshToken(member.getId());
-        String hashedRefreshToken = TokenHashUtil.hashToken(refreshToken);
 
        // Auth 엔티티 생성
         Optional<Auth> existingAuthOpt = authRepository.findByMember(member);
@@ -63,7 +55,7 @@ public class AuthService {
         if (existingAuthOpt.isPresent()) {
             Auth auth = existingAuthOpt.get();
             auth.setAccessToken(null);
-            auth.setRefreshToken(hashedRefreshToken);
+            auth.setRefreshToken(refreshToken);
             authRepository.save(auth);
         } else {
             Auth newAuth = Auth.builder()
@@ -71,7 +63,7 @@ public class AuthService {
                     .email(member.getName())
                     .tokenType("bearer")
                     .accessToken(null)
-                    .refreshToken(hashedRefreshToken)
+                    .refreshToken(refreshToken)
                     .build();
 
             authRepository.save(newAuth);
@@ -79,7 +71,7 @@ public class AuthService {
         }
 
         // session에 저장
-        jwtRedisService.saveRefreshTokenToSessionRedis(member.getId(), hashedRefreshToken);
+        jwtRedisService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
 
         return new AuthLoginResponse(
                 member.getId(),
@@ -88,23 +80,21 @@ public class AuthService {
         );
     }
 
-//    // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
+    // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
     public JwtTokenResponse refreshAccessToken(String refreshToken) {
 
         // 토큰 서명/포맷 검사
-//        if (!jwtProvider.validateToken(refreshToken)) {
-//            throw new MemberException(ErrorCode.INVALID_JWT_TOKEN);
-//        }
+        if (!jwtProvider.validateToken(refreshToken)) {
+            throw new MemberException(ErrorCode.INVALID_JWT_TOKEN);
+        }
 
         // 토큰 만료 검사
-//        if (jwtProvider.isTokenExpired(refreshToken)) {
-//            throw new MemberException(ErrorCode.EXPIRED_JWT_TOKEN);
-//        }
-
-        String hashedRefreshToken = TokenHashUtil.hashToken(refreshToken);
+        if (jwtProvider.isTokenExpired(refreshToken)) {
+            throw new MemberException(ErrorCode.EXPIRED_JWT_TOKEN);
+        }
 
         // 사용자 조회
-        Auth auth = authRepository.findByRefreshToken(hashedRefreshToken)
+        Auth auth = authRepository.findByRefreshToken(refreshToken)
                 .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         // 새로운 Access Token과 Refresh Token을 반환
@@ -112,7 +102,7 @@ public class AuthService {
         String newRefreshToken = jwtProvider.generateRefreshToken(auth.getId());
 
         // Session에 RT 최신화
-        jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), hashedRefreshToken);
+        jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), newRefreshToken);
 
         // RDB에 RT 최신화
         auth.setAccessToken(newRefreshToken);
@@ -122,7 +112,7 @@ public class AuthService {
     }
 
     // 로그 아웃 메서드
-    public void logout(CustomUserDetails customUserDetails, String authorizationHeader, String refreshToken){
+    public void logout(String authorizationHeader, String refreshToken){
 
         // authorizationHeader에서 Bearer 접두어 제거 후 엑세스 토큰 추출
         String accessToken = null;
@@ -131,18 +121,17 @@ public class AuthService {
         }
 
         // 엑세스 토큰 블랙리스트 추가
-        String accessKey = "blacklist:access_token:" + TokenHashUtil.hashToken(accessToken); // 메모리 효율을 위한 엑세스 토큰 해시 처리
+        String accessKey = "blacklist:access_token:" + accessToken; // 메모리 효율을 위한 엑세스 토큰 해시 처리
         long remainExpiration = authRedisManager.calculateRemainingExpiration(accessToken);
         authRedisManager.uploadAccessTokenToRedis(accessKey, remainExpiration);
 
         //  RDB에서 해시 된 RT 제거
-        String hashedRefreshToken = TokenHashUtil.hashToken(refreshToken);
-        Auth auth = authRepository.findByRefreshToken(hashedRefreshToken)
+        Auth auth = authRepository.findByRefreshToken(refreshToken)
                 .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
         auth.setRefreshToken(null);
 
         // Valkey에서 해시 된 RT 제거
-        authRedisManager.deleteRefreshToken(hashedRefreshToken);
+        authRedisManager.deleteRefreshToken(refreshToken);
 
     }
 
