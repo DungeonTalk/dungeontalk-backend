@@ -38,7 +38,13 @@ public enum ErrorCode {
 
     // AI 응답 처리 관련
     AI_RESPONSE_PROCESSING_ERROR("500-AC31", "AI 응답 처리 중 오류가 발생했습니다"),
-    AI_RESPONSE_TIMEOUT_ERROR("408-AC32", "AI 응답 시간이 초과되었습니다");
+    AI_RESPONSE_TIMEOUT_ERROR("408-AC32", "AI 응답 시간이 초과되었습니다"),
+
+    /* 매칭 관련 : 4xx */
+    MATCHING_USER_ALREADY_IN_QUEUE("400-MT01", "이미 매칭 대기 중입니다"),
+    MATCHING_QUEUE_FULL("400-MT02", "매칭 대기열이 가득 찼습니다"),
+    MATCHING_USER_NOT_IN_QUEUE("404-MT03", "매칭 대기 중이 아닙니다"),
+    MATCHING_PROCESSING_ERROR("500-MT04", "매칭 처리 중 오류가 발생했습니다");
 
 
 

@@ -27,7 +27,7 @@ public class AiResponseService {
     @Value("${ai.service.url:http://localhost:8001}")
     private String aiServiceUrl;
 
-    @Value("${ai.service.timeout:30000}")
+    @Value("${ai.service.timeout:60000}")
     private int aiServiceTimeout;
 
     /**
@@ -72,9 +72,21 @@ public class AiResponseService {
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
                 
+                // AI 응답 데이터 검증
+                String content = (String) responseBody.get("content");
+                if (content == null || content.trim().isEmpty()) {
+                    throw new AiChatException(ErrorCode.AI_RESPONSE_PROCESSING_ERROR, "AI 응답 내용이 비어있습니다");
+                }
+                
+                // 응답 시간 검증 및 기본값 설정
+                Long responseTime = 0L;
+                if (responseBody.get("response_time") instanceof Number) {
+                    responseTime = ((Number) responseBody.get("response_time")).longValue();
+                }
+                
                 AiResponseResult result = AiResponseResult.builder()
-                        .content((String) responseBody.get("content"))
-                        .responseTime(((Number) responseBody.get("response_time")).longValue())
+                        .content(content)
+                        .responseTime(responseTime)
                         .sources((List<String>) responseBody.get("sources"))
                         .build();
 

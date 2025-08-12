@@ -1,6 +1,7 @@
 package org.com.dungeontalk.global.config;
 
 import org.com.dungeontalk.global.redis.RedisSubscriber;
+import org.com.dungeontalk.global.redis.AiChatRedisSubscriber;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -96,13 +97,23 @@ public class ValkeyConfig {
     }
 
     // ======================= WebSocket =========================
-    // Redis 메시지 리스너 어댑터 - RedisSubscriber는 여기서 직접 주입
+    // 일반 채팅 Redis 메시지 리스너
     @Bean
-    public RedisMessageListenerContainer messageListenerAdapter(RedisConnectionFactory connectionFactory,
+    public RedisMessageListenerContainer messageListenerAdapter(@Qualifier("sessionRedisConnectionFactory") RedisConnectionFactory connectionFactory,
         RedisSubscriber redisSubscriber) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(redisSubscriber, new PatternTopic("chatroom.*")); // 직접 등록
+        container.addMessageListener(redisSubscriber, new PatternTopic("chatroom.*")); // 일반 채팅 전용
+        return container;
+    }
+
+    // AI 채팅 Redis 메시지 리스너
+    @Bean
+    public RedisMessageListenerContainer aiChatMessageListenerAdapter(@Qualifier("sessionRedisConnectionFactory") RedisConnectionFactory connectionFactory,
+        AiChatRedisSubscriber aiChatRedisSubscriber) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.addMessageListener(aiChatRedisSubscriber, new PatternTopic("aichat.*")); // AI 채팅 전용
         return container;
     }
 
@@ -113,7 +124,7 @@ public class ValkeyConfig {
 
     // 객체 RedisTemplate - pub/sub 메시지 처리용
     @Bean
-    public RedisTemplate<String, Object> objectRedisTemplate(RedisConnectionFactory factory) {
+    public RedisTemplate<String, Object> objectRedisTemplate(@Qualifier("sessionRedisConnectionFactory") RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
