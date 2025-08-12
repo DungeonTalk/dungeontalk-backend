@@ -1,6 +1,9 @@
 package org.com.dungeontalk.domain.aichat.dto.request;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.com.dungeontalk.domain.aichat.common.AiMessageType;
 
@@ -10,6 +13,9 @@ import jakarta.validation.constraints.Positive;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AiGameMessageSendRequest {
 
     @NotBlank(message = "AI 게임방 ID는 필수입니다")

@@ -10,6 +10,10 @@ import org.com.dungeontalk.domain.chat.common.ChatRoomType;
 import org.com.dungeontalk.domain.chat.dto.ChatRoomDto;
 import org.com.dungeontalk.domain.chat.dto.request.ChatRoomCreateRequestDto;
 import org.com.dungeontalk.domain.chat.service.ChatRoomService;
+import org.com.dungeontalk.domain.room.common.RoomType;
+import org.com.dungeontalk.domain.room.dto.UnifiedRoomRequest;
+import org.com.dungeontalk.domain.room.dto.UnifiedRoomResponse;
+import org.com.dungeontalk.domain.room.service.RoomServiceFactory;
 import org.com.dungeontalk.domain.matching.common.MatchingConstants;
 import org.com.dungeontalk.domain.matching.common.MatchingStatus;
 import org.com.dungeontalk.domain.matching.common.WorldType;
@@ -43,6 +47,7 @@ public class MatchingService {
     private final ChatRoomService chatRoomService;
     private final StringRedisTemplate redisTemplate;
     private final MatchingWebSocketService webSocketService;
+    private final RoomServiceFactory roomServiceFactory;
 
     /**
      * WebSocket 매칭 참가 처리 (컨트롤러 단순화용)
@@ -257,24 +262,23 @@ public class MatchingService {
             // 2. 게임 세션 ID 생성
             String gameSessionId = UuidV7Creator.create();
 
-            // 3. AI 게임방 생성
-            AiGameRoomResponse aiGameRoom = createAiGameRoom(gameSessionId, participants, worldType);
+            // 3. 통합 룸 생성 (신규 방식)
+            Map<String, String> roomIds = createUnifiedRooms(gameSessionId, participants, worldType);
+            String aiGameRoomId = roomIds.get("ai");
+            String chatRoomId = roomIds.get("chat");
 
-            // 4. 일반 채팅방 생성
-            ChatRoomDto chatRoom = createChatRoom(gameSessionId, participants, worldType);
+            // 4. 매칭 세션 정보 Redis에 저장
+            saveMatchingSession(gameSessionId, aiGameRoomId, chatRoomId, participants, worldType);
 
-            // 5. 매칭 세션 정보 Redis에 저장
-            saveMatchingSession(gameSessionId, aiGameRoom.getId(), chatRoom.getId(), participants, worldType);
-
-            // 6. WebSocket으로 매칭 완료 알림 전송
+            // 5. WebSocket으로 매칭 완료 알림 전송
             webSocketService.sendMatchingComplete(participants, worldType, gameSessionId, 
-                                                 aiGameRoom.getId(), chatRoom.getId());
+                                                 aiGameRoomId, chatRoomId);
 
-            // 7. 매칭 완료된 사용자들 상태 정리
+            // 6. 매칭 완료된 사용자들 상태 정리
             queueManager.cleanupMatchedUsers(participants);
 
             MatchingCompleteResponse response = MatchingCompleteResponse.of(
-                    gameSessionId, aiGameRoom.getId(), chatRoom.getId(), worldType, participants
+                    gameSessionId, aiGameRoomId, chatRoomId, worldType, participants
             );
 
             log.info("매칭 처리 완료: gameSessionId={}, participants={}", gameSessionId, participants);
@@ -296,7 +300,9 @@ public class MatchingService {
 
     /**
      * AI 게임방 생성
+     * @deprecated 통합 룸 생성 메서드 createUnifiedRooms() 사용 권장
      */
+    @Deprecated
     private AiGameRoomResponse createAiGameRoom(String gameSessionId, List<String> participants, WorldType worldType) {
         AiGameRoomCreateRequest request = new AiGameRoomCreateRequest();
         request.setGameId(gameSessionId);
@@ -318,7 +324,9 @@ public class MatchingService {
 
     /**
      * 일반 채팅방 생성
+     * @deprecated 통합 룸 생성 메서드 createUnifiedRooms() 사용 권장
      */
+    @Deprecated
     private ChatRoomDto createChatRoom(String gameSessionId, List<String> participants, WorldType worldType) {
         ChatRoomCreateRequestDto request = new ChatRoomCreateRequestDto();
         request.setRoomName(new StringBuilder()
@@ -394,6 +402,123 @@ public class MatchingService {
                 }
             } catch (Exception e) {
                 log.error("정기 매칭 처리 중 오류: worldType={}", worldType, e);
+            }
+        }
+    }
+
+    // === 통합 룸 생성 메서드 (신규) ===
+
+    /**
+     * 통합된 룸 생성 메서드 (신규 - 중복 제거용)
+     * AI 게임룸과 채팅룸을 한 번에 생성하고 ID 맵을 반환
+     */
+    public Map<String, String> createUnifiedRooms(String gameSessionId, List<String> participants, WorldType worldType) {
+        log.info("통합 룸 생성 시작: gameSessionId={}, participants={}, worldType={}", gameSessionId, participants, worldType);
+        
+        Map<String, String> roomIds = new HashMap<>();
+        
+        try {
+            // 1. AI 게임룸 생성 (통합 API 사용)
+            UnifiedRoomRequest aiRoomRequest = UnifiedRoomRequest.builder()
+                    .roomType(RoomType.AI_GAME)
+                    .roomName(worldType.getDisplayName() + " 랜덤 매칭")
+                    .description("랜덤 매칭으로 생성된 " + worldType.getDisplayName() + " 게임방")
+                    .maxParticipants(3)
+                    .creatorId(participants.get(0))
+                    .participantIds(participants)
+                    .gameId(gameSessionId)
+                    .gameSettings(worldType.getGameSettings())
+                    .build();
+            
+            UnifiedRoomResponse aiRoom = roomServiceFactory.getService(RoomType.AI_GAME).createRoom(aiRoomRequest);
+            roomIds.put("ai", aiRoom.getRoomId());
+            
+            // 2. 플레이어 채팅룸 생성 (통합 API 사용)
+            UnifiedRoomRequest chatRoomRequest = UnifiedRoomRequest.builder()
+                    .roomType(RoomType.PLAYER_CHAT)
+                    .roomName(worldType.getDisplayName() + " 채팅방")
+                    .maxParticipants(3)
+                    .creatorId(participants.get(0))
+                    .participantIds(participants)
+                    .chatMode(ChatMode.MULTI)
+                    .build();
+            
+            UnifiedRoomResponse chatRoom = roomServiceFactory.getService(RoomType.PLAYER_CHAT).createRoom(chatRoomRequest);
+            roomIds.put("chat", chatRoom.getRoomId());
+            
+            log.info("통합 룸 생성 완료: aiRoomId={}, chatRoomId={}", roomIds.get("ai"), roomIds.get("chat"));
+            
+            return roomIds;
+            
+        } catch (Exception e) {
+            log.error("통합 룸 생성 중 오류 발생: gameSessionId={}", gameSessionId, e);
+            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, "룸 생성 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 기존 매칭 처리 로직에서 통합 룸 생성 사용 (기존 메서드 대체용)
+     */
+    public MatchingCompleteResponse processMatchingWithUnifiedRooms(WorldType worldType) {
+        log.info("통합 룸 기반 매칭 처리 시작: worldType={}", worldType);
+        
+        String lockKey = MatchingConstants.LOCK_KEY_PREFIX + worldType.name();
+        Boolean lockAcquired = false;
+        
+        try {
+            // 분산 락 획득 (5초 타임아웃)
+            lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "PROCESSING", Duration.ofSeconds(5));
+            
+            if (!Boolean.TRUE.equals(lockAcquired)) {
+                log.warn("매칭 처리 락 획득 실패: worldType={} - 다른 프로세스에서 처리 중", worldType);
+                return null;
+            }
+            
+            log.debug("매칭 처리 락 획득 성공: worldType={}", worldType);
+
+        try {
+            // 1. 큐에서 3명 추출
+            List<String> participants = queueManager.extractThreeUsers(worldType);
+            if (participants.size() != 3) {
+                log.warn("매칭 대상 부족: worldType={}, participants={}", worldType, participants.size());
+                return null;
+            }
+
+            // 2. 게임 세션 ID 생성
+            String gameSessionId = UuidV7Creator.create();
+
+            // 3. 통합 룸 생성 (신규 메서드 사용)
+            Map<String, String> roomIds = createUnifiedRooms(gameSessionId, participants, worldType);
+            String aiGameRoomId = roomIds.get("ai");
+            String chatRoomId = roomIds.get("chat");
+
+            // 4. 매칭 세션 정보 Redis에 저장
+            saveMatchingSession(gameSessionId, aiGameRoomId, chatRoomId, participants, worldType);
+
+            // 5. WebSocket으로 매칭 완료 알림 전송
+            webSocketService.sendMatchingComplete(participants, worldType, gameSessionId, 
+                                                 aiGameRoomId, chatRoomId);
+
+            // 6. 매칭 완료된 사용자들 상태 정리
+            queueManager.cleanupMatchedUsers(participants);
+
+            MatchingCompleteResponse response = MatchingCompleteResponse.of(
+                    gameSessionId, aiGameRoomId, chatRoomId, worldType, participants
+            );
+
+            log.info("통합 룸 기반 매칭 처리 완료: gameSessionId={}, participants={}", gameSessionId, participants);
+            return response;
+
+        } catch (Exception e) {
+            log.error("통합 룸 기반 매칭 처리 중 오류 발생: worldType={}", worldType, e);
+            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, e.getMessage());
+        }
+        
+        } finally {
+            // 분산 락 해제
+            if (Boolean.TRUE.equals(lockAcquired)) {
+                redisTemplate.delete(lockKey);
+                log.debug("매칭 처리 락 해제 완료: worldType={}", worldType);
             }
         }
     }

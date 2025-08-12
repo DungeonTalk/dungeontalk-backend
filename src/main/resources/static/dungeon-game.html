@@ -1159,13 +1159,14 @@
             
             // WebSocket으로 전송
             if (aiStompClient && aiStompClient.connected) {
-                aiStompClient.send('/pub/aichat/send', {}, JSON.stringify({
-                    aiGameRoomId: aiGameRoomId,
-                    gameId: currentGameSession.gameSessionId,
+                aiStompClient.send('/pub/room/ai/send', {}, JSON.stringify({
+                    roomId: aiGameRoomId,
+                    roomType: 'AI_GAME',
                     senderId: currentUser.id,
-                    senderNickname: currentUser.name, // nickname 대신 name 사용
-                    content: message,
                     messageType: 'USER',
+                    content: message,
+                    aiGameRoomId: aiGameRoomId,
+                    gameActionType: 'CHAT',
                     turnNumber: getCurrentTurnNumber()
                 }));
             }
@@ -1223,12 +1224,14 @@
             
             // WebSocket으로 전송
             if (partyStompClient && partyStompClient.connected) {
-                partyStompClient.send('/pub/chat/send', {}, JSON.stringify({
+                partyStompClient.send('/pub/room/chat/send', {}, JSON.stringify({
                     roomId: partyRoomId,
+                    roomType: 'PLAYER_CHAT',
                     senderId: currentUser.id,
-                    senderNickname: currentUser.name, // nickname 대신 name 사용
+                    messageType: 'USER',
                     content: message,
-                    type: 'TALK'
+                    chatRoomId: partyRoomId,
+                    senderNickname: currentUser.name
                 }));
             }
             
