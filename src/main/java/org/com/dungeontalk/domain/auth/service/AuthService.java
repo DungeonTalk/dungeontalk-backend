@@ -1,19 +1,21 @@
 package org.com.dungeontalk.domain.auth.service;
 
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
 import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
+import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
-import org.com.dungeontalk.domain.auth.entity.AuthId;
+import org.com.dungeontalk.domain.auth.manager.AuthRedisManager;
+import org.com.dungeontalk.domain.auth.manager.CookieManager;
 import org.com.dungeontalk.domain.auth.repository.AuthRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.MemberException;
-import org.com.dungeontalk.global.security.JwtService;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.com.dungeontalk.global.security.JwtProvider;
+import org.com.dungeontalk.global.security.JwtRedisService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +31,10 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final AuthRepository authRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final JwtProvider jwtProvider;
+    private final JwtRedisService jwtRedisService;
+    private final AuthRedisManager authRedisManager;
+    private final CookieManager cookieManager;
 
     // 로그인 메서드
     public AuthLoginResponse login(AuthLoginRequest request) {
@@ -44,15 +49,15 @@ public class AuthService {
         }
 
         // 토큰 생성
-        String accessToken = jwtService.generateAccessToken(member.getId(), member.getName(), member.getNickName());
-        String refreshToken = jwtService.generateRefreshToken(member.getId(), member.getName(), member.getNickName());
+        String accessToken = jwtProvider.generateAccessToken(member.getId(), member.getName(), member.getNickName());
+        String refreshToken = jwtProvider.generateRefreshToken(member.getId());
 
        // Auth 엔티티 생성
         Optional<Auth> existingAuthOpt = authRepository.findByMember(member);
 
         if (existingAuthOpt.isPresent()) {
             Auth auth = existingAuthOpt.get();
-            auth.setAccessToken(accessToken);
+            auth.setAccessToken(null);
             auth.setRefreshToken(refreshToken);
             authRepository.save(auth);
         } else {
@@ -60,7 +65,7 @@ public class AuthService {
                     .member(member)
                     .email(member.getName())
                     .tokenType("bearer")
-                    .accessToken(accessToken)
+                    .accessToken(null)
                     .refreshToken(refreshToken)
                     .build();
 
@@ -69,7 +74,7 @@ public class AuthService {
         }
 
         // session에 저장
-        jwtService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
+        jwtRedisService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
 
         return new AuthLoginResponse(
                 member.getId(),
@@ -78,45 +83,75 @@ public class AuthService {
         );
     }
 
-    // 로그 아웃 메서드
-    public void logout(HttpServletRequest request) {
-        String accessToken = jwtService.extractAccessToken(request);
-        if (accessToken == null) {
-            log.warn("logout called but access token is missing");
-            SecurityContextHolder.clearContext();
-            return;
+    // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
+    public JwtTokenResponse refreshAccessToken(String refreshToken) {
+
+        // 토큰 서명/포맷 검사
+        if (!jwtProvider.validateToken(refreshToken)) {
+            throw new MemberException(ErrorCode.INVALID_JWT_TOKEN);
         }
 
-        // 2) 토큰에서 memberId 추출
-        String memberId;
-        try {
-            memberId = jwtService.extractIdFromToken(accessToken);
-        } catch (Exception ex) {
-            log.warn("failed to extract member id from token during logout: {}", ex.getMessage());
-            SecurityContextHolder.clearContext();
-            return;
+        // 토큰 만료 검사
+        if (jwtProvider.isTokenExpired(refreshToken)) {
+            throw new MemberException(ErrorCode.EXPIRED_JWT_TOKEN);
         }
 
-        // 3) Auth 레코드 찾아 토큰 제거
-//        AuthId authId = new AuthId(PROVIDER_LOCAL, memberId);
-//        Optional<Auth> authOpt = authRepository.findById(authId);
+        // 사용자 조회
+        Auth auth = authRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
-        // Auth 레코드 찾아 토큰 제거 (memberId로 직접 조회)
-        Optional<Auth> authOpt = authRepository.findByMember_Id(memberId);
-        if (authOpt.isPresent()) {
-            Auth auth = authOpt.get();
-            auth.setAccessToken(null);
-            auth.setRefreshToken(null);
-            authRepository.save(auth);
-            log.info("cleared auth tokens for memberId={}", memberId);
-        } else {
-            log.info("no auth record found for memberId={} during logout", memberId);
-        }
+        // 새로운 Access Token과 Refresh Token을 반환
+//        String newAccessToken = jwtProvider.generateAccessToken(auth.getId(), auth.getMember().getName(), auth.getMember().getNickName());
+//        String newRefreshToken = jwtProvider.generateRefreshToken(auth.getId());
+        String newAccessToken = jwtProvider.generateAccessToken(
+                auth.getMember().getId(),
+                auth.getMember().getName(),
+                auth.getMember().getNickName()
+        );
+        String newRefreshToken = jwtProvider.generateRefreshToken(auth.getMember().getId());
 
-        // (권장) JwtService에 레디스에서 refresh token 삭제하는 메서드가 있다면 호출하세요.
-        // ex) jwtService.deleteRefreshTokenFromSessionRedis(memberId);
+        // Session에 RT 최신화
+        jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), newRefreshToken);
 
-        // 4) Security context clear
-        SecurityContextHolder.clearContext();
+        // RDB에 RT 최신화
+        auth.setRefreshToken(newRefreshToken);
+
+        // 클라이언트에게 JWT 전달
+        return new JwtTokenResponse(newAccessToken, newRefreshToken);
     }
+
+    // 로그 아웃 메서드
+    public void logout(String authorizationHeader, String refreshToken){
+
+        // 엑세스 토큰 추출
+        String accessToken = null;
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            accessToken = authorizationHeader.substring(7);
+        }
+
+        // 엑세스 토큰 블랙리스트 추가
+        String accessKey = "blacklist:access_token:" + accessToken;
+        long remainExpiration = authRedisManager.calculateRemainingExpiration(accessToken);
+        authRedisManager.uploadAccessTokenToRedis(accessKey, remainExpiration);
+
+        //  RDB에서 해시 된 RT 제거
+        Auth auth = authRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
+        auth.setRefreshToken(null);
+
+        // Valkey에서 해시 된 RT 제거
+        authRedisManager.deleteRefreshToken(refreshToken);
+
+    }
+
+    // 리프레시 토큰을 쿠키에 세팅
+    public void saveRefreshTokenToCookie(HttpServletResponse response, String refreshToken) {
+        cookieManager.addRefreshTokenCookie(response, refreshToken);
+    }
+
+    // 리프레시 토큰을 쿠키에서 제거
+    public void removeRefreshTokenCookie(HttpServletResponse response) {
+        cookieManager.clearRefreshTokenCookie(response);
+    }
+
 }

@@ -12,16 +12,16 @@ import java.util.Objects;
 @NoArgsConstructor
 public class RsData<T> {
 
-    @NonNull
+    // @NonNull
     private String resultCode; // status + 세부 코드 => ex: "200-1"
 
-    @NonNull
+    // @NonNull
     private int statusCode;
 
-    @NonNull
+    // @NonNull
     private String msg;
 
-    @NonNull
+    // @NonNull
     private T data; //  payload
 
     // ======================= 기본 상수 =========================
@@ -31,21 +31,10 @@ public class RsData<T> {
 
     // ======================= RsData 생성 메서드 =========================
 
-    /**
-     * (메인) 결과코드, 메시지, 데이터를 통해 응답 객체를 반환하는 메서드
-     * @param resultCode 결과 코드
-     * @param msg 메시지
-     * @param data 데이터
-     * @return 응답 객체
-     * @param <T> 페이로드의 타입
-     */
+    // null 허용
     public static <T> RsData<T> of(String resultCode, String msg, T data) {
-        Objects.requireNonNull(resultCode, "resultCode는 null이 되면 안 됩니다.");
-        Objects.requireNonNull(msg, "msg는 null이 되면 안 됩니다");
-        Objects.requireNonNull(data, "data는 null이 되면 안 됩니다");
-
         int statusCode = parseStatusCode(resultCode);
-        return new RsData<>(resultCode, statusCode, msg, data);
+        return new RsData<>(resultCode, statusCode, msg, data); // 4개 인자
     }
 
     // 메시지를 통해 응답 객체를 반환 하는 메서드
