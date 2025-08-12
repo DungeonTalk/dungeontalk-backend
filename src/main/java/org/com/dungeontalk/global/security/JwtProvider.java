@@ -53,14 +53,6 @@ public class JwtProvider {
                 .compact();
     }
 
-    // 토큰에서 클레임 추출
-//    public Claims extractClaims(String token) {
-//        return Jwts.parser() // JWT 파서 객체 생성
-//                .setSigningKey(SECRET_KEY)
-//                .parseClaimsJws(token)
-//                .getBody();
-//    }
-
     // 토큰에서 클레임 추출 ver 2.0
     public Claims extractClaims(String token) {
         Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
@@ -70,6 +62,48 @@ public class JwtProvider {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
+    // 토큰 유효성 검사 ver 2.0
+    public boolean validateToken(String token) {
+        try {
+            Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token); // 서명, 포맷, 만료 검증
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    // 토큰 만료 여부 검사 ver 2.0
+    public boolean isTokenExpired(String token) {
+        try {
+            Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Date expiration = claims.getExpiration();
+            return expiration.before(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            return true;  // 파싱 실패도 만료로 처리
+        }
+    }
+
+    // ======================= JWT Version Issue =========================
+
+    // 토큰에서 클레임 추출
+//    public Claims extractClaims(String token) {
+//        return Jwts.parser() // JWT 파서 객체 생성
+//                .setSigningKey(SECRET_KEY)
+//                .parseClaimsJws(token)
+//                .getBody();
+//    }
+
 
     // JWT 토큰 검증 - 유효성 검사
     /* 에러 발견 : AuthService의 refresAccessToken에서 발생 */
@@ -102,37 +136,5 @@ public class JwtProvider {
 //            return true;
 //        }
 //    }
-
-    // 토큰 유효성 검사
-    public boolean validateToken(String token) {
-        try {
-            Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token); // 서명, 포맷, 만료 검증
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    // 토큰 만료 여부 검사
-    public boolean isTokenExpired(String token) {
-        try {
-            Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-
-            Date expiration = claims.getExpiration();
-            return expiration.before(new Date());
-        } catch (JwtException | IllegalArgumentException e) {
-            return true;  // 파싱 실패도 만료로 처리
-        }
-    }
-
 
 }
