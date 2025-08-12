@@ -29,7 +29,6 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final MemberRepository memberRepository;
     private final RedisPublisher redisPublisher;
-    private final ChatRoomMemberManager chatRoomMemberManager;
     private final ObjectMapper objectMapper;
 
     // 참여자/인원/브로드캐스트는 ChatRoomService에 위임
@@ -39,28 +38,32 @@ public class ChatMessageService {
      * STOMP 메시지 분기 처리 (Controller에서 단일 호출)
      */
     public ChatMessageDto processMessage(ChatMessageSendRequestDto dto) throws JsonProcessingException {
-        ChatMessageDto chatMessageDto;
+        ChatMessageDto chatMessageDto = null;
 
         if (dto.getType() == MessageType.JOIN) {
             // 1) 입장 처리(인원 제한, Mongo/Redis, 접속수 브로드캐스트)
-            chatRoomService.joinRoom(dto.getRoomId(), dto.getSenderId());
-
-            // 2) 시스템 메시지 생성/저장
-            chatMessageDto = saveSystemMessage(dto.getRoomId(), dto.getSenderId(), MessageType.JOIN);
+            boolean added = chatRoomService.joinRoom(dto.getRoomId(), dto.getSenderId());
+            if (added) {            // ✅ 실제로 추가됐을 때만 시스템 메시지 생성/발행
+                chatMessageDto = saveSystemMessage(dto.getRoomId(), dto.getSenderId(), MessageType.JOIN);
+            }                       // 중복 입장인 경우 시스템 메시지 생성/발행 안 함 (Presence는 ChatRoomService가 이미 브로드캐스트)
         } else if (dto.getType() == MessageType.LEAVE) {
-            chatRoomService.leaveRoom(dto.getRoomId(), dto.getSenderId());
-            chatMessageDto = saveSystemMessage(dto.getRoomId(), dto.getSenderId(), MessageType.LEAVE);
+            boolean removed = chatRoomService.leaveRoom(dto.getRoomId(), dto.getSenderId());
+            if (removed) {
+                chatMessageDto = saveSystemMessage(dto.getRoomId(), dto.getSenderId(), MessageType.LEAVE);
+            } // 중복 퇴장인 경우도 시스템 메시지 생성/발행 안 함
         } else if (dto.getType() == MessageType.TALK) {
             chatMessageDto = handleTalkMessage(dto);
         } else {
             throw new IllegalArgumentException("유효하지 않은 메시지 타입");
         }
 
-        // 메시지 브로드캐스트
-        String json = objectMapper.writeValueAsString(chatMessageDto);
-        redisPublisher.publish(dto.getRoomId(), json);
+        if (chatMessageDto != null) {
+            // 메시지 브로드캐스트
+            String json = objectMapper.writeValueAsString(chatMessageDto);
+            redisPublisher.publish(dto.getRoomId(), json);
+        }
 
-        return chatMessageDto;
+        return chatMessageDto;    // chatMessageDto null이면 컨트롤러는 아무 것도 브로드캐스트하지 않음
     }
 
     /**
@@ -109,26 +112,6 @@ public class ChatMessageService {
         ChatMessage saved = chatMessageRepository.save(message);
         return ChatMessageDto.fromEntity(saved, sender.getNickName());
     }
-
-//    /**
-//     * 실시간 접속자 수 브로드캐스트
-//     */
-//    public void broadcastConnectedCount(String roomId) {
-//        try {
-//            long count = chatRoomMemberManager.getUserCount(roomId);
-//
-//            ConnectedCountMessageDto broadcastMsg = ConnectedCountMessageDto.builder()
-//                .roomId(roomId)
-//                .connectedCount(count)
-//                .type(MessageType.CONNECTED_COUNT)
-//                .build();
-//
-//            String json = objectMapper.writeValueAsString(broadcastMsg);
-//            redisPublisher.publish(roomId, json);
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException("접속자 수 전송 실패", e);
-//        }
-//    }
 
     /**
      * 채팅방 내 메시지 페이징 조회
