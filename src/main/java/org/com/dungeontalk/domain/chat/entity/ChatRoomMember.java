@@ -2,7 +2,6 @@ package org.com.dungeontalk.domain.chat.entity;
 
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,13 +10,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.com.dungeontalk.domain.chat.common.Status;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "chat_room_members")
-@CompoundIndex(name = "uniq_room_member", def = "{'roomId': 1, 'memberId': 1}", unique = true) // ✅ 중복 방지
+@CompoundIndex(name = "uniq_room_member", def = "{'roomId': 1, 'memberId': 1}", unique = true) // 중복 방지
 @Getter
 @Setter
 @Builder
