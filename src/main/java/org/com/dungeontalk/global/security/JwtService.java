@@ -33,15 +33,25 @@ public class JwtService {
 
     // 토큰에서 멤버 객체 생성
     public Member getMemberFromToken(String token) {
+        System.out.println("멤버 추출 메서드 진입");
 
         String memberId = extractIdFromToken(token);
-        return memberRepository.findById(memberId)
+
+        System.out.println("멤버 아이디 추출 : " + memberId);  // 테스트 결과 정상 추출
+
+        /* 여기서 문제 확인 */
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(ErrorCode.GLOBAL_ERROR));
+
+        System.out.println("member 추출 : " + member);
+
+        return member;
     }
 
     // 토큰에서 고유 번호 추출
     public String extractIdFromToken(String token) {
 
+        System.out.println("토큰에서 고유 번호 추출 메서드 진입 ");
         return jwtProvider.extractClaims(token).get("id", String.class);
     }
 

@@ -98,8 +98,15 @@ public class AuthService {
                 .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         // 새로운 Access Token과 Refresh Token을 반환
-        String newAccessToken = jwtProvider.generateAccessToken(auth.getId(), auth.getMember().getName(), auth.getMember().getNickName());
-        String newRefreshToken = jwtProvider.generateRefreshToken(auth.getId());
+//        String newAccessToken = jwtProvider.generateAccessToken(auth.getId(), auth.getMember().getName(), auth.getMember().getNickName());
+//        String newRefreshToken = jwtProvider.generateRefreshToken(auth.getId());
+        String newAccessToken = jwtProvider.generateAccessToken(
+                auth.getMember().getId(),
+                auth.getMember().getName(),
+                auth.getMember().getNickName()
+        );
+        String newRefreshToken = jwtProvider.generateRefreshToken(auth.getMember().getId());
+
 
         // Session에 RT 최신화
         jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), newRefreshToken);
@@ -114,14 +121,17 @@ public class AuthService {
     // 로그 아웃 메서드
     public void logout(String authorizationHeader, String refreshToken){
 
-        // authorizationHeader에서 Bearer 접두어 제거 후 엑세스 토큰 추출
+        // 엑세스 토큰 추출
         String accessToken = null;
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             accessToken = authorizationHeader.substring(7);
         }
 
+        /* 로그인 전 엑세스 토큰을 불러오는지 확인 -> 아님 현재의 엑세스 토큰을 넣어도 현재 엑세스 토큰을 가져옴 */
+        System.out.println("Access token : " + accessToken);
+
         // 엑세스 토큰 블랙리스트 추가
-        String accessKey = "blacklist:access_token:" + accessToken; // 메모리 효율을 위한 엑세스 토큰 해시 처리
+        String accessKey = "blacklist:access_token:" + accessToken;
         long remainExpiration = authRedisManager.calculateRemainingExpiration(accessToken);
         authRedisManager.uploadAccessTokenToRedis(accessKey, remainExpiration);
 

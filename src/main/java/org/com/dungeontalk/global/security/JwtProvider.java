@@ -55,7 +55,11 @@ public class JwtProvider {
 
     // 토큰에서 클레임 추출 ver 2.0
     public Claims extractClaims(String token) {
+
+        System.out.println("토큰에서 클레임 추출 메서드 진입 ");
         Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+
+        System.out.println("토큰에서 클레임 추출 메서드 key 추출 ");
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()

@@ -55,9 +55,9 @@ public class AuthRedisManager {
     }
 
     // 이미 존재하는 리프레시 토큰 삭제
-    public void deleteRefreshToken(String hashedRefreshToken){
+    public void deleteRefreshToken(String refreshToken){
 
-        String refreshKey = "refresh_token:" + hashedRefreshToken;
+        String refreshKey = "refresh_token:" + refreshToken;
         sessionRedis.delete(refreshKey);
     }
 

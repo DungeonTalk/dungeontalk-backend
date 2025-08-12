@@ -39,8 +39,10 @@ public class AuthController {
             @RequestHeader("Authorization") String authorizationHeader,
             @CookieValue(value = "refreshToken", required = false) String refreshToken
     ) {
+
+
         authService.logout(authorizationHeader, refreshToken);
-        return RsData.of("200", "로그아웃 완료", "good");
+        return RsData.of("200", "로그아웃 완료", null);
     }
 
 }
