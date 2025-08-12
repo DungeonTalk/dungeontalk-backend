@@ -8,6 +8,7 @@ import org.com.dungeontalk.domain.chat.dto.request.ChatMessageSendRequestDto;
 import org.com.dungeontalk.domain.chat.common.ChatMode;
 import org.com.dungeontalk.domain.chat.common.MessageType;
 import org.com.dungeontalk.domain.room.common.RoomType;
+import org.com.dungeontalk.domain.room.common.UnifiedMessageType;
 import org.com.dungeontalk.domain.room.dto.UnifiedRoomRequest;
 import org.com.dungeontalk.domain.room.dto.UnifiedRoomResponse;
 import org.com.dungeontalk.domain.room.dto.UnifiedMessageRequest;
@@ -150,13 +151,14 @@ public class ChatRoomServiceAdapter implements RoomService {
             throw new IllegalArgumentException("플레이어 채팅 메시지가 아닙니다: " + request.getRoomType());
         }
         
-        // UnifiedMessageRequest -> ChatMessageSendRequestDto 변환
-        ChatMessageSendRequestDto chatRequest = new ChatMessageSendRequestDto();
-        chatRequest.setRoomId(request.getChatRoomId() != null ? request.getChatRoomId() : request.getRoomId());
-        chatRequest.setSenderId(request.getSenderId());
-        chatRequest.setContent(request.getContent());
-        chatRequest.setType(mapToChatMessageType(request.getMessageType()));
-        chatRequest.setSenderNickname(request.getSenderNickname() != null ? request.getSenderNickname() : request.getSenderId());
+        // UnifiedMessageRequest -> ChatMessageSendRequestDto 변환 (빌더 패턴 사용)
+        ChatMessageSendRequestDto chatRequest = ChatMessageSendRequestDto.builder()
+                .roomId(request.getChatRoomId() != null ? request.getChatRoomId() : request.getRoomId())
+                .senderId(request.getSenderId())
+                .content(request.getContent())
+                .type(mapToChatMessageType(request.getMessageType()))
+                .senderNickname(request.getSenderNickname() != null ? request.getSenderNickname() : request.getSenderId())
+                .build();
         
         // 닉네임 설정 (있는 경우)
         if (request.getSenderNickname() != null) {
@@ -178,12 +180,13 @@ public class ChatRoomServiceAdapter implements RoomService {
     public void sendSystemMessage(String roomId, String message) {
         log.debug("플레이어 채팅룸 시스템 메시지 전송 (어댑터): roomId={}", roomId);
         
-        ChatMessageSendRequestDto systemRequest = new ChatMessageSendRequestDto();
-        systemRequest.setRoomId(roomId);
-        systemRequest.setSenderId("SYSTEM");
-        systemRequest.setContent(message);
-        systemRequest.setType(MessageType.TALK); // SYSTEM이 없으므로 TALK으로 대체
-        systemRequest.setSenderNickname("SYSTEM");
+        ChatMessageSendRequestDto systemRequest = ChatMessageSendRequestDto.builder()
+                .roomId(roomId)
+                .senderId("SYSTEM")
+                .content(message)
+                .type(MessageType.TALK) // SYSTEM이 없으므로 TALK으로 대체
+                .senderNickname("SYSTEM")
+                .build();
         
         try {
             chatMessageService.processMessage(systemRequest);
@@ -251,7 +254,7 @@ public class ChatRoomServiceAdapter implements RoomService {
     /**
      * 통합 메시지 타입을 채팅 메시지 타입으로 매핑
      */
-    private MessageType mapToChatMessageType(org.com.dungeontalk.domain.room.common.UnifiedMessageType unifiedType) {
+    private MessageType mapToChatMessageType(UnifiedMessageType unifiedType) {
         switch (unifiedType) {
             case USER:
                 return MessageType.TALK;

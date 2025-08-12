@@ -9,6 +9,7 @@ import org.com.dungeontalk.domain.aichat.dto.response.AiGameRoomResponse;
 import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
 import org.com.dungeontalk.domain.aichat.common.AiMessageType;
 import org.com.dungeontalk.domain.room.common.RoomType;
+import org.com.dungeontalk.domain.room.common.UnifiedMessageType;
 import org.com.dungeontalk.domain.room.dto.UnifiedRoomRequest;
 import org.com.dungeontalk.domain.room.dto.UnifiedRoomResponse;
 import org.com.dungeontalk.domain.room.dto.UnifiedMessageRequest;
@@ -152,13 +153,17 @@ public class AiGameRoomServiceAdapter implements RoomService {
             throw new IllegalArgumentException("AI 게임 메시지가 아닙니다: " + request.getRoomType());
         }
         
-        // UnifiedMessageRequest -> AiGameMessageSendRequest 변환
-        AiGameMessageSendRequest aiRequest = new AiGameMessageSendRequest();
-        aiRequest.setAiGameRoomId(request.getAiGameRoomId() != null ? request.getAiGameRoomId() : request.getRoomId());
-        aiRequest.setSenderId(request.getSenderId());
-        aiRequest.setContent(request.getContent());
-        aiRequest.setMessageType(mapToAiMessageType(request.getMessageType()));
-        aiRequest.setSenderNickname(request.getSenderId()); // 기본값으로 ID 사용
+        // UnifiedMessageRequest -> AiGameMessageSendRequest 변환 (빌더 패턴 사용)
+        AiGameMessageSendRequest aiRequest = AiGameMessageSendRequest.builder()
+                .aiGameRoomId(request.getAiGameRoomId() != null ? request.getAiGameRoomId() : request.getRoomId())
+                .gameId(request.getAiGameRoomId() != null ? request.getAiGameRoomId() : request.getRoomId()) // gameId도 같은 값으로 설정
+                .senderId(request.getSenderId())
+                .content(request.getContent())
+                .messageType(mapToAiMessageType(request.getMessageType()))
+                .senderNickname(request.getSenderId()) // 기본값으로 ID 사용
+                .turnNumber(request.getTurnNumber() != null ? request.getTurnNumber() : 1) // 기본값 1
+                .messageOrder(0) // 기본값 0
+                .build();
         
         // 기존 AI 메시지 서비스 호출
         try {
@@ -174,12 +179,16 @@ public class AiGameRoomServiceAdapter implements RoomService {
     public void sendSystemMessage(String roomId, String message) {
         log.debug("AI 게임룸 시스템 메시지 전송 (어댑터): roomId={}", roomId);
         
-        AiGameMessageSendRequest systemRequest = new AiGameMessageSendRequest();
-        systemRequest.setAiGameRoomId(roomId);
-        systemRequest.setSenderId("SYSTEM");
-        systemRequest.setContent(message);
-        systemRequest.setMessageType(AiMessageType.SYSTEM);
-        systemRequest.setSenderNickname("SYSTEM");
+        AiGameMessageSendRequest systemRequest = AiGameMessageSendRequest.builder()
+                .aiGameRoomId(roomId)
+                .gameId(roomId) // gameId도 같은 값으로 설정
+                .senderId("SYSTEM")
+                .content(message)
+                .messageType(AiMessageType.SYSTEM)
+                .senderNickname("SYSTEM")
+                .turnNumber(1) // 기본값 1
+                .messageOrder(0) // 기본값 0
+                .build();
         
         try {
             aiGameMessageService.processMessage(systemRequest);
@@ -244,8 +253,7 @@ public class AiGameRoomServiceAdapter implements RoomService {
     /**
      * 통합 메시지 타입을 AI 메시지 타입으로 매핑
      */
-    private AiMessageType mapToAiMessageType(
-            org.com.dungeontalk.domain.room.common.UnifiedMessageType unifiedType) {
+    private AiMessageType mapToAiMessageType(UnifiedMessageType unifiedType) {
         
         switch (unifiedType) {
             case USER:

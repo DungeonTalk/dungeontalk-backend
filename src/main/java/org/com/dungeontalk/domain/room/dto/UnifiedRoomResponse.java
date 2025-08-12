@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 import org.com.dungeontalk.domain.room.common.RoomType;
 import org.com.dungeontalk.domain.room.common.UnifiedRoomStatus;
 import org.com.dungeontalk.domain.aichat.dto.response.AiGameRoomResponse;
+import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
 import org.com.dungeontalk.domain.chat.dto.ChatRoomDto;
 
-import java.time.LocalDateTime;
 import java.time.Instant;
 import java.util.List;
 
@@ -66,14 +66,14 @@ public class UnifiedRoomResponse {
     private List<String> participantIds;
     
     /**
-     * 생성 시간
+     * 생성 시간 (UTC)
      */
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     
     /**
-     * 수정 시간
+     * 수정 시간 (UTC)
      */
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     // === AI 게임룸 전용 필드 ===
     
@@ -93,9 +93,9 @@ public class UnifiedRoomResponse {
     private String gameSettings;
     
     /**
-     * 마지막 활동 시간
+     * 마지막 활동 시간 (UTC)
      */
-    private LocalDateTime lastActivity;
+    private Instant lastActivity;
 
     // === 플레이어 채팅룸 전용 필드 ===
     
@@ -144,11 +144,13 @@ public class UnifiedRoomResponse {
                 .currentParticipants(aiResponse.getCurrentParticipantCount())
                 .maxParticipants(aiResponse.getMaxParticipants())
                 .participantIds(aiResponse.getParticipants())
-                .createdAt(aiResponse.getCreatedAt())
+                .createdAt(aiResponse.getCreatedAt() != null ? 
+                          aiResponse.getCreatedAt().atZone(java.time.ZoneOffset.UTC).toInstant() : null)
                 // AI 게임룸 전용 필드
                 .gameId(aiResponse.getGameId())
                 .currentTurn(aiResponse.getCurrentTurn())
-                .lastActivity(aiResponse.getLastActivity())
+                .lastActivity(aiResponse.getLastActivity() != null ? 
+                          aiResponse.getLastActivity().atZone(java.time.ZoneOffset.UTC).toInstant() : null)
                 .build();
     }
 
@@ -161,17 +163,15 @@ public class UnifiedRoomResponse {
                 .roomType(RoomType.PLAYER_CHAT)
                 .roomName(chatResponse.getRoomName())
                 .status(UnifiedRoomStatus.CHAT_AVAILABLE) // 기본 상태
-                .createdAt(chatResponse.getCreatedAt() != null ? 
-                          LocalDateTime.ofInstant(chatResponse.getCreatedAt(), java.time.ZoneOffset.UTC) : null)
-                .updatedAt(chatResponse.getUpdatedAt() != null ? 
-                          LocalDateTime.ofInstant(chatResponse.getUpdatedAt(), java.time.ZoneOffset.UTC) : null)
+                .createdAt(chatResponse.getCreatedAt())
+                .updatedAt(chatResponse.getUpdatedAt())
                 .build();
     }
 
     /**
      * AI 게임 상태를 통합 상태로 매핑
      */
-    private static UnifiedRoomStatus mapAiGameStatus(org.com.dungeontalk.domain.aichat.common.AiGameStatus aiStatus) {
+    private static UnifiedRoomStatus mapAiGameStatus(AiGameStatus aiStatus) {
         if (aiStatus == null) {
             return UnifiedRoomStatus.CREATED;
         }
