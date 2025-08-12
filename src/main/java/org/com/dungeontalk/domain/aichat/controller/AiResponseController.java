@@ -6,6 +6,7 @@ import org.com.dungeontalk.domain.aichat.dto.AiGameMessageDto;
 import org.com.dungeontalk.domain.aichat.dto.request.AiErrorRequest;
 import org.com.dungeontalk.domain.aichat.dto.request.AiGenerateRequest;
 import org.com.dungeontalk.domain.aichat.dto.request.AiMessageSaveRequest;
+import org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest;
 import org.com.dungeontalk.domain.aichat.dto.request.AiResponseRequest;
 import org.com.dungeontalk.domain.aichat.dto.response.AiGameMessageResponse;
 import org.com.dungeontalk.domain.aichat.dto.response.ProcessingStatusResponse;
@@ -186,11 +187,10 @@ public class AiResponseController {
         return RsData.of("500-1", errorMessage, null);
     }
 
-    private org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest createErrorSystemMessage(
+    private AiGameMessageSendRequest createErrorSystemMessage(
             String roomId, AiErrorRequest request) {
         
-        org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest systemMessage = 
-                new org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest();
+        AiGameMessageSendRequest systemMessage = new AiGameMessageSendRequest();
         
         systemMessage.setAiGameRoomId(roomId);
         systemMessage.setGameId(request.getGameId());
