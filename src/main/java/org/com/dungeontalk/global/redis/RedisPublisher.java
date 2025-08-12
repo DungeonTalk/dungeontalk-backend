@@ -1,6 +1,7 @@
 package org.com.dungeontalk.global.redis;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RedisPublisher {
 
+    @Qualifier("objectRedisTemplate")
     private final RedisTemplate<String, Object> redisTemplate;
 
     public void publish(String roomId, String message) {
