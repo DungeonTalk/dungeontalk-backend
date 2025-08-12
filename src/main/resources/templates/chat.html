@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <title>채팅 - DungeonTalk</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mx-auto px-4 py-6" x-data="chatApp()" x-init="init()">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Settings Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                    <h2 class="text-lg font-semibold px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        설정 / 제어
+                    </h2>
+                    <div class="p-6 space-y-4">
+                        <!-- Connection Status -->
+                        <div class="p-3 rounded-lg text-sm font-medium transition-colors"
+                             :class="connected ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'">
+                            <span x-text="connected ? 'WebSocket 연결됨' : 'WebSocket 끊김'"></span>
+                        </div>
+
+                        <!-- Room Settings -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">닉네임</label>
+                                <input type="text" x-model="settings.nickname" 
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">방 이름</label>
+                                <input type="text" x-model="settings.roomName" placeholder="테스트 방"
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white">
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Room Type</label>
+                                    <select x-model="settings.roomType" 
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white">
+                                        <option value="PLAYER">PLAYER</option>
+                                        <option value="GAME">GAME</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mode</label>
+                                    <select x-model="settings.mode" 
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white">
+                                        <option value="SINGLE">SINGLE</option>
+                                        <option value="MULTI" selected>MULTI</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Manual Room ID -->
+                        <div class="flex space-x-2">
+                            <input type="text" x-model="manualRoomId" placeholder="기존 방 ID 붙여넣기"
+                                   class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white">
+                            <button @click="useRoom()" 
+                                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                                설정
+                            </button>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="copyInviteLink()" 
+                                        class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm">
+                                    초대 링크 복사
+                                </button>
+                                <button @click="loadRoomList()" 
+                                        class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm">
+                                    방 목록 불러오기
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="createRoom()" 
+                                        class="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm">
+                                    방 생성
+                                </button>
+                                <button @click="loadMessages()" 
+                                        class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm">
+                                    메시지 로드
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="connectWS()" 
+                                        class="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm">
+                                    WS 연결
+                                </button>
+                                <button @click="disconnectWS()" 
+                                        class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm">
+                                    WS 해제
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="joinRoom()" 
+                                        class="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm">
+                                    입장
+                                </button>
+                                <button @click="leaveRoom()" 
+                                        class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm">
+                                    퇴장
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Room Info -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                                <span class="text-sm font-medium">접속자</span>
+                                <span class="text-sm font-bold">
+                                    <span x-text="connectedCount">0</span> / 
+                                    <span x-text="maxCapacity || '-'">-</span>
+                                </span>
+                            </div>
+                            
+                            <div x-show="roomId" class="text-sm text-gray-600 dark:text-gray-400">
+                                Room ID: <span x-text="roomId" class="font-mono"></span>
+                            </div>
+                        </div>
+
+                        <!-- Room List -->
+                        <div x-show="roomList.length > 0" class="space-y-2">
+                            <h3 class="font-medium text-sm">열린 방 목록</h3>
+                            <div class="space-y-2 max-h-40 overflow-y-auto">
+                                <template x-for="room in roomList" :key="room.id">
+                                    <div class="p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                                        <div class="font-medium text-sm" x-text="room.roomName || '(이름없음)'"></div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            ID: <span x-text="room.id"></span> · 
+                                            <span x-text="room.roomType"></span>/<span x-text="room.mode"></span>
+                                        </div>
+                                        <button @click="joinExistingRoom(room.id)" 
+                                                class="mt-2 px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white text-xs rounded transition-colors">
+                                            참가
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Presence List -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h3 class="font-medium text-sm mb-3">현재 접속자</h3>
+                            <div class="space-y-2">
+                                <template x-show="presenceList.length === 0">
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">접속자가 없습니다.</div>
+                                </template>
+                                <template x-for="member in presenceList" :key="member.memberId">
+                                    <div class="flex items-center space-x-3 p-2 border border-gray-200 dark:border-gray-600 rounded-lg">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span class="text-sm font-medium" x-text="member.nickname || '익명'"></span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-auto" x-text="member.memberId"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="lg:col-span-2">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden h-[600px] flex flex-col">
+                    <h2 class="text-lg font-semibold px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        채팅
+                    </h2>
+                    
+                    <!-- Messages List -->
+                    <div class="flex-1 overflow-y-auto p-6" id="messageList">
+                        <template x-for="message in messages" :key="message.id">
+                            <div class="mb-4"
+                                 :class="{
+                                     'flex justify-end': message.type === 'me',
+                                     'flex justify-start': message.type === 'other',
+                                     'flex justify-center': message.type === 'system'
+                                 }">
+                                <div class="max-w-[70%] rounded-lg px-4 py-2"
+                                     :class="{
+                                         'bg-blue-100 dark:bg-blue-900/30 text-gray-800 dark:text-gray-200': message.type === 'me',
+                                         'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200': message.type === 'other',
+                                         'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 text-sm': message.type === 'system'
+                                     }">
+                                    <div x-html="escapeHtml(message.content)"></div>
+                                    <div x-show="message.meta" class="text-xs mt-1 opacity-70" x-text="message.meta"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 p-4">
+                        <form @submit.prevent="sendMessage" class="flex space-x-2">
+                            <input type="text" 
+                                   x-model="messageInput"
+                                   placeholder="메시지를 입력하세요..."
+                                   class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                                   :disabled="!connected || !roomId">
+                            <button type="submit"
+                                    :disabled="!connected || !roomId || !messageInput.trim()"
+                                    class="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors">
+                                전송
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+<!-- SockJS and Stomp -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<script>
+function chatApp() {
+    return {
+        // State
+        connected: false,
+        roomId: null,
+        manualRoomId: '',
+        member: null,
+        stomp: null,
+        subscription: null,
+        subscribed: false,
+        
+        // Settings
+        settings: {
+            nickname: '',
+            roomName: '테스트 방',
+            roomType: 'PLAYER',
+            mode: 'MULTI'
+        },
+        
+        // Room data
+        connectedCount: 0,
+        maxCapacity: null,
+        presenceList: [],
+        roomList: [],
+        
+        // Messages
+        messages: [],
+        messageInput: '',
+        
+        // Seen message tracking
+        seenMsgIds: new Set(),
+        seenQueue: [],
+        
+        // API endpoints
+        API: {
+            CREATE_ROOM: '/v1/chat/room',
+            JOIN_ROOM: (rid, mid) => `/v1/chat/room/${rid}/join/${mid}`,
+            LEAVE_ROOM: (rid, mid) => `/v1/chat/room/${rid}/leave/${mid}`,
+            MESSAGES: (rid, p=0, s=30) => `/v1/chat/room/${rid}/messages?page=${p}&size=${s}`,
+            ROOMS: '/v1/chat/room'
+        },
+        
+        WS: {
+            ENDPOINT: '/ws-chat',
+            SUB_PATH: (id) => `/sub/chat/room/${id}`,
+            PUB_PATH: '/pub/chat/send'
+        },
+        
+        init() {
+            // Load user data
+            const userStr = localStorage.getItem('currentUser');
+            const token = localStorage.getItem('authToken');
+            
+            if (!userStr || !token) {
+                Alpine.store('notifications').error('로그인이 필요합니다.');
+                setTimeout(() => window.location.href = '/login', 2000);
+                return;
+            }
+            
+            this.member = JSON.parse(userStr);
+            this.settings.nickname = this.member.nickname || this.member.id + '님';
+            
+            // Check for room ID in URL
+            const urlRoomId = new URLSearchParams(location.search).get('roomId');
+            if (urlRoomId) {
+                this.setRoom(urlRoomId);
+                this.addSystemMessage(`기존 방 설정: ${this.roomId}`);
+            }
+            
+            this.addSystemMessage('페이지 로드 완료');
+            
+            // Handle page unload
+            window.addEventListener('beforeunload', () => this.handleUnload());
+        },
+        
+        authHeaders() {
+            const token = localStorage.getItem('authToken');
+            return token ? { Authorization: 'Bearer ' + token } : {};
+        },
+        
+        escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML.replace(/\n/g, '<br>');
+        },
+        
+        rememberMsg(id) {
+            if (!id || this.seenMsgIds.has(id)) return;
+            this.seenMsgIds.add(id);
+            this.seenQueue.push(id);
+            if (this.seenQueue.length > 500) {
+                const old = this.seenQueue.shift();
+                this.seenMsgIds.delete(old);
+            }
+        },
+        
+        alreadySeen(id) {
+            return id && this.seenMsgIds.has(id);
+        },
+        
+        addMessage(type, content, meta = null) {
+            this.messages.push({
+                id: Date.now() + Math.random(),
+                type,
+                content,
+                meta: meta || new Date().toLocaleTimeString()
+            });
+            
+            this.$nextTick(() => {
+                const messageList = document.getElementById('messageList');
+                if (messageList) {
+                    messageList.scrollTop = messageList.scrollHeight;
+                }
+            });
+        },
+        
+        addSystemMessage(content) {
+            this.addMessage('system', content);
+        },
+        
+        setRoom(id) {
+            this.roomId = id;
+            this.manualRoomId = id;
+        },
+        
+        useRoom() {
+            const id = this.manualRoomId.trim();
+            if (!id) {
+                this.addSystemMessage('방 ID를 입력하세요');
+                return;
+            }
+            this.setRoom(id);
+            this.addSystemMessage(`기존 방 설정: ${this.roomId}`);
+        },
+        
+        copyInviteLink() {
+            if (!this.roomId) {
+                this.addSystemMessage('먼저 방을 선택/생성하세요');
+                return;
+            }
+            const link = `${location.origin}/chat?roomId=${encodeURIComponent(this.roomId)}`;
+            navigator.clipboard.writeText(link).then(() => {
+                Alpine.store('notifications').success('초대 링크가 복사되었습니다');
+            });
+        },
+        
+        async loadRoomList() {
+            try {
+                const response = await fetch(this.API.ROOMS, { headers: this.authHeaders() });
+                if (!response.ok) throw new Error(await response.text());
+                
+                const result = await response.json();
+                this.roomList = result.data || [];
+                
+                if (this.roomList.length === 0) {
+                    this.addSystemMessage('열린 방이 없습니다');
+                }
+            } catch (error) {
+                this.addSystemMessage('방 목록 로드 실패: ' + error.message);
+            }
+        },
+        
+        async createRoom() {
+            const body = {
+                roomName: this.settings.roomName.trim() || '테스트 방',
+                roomType: this.settings.roomType,
+                mode: this.settings.mode,
+                participantIds: [this.member.id]
+            };
+            
+            try {
+                const response = await fetch(this.API.CREATE_ROOM, {
+                    method: 'POST',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, this.authHeaders()),
+                    body: JSON.stringify(body)
+                });
+                
+                if (!response.ok) throw new Error(await response.text());
+                
+                const result = await response.json();
+                const data = result.data || result;
+                this.setRoom(data.id);
+                this.addSystemMessage(`방 생성 성공: ${this.roomId}`);
+                Alpine.store('notifications').success('방이 생성되었습니다');
+            } catch (error) {
+                this.addSystemMessage('방 생성 실패: ' + error.message);
+                Alpine.store('notifications').error('방 생성에 실패했습니다');
+            }
+        },
+        
+        async connectWS() {
+            if (this.stomp && this.stomp.connected) {
+                this.addSystemMessage('이미 연결되어 있습니다');
+                return;
+            }
+            
+            if (!this.roomId) {
+                this.addSystemMessage('먼저 방을 선택하세요');
+                return;
+            }
+            
+            const token = localStorage.getItem('authToken');
+            const url = `${this.WS.ENDPOINT}?token=${encodeURIComponent(token)}&roomId=${encodeURIComponent(this.roomId)}`;
+            
+            const sock = new SockJS(url);
+            this.stomp = Stomp.over(sock);
+            this.stomp.debug = () => {}; // Disable debug logs
+            
+            this.stomp.connect({}, () => {
+                this.connected = true;
+                
+                // Unsubscribe previous subscription
+                if (this.subscription) {
+                    try { this.subscription.unsubscribe(); } catch (e) {}
+                }
+                
+                // Subscribe to room
+                this.subscription = this.stomp.subscribe(this.WS.SUB_PATH(this.roomId), (msg) => {
+                    let payload = msg.body;
+                    try { payload = JSON.parse(msg.body); } catch (e) {}
+                    this.handleIncomingMessage(payload);
+                });
+                
+                this.subscribed = true;
+                this.addSystemMessage('WebSocket 연결 성공');
+                Alpine.store('notifications').success('채팅 서버에 연결되었습니다');
+            }, (error) => {
+                this.connected = false;
+                this.addSystemMessage('WebSocket 연결 실패');
+                Alpine.store('notifications').error('채팅 서버 연결에 실패했습니다');
+            });
+        },
+        
+        disconnectWS() {
+            if (this.subscription) {
+                try { this.subscription.unsubscribe(); } catch (e) {}
+            }
+            if (this.stomp) {
+                try { 
+                    this.stomp.disconnect(() => {
+                        this.connected = false;
+                        this.addSystemMessage('WebSocket 연결 해제');
+                    }); 
+                } catch (e) {}
+            }
+        },
+        
+        async joinRoom() {
+            if (!this.roomId) {
+                this.addSystemMessage('방 ID가 없습니다');
+                return;
+            }
+            
+            if (!this.connected) {
+                await this.connectWS();
+            }
+            
+            try {
+                const response = await fetch(this.API.JOIN_ROOM(this.roomId, this.member.id), {
+                    method: 'POST',
+                    headers: this.authHeaders()
+                });
+                if (!response.ok) {
+                    console.warn('REST join failed (ignorable):', await response.text());
+                }
+            } catch (error) {
+                console.warn('REST join error (ignorable):', error);
+            }
+            
+            if (this.stomp && this.stomp.connected) {
+                this.stomp.send(this.WS.PUB_PATH, {}, JSON.stringify({
+                    roomId: this.roomId,
+                    senderId: this.member.id,
+                    content: '',
+                    type: 'JOIN'
+                }));
+            }
+        },
+        
+        async leaveRoom() {
+            if (!this.roomId) return;
+            
+            try {
+                const response = await fetch(this.API.LEAVE_ROOM(this.roomId, this.member.id), {
+                    method: 'DELETE',
+                    headers: this.authHeaders()
+                });
+                if (!response.ok) {
+                    console.warn('REST leave failed (ignorable):', await response.text());
+                }
+            } catch (error) {
+                console.warn('REST leave error (ignorable):', error);
+            }
+            
+            if (this.stomp && this.stomp.connected) {
+                this.stomp.send(this.WS.PUB_PATH, {}, JSON.stringify({
+                    roomId: this.roomId,
+                    senderId: this.member.id,
+                    content: '',
+                    type: 'LEAVE'
+                }));
+            }
+            
+            this.addSystemMessage('방 퇴장 요청 전송');
+        },
+        
+        sendMessage() {
+            const text = this.messageInput.trim();
+            if (!text || !this.stomp || !this.stomp.connected || !this.roomId) return;
+            
+            this.stomp.send(this.WS.PUB_PATH, {}, JSON.stringify({
+                roomId: this.roomId,
+                senderId: this.member.id,
+                content: text,
+                type: 'TALK'
+            }));
+            
+            this.messageInput = '';
+        },
+        
+        async loadMessages() {
+            if (!this.roomId) {
+                this.addSystemMessage('방을 먼저 선택/생성하세요');
+                return;
+            }
+            
+            try {
+                const response = await fetch(this.API.MESSAGES(this.roomId, 0, 30), {
+                    headers: this.authHeaders()
+                });
+                
+                if (!response.ok) throw new Error(await response.text());
+                
+                const result = await response.json();
+                const items = (result.data && result.data.content) ? result.data.content : 
+                            (Array.isArray(result) ? result : []);
+                
+                this.addSystemMessage(`최근 ${items.length}건 로드`);
+                
+                items.slice().reverse().forEach(m => {
+                    const type = (m.senderId === this.member.id) ? 'me' : 'other';
+                    const nick = m.senderNickname || m.senderNickName || 
+                               (m.senderId === this.member.id ? '나' : '익명');
+                    const text = m.message || m.content || '';
+                    const when = new Date(m.createdAt).toLocaleTimeString();
+                    this.addMessage(type, text, `${nick} · ${when}`);
+                });
+            } catch (error) {
+                this.addSystemMessage('메시지 로드 실패: ' + error.message);
+            }
+        },
+        
+        handleIncomingMessage(payload) {
+            // Handle string messages
+            if (typeof payload === 'string') {
+                this.addSystemMessage(payload);
+                return;
+            }
+            
+            // Handle presence updates
+            if (payload && typeof payload === 'object' && ('connectedCount' in payload) && ('eventType' in payload)) {
+                this.connectedCount = payload.connectedCount || 0;
+                this.maxCapacity = payload.maxCapacity;
+                this.presenceList = payload.members || [];
+                
+                if (payload.eventType === 'CAPACITY_UPDATED') {
+                    this.addSystemMessage('정원이 변경되었습니다');
+                }
+                return;
+            }
+            
+            // Handle other message types
+            const type = (payload.type || payload.messageType || '').toUpperCase();
+            
+            if (type === 'CONNECTED_COUNT') {
+                this.connectedCount = payload.connectedCount || 0;
+                return;
+            }
+            
+            if (type === 'PRESENCE') {
+                this.connectedCount = payload.connectedCount || 0;
+                this.presenceList = payload.members || [];
+                return;
+            }
+            
+            const text = payload.content || payload.message || '';
+            
+            if (type === 'TALK') {
+                const messageType = (payload.senderId === this.member.id) ? 'me' : 'other';
+                const nick = payload.senderNickname || payload.senderNickName || '익명';
+                this.addMessage(messageType, text, `${nick} · ${new Date().toLocaleTimeString()}`);
+            } else if (type === 'JOIN' || type === 'LEAVE') {
+                const mid = payload.messageId || payload.id;
+                if (this.alreadySeen(mid)) return;
+                this.rememberMsg(mid);
+                this.addSystemMessage(text);
+            } else {
+                this.addSystemMessage(JSON.stringify(payload));
+            }
+        },
+        
+        async joinExistingRoom(id) {
+            this.setRoom(id);
+            await this.connectWS();
+            await this.joinRoom();
+        },
+        
+        handleUnload() {
+            try {
+                if (this.roomId && this.member && this.member.id) {
+                    navigator.sendBeacon(this.API.LEAVE_ROOM(this.roomId, this.member.id));
+                }
+            } catch (e) {}
+            
+            try {
+                if (this.subscription) this.subscription.unsubscribe();
+                if (this.stomp) this.stomp.disconnect(() => {});
+            } catch (e) {}
+        }
+    }
+}
+</script>
+</th:block>
+</body>
+</html>

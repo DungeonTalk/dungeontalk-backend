@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.member.dto.request.RegisterRequest;
 import org.com.dungeontalk.domain.member.dto.response.RegisterResponse;
-import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.service.MemberService;
 import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.web.bind.annotation.PostMapping;

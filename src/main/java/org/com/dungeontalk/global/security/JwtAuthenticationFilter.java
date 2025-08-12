@@ -34,9 +34,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 "/v1/valkey/session/test/save"
         );
 
-        // 요청 경로가 publicApis 목록 중 하나로 시작하면 true 반환
-        return publicApis.stream().anyMatch(path::startsWith);
+        return PUBLIC_APIS.stream().anyMatch(path::startsWith);
     }
+
+    /*
+    * 권한 체크가 불필요한 API 리스트 정의 메서드
+    */
+    private static final List<String> PUBLIC_APIS = List.of(
+            "/v1/member/register",
+            "/v1/auth/login",
+            "/v1/valkey",
+            "/swagger-ui",
+            "/v3/api-docs",
+            "/test-auth.html",
+            "/debug-login.html",
+            "/login",
+            "/",
+            "/css",
+            "/js",
+            "/images",
+            "/error",
+            "/test",
+            "/chat",
+            "/game",
+            "/profile",
+            "/settings",
+            "/favicon.ico"
+           );
 
     // 필터 체인
     @Override

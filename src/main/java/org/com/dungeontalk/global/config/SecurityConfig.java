@@ -8,16 +8,27 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableMethodSecurity(securedEnabled = true, prePostEnabled = true)
 public class SecurityConfig {
+    
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .requestMatchers("/v1/member/register", "/v1/auth/login")
+                .requestMatchers("/test-auth.html", "/debug-login.html", "/*.html")
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico")
+                .requestMatchers("/login", "/game", "/chat", "/profile", "/settings", "/test", "/");
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter)
@@ -32,25 +43,37 @@ public class SecurityConfig {
                 // 시큐리티 기본 로그인 비활성화
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(req -> req.anyRequest().permitAll())
-
-                // 권한 url 설정 -> 우선은 개발단계니까 모두 허용
-//                .authorizeHttpRequests(req -> req.
-//                        requestMatchers("/v1/member/register").permitAll().
-//                        requestMatchers("/v1/auth/login").permitAll().
-//                        requestMatchers("/v1/valkey/session/all").permitAll().
-//
-//                        requestMatchers("/swagger-ui/**").permitAll().
-//                        requestMatchers("/swagger-ui/index.html").permitAll().
-//                        requestMatchers("/v3/api-docs/**").permitAll().
-//                        requestMatchers("/webjars/").permitAll().
-//                        .requestMatchers("/api/chat/room/**").authenticated()                   // 채팅방 생성/입장/퇴장은 인증 필요
-//                        .requestMatchers(HttpMethod.GET, "/api/chat/rooms").permitAll()         // 목록 조회는 공개
-//                        .requestMatchers(HttpMethod.GET, "/api/chat/room/**").permitAll()       // 단일 조회 및 메시지 조회 허용
-//                        .requestMatchers("/ws-chat/**", "/ws-chat").permitAll()                             // WebSocket 엔드포인트 허용 (HandshakeInterceptor에서 인증 처리)
-
-//                        anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // 필터 추가
+                
+                // 인증 실패 시 401 반환 (리다이렉트 방지)
+                .exceptionHandling(exceptions -> exceptions
+                    .authenticationEntryPoint((request, response, authException) -> {
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                    })
+                )
+                .authorizeHttpRequests(req -> req
+                        // 정적 리소스 허용
+                        .requestMatchers("/", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/*.html", "/test-auth.html").permitAll()
+                        
+                        // Thymeleaf 뷰 허용
+                        .requestMatchers("/login", "/test", "/error", "/game", "/chat", "/profile", "/settings").permitAll()
+                        
+                        // 회원가입, 로그인 API 허용
+                        .requestMatchers("/v1/member/register").permitAll()
+                        .requestMatchers("/v1/auth/login").permitAll()
+                        .requestMatchers("/v1/valkey/session/all").permitAll()
+                        
+                        // Swagger UI 허용
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        
+                        // WebSocket 엔드포인트 허용
+                        .requestMatchers("/ws-chat/**", "/ws-matching/**", "/ws-ai-chat/**").permitAll()
+                        
+                        // 나머지는 모두 허용 (개발 단계)
+                        .anyRequest().permitAll())
+                        
+                // JWT 필터 활성화
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
 

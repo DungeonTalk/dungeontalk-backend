@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <title>테스트 - DungeonTalk</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
+                <h1 class="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+                    🎉 Spring Boot & Thymeleaf 테스트 성공!
+                </h1>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-3 text-primary-800 dark:text-primary-300">
+                            ✅ 활성화된 기능
+                        </h2>
+                        <ul class="space-y-2 text-gray-700 dark:text-gray-300">
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Thymeleaf 템플릿 엔진
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Tailwind CSS v4
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Alpine.js 반응형 UI
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                다크 모드 지원
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-secondary-50 to-secondary-100 dark:from-secondary-900/20 dark:to-secondary-800/20 rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-3 text-secondary-800 dark:text-secondary-300">
+                            📄 완성된 페이지
+                        </h2>
+                        <ul class="space-y-2 text-gray-700 dark:text-gray-300">
+                            <li>
+                                <a href="/" class="hover:text-primary-600 dark:hover:text-primary-400 underline">홈페이지</a>
+                            </li>
+                            <li>
+                                <a href="/login" class="hover:text-primary-600 dark:hover:text-primary-400 underline">로그인</a>
+                            </li>
+                            <li>
+                                <a href="/chat" class="hover:text-primary-600 dark:hover:text-primary-400 underline">채팅</a>
+                            </li>
+                            <li>
+                                <a href="/game" class="hover:text-primary-600 dark:hover:text-primary-400 underline">게임</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">
+                        모든 페이지가 현대적인 UI/UX로 리팩토링되었습니다.
+                    </p>
+                    <a href="/" 
+                       class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors">
+                        홈으로 돌아가기
+                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
