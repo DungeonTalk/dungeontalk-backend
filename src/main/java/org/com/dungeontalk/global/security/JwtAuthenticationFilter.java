@@ -30,6 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 "/v1/auth/login",
                 "/v1/valkey/session/keys",
                 "/v1/valkey/session/all",
+                "/v1/auth/refresh",
                 "/v1/valkey/session/test/save"
         );
 

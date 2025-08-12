@@ -105,7 +105,7 @@ public class AuthService {
         jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), newRefreshToken);
 
         // RDB에 RT 최신화
-        auth.setAccessToken(newRefreshToken);
+        auth.setRefreshToken(newRefreshToken);
 
         // 클라이언트에게 JWT 전달
         return new JwtTokenResponse(newAccessToken, newRefreshToken);
