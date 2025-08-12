@@ -1,12 +1,10 @@
 package org.com.dungeontalk.global.websocket;
 
-import java.util.Objects;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.chat.service.ChatRoomService;
-import org.com.dungeontalk.global.redis.ChatRoomMemberManager;
 import org.springframework.context.ApplicationListener;
-import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
@@ -16,21 +14,25 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 @RequiredArgsConstructor
 public class WebSocketDisconnectHandler implements ApplicationListener<SessionDisconnectEvent> {
 
-    private final ChatRoomMemberManager chatRoomMemberManager;
     private final ChatRoomService chatRoomService;
 
     @Override
     public void onApplicationEvent(SessionDisconnectEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        String memberId = (String) Objects.requireNonNull(accessor.getSessionAttributes()).get("memberId");
-        String roomId = (String) accessor.getSessionAttributes().get("roomId");
+        Map<String, Object> attrs = accessor.getSessionAttributes();
+        String memberId = attrs != null ? (String) attrs.get("memberId") : null;
+        String roomId   = attrs != null ? (String) attrs.get("roomId")   : null;
 
-        if (memberId != null && roomId != null) {
-            log.info("🚪WebSocket 연결 끊김 감지 → memberId: {}, roomId: {}", memberId, roomId);
-            chatRoomMemberManager.removeUser(roomId, memberId);
-            chatRoomService.leaveRoom(roomId, memberId);
-        } else {
-            log.warn("WebSocket 연결 끊김: memberId 또는 roomId 누락됨 (무시됨)");
+        if (memberId == null || roomId == null) return;
+
+        // 같은 세션에서 중복 DISCONNECT가 오면 1회만 처리
+        Object already = attrs.get("leaveHandled");
+        if (already instanceof Boolean b && b) return;
+
+        try {
+            chatRoomService.leaveRoom(roomId, memberId);   // 멱등
+        } finally {
+            if (attrs != null) attrs.put("leaveHandled", true);
         }
     }
 }

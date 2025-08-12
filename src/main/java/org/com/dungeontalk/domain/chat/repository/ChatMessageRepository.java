@@ -15,6 +15,7 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessage, Stri
 
 //    Slice<ChatMessage> findByRoomId(String roomId, Pageable pageable);              // 무한스크롤 최적 (total count x)
 
+    // 초기 로드/리프레시: 최근 50건
     List<ChatMessage> findTop50ByRoomIdOrderByCreatedAtDesc(String roomId);         // 초기 로드용
 
     long deleteByRoomId(String roomId); // 방 삭제 시 정리

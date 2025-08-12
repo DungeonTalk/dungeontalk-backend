@@ -13,7 +13,6 @@ import org.com.dungeontalk.domain.chat.entity.ChatRoom;
 public class ChatRoomDto {
 
     private String id;
-    private String roomType;
     private String roomName;
     private String mode;
     private Instant createdAt;
@@ -22,7 +21,6 @@ public class ChatRoomDto {
     public static ChatRoomDto fromEntity(ChatRoom room) {
         return ChatRoomDto.builder()
             .id(room.getId())
-            .roomType(room.getRoomType() != null ? room.getRoomType().name() : "UNKNOWN")
             .roomName(room.getRoomName() != null ? room.getRoomName() : "UNKNOWN")
             .mode(room.getMode().name())
             .createdAt(room.getCreatedAt())

@@ -41,6 +41,10 @@ public class ChatRoom {
 
 //    private List<String> participants;      // RDB 회원 ID
 
+    /** null 이면 미설정 → 서비스에서 defaultMaxCapacity 적용.
+     *  0 또는 음수면 '무제한'으로 해석 (권장) */
+    private Long maxCapacity;
+
     @Builder.Default
     private List<ChatMessage> messages = new ArrayList<>();
 
@@ -49,5 +53,10 @@ public class ChatRoom {
 
     @LastModifiedDate
     private Instant updatedAt;
+
+    public void updateChatRoom(Long maxCapacity, Instant updatedAt) {
+        this.maxCapacity = maxCapacity;
+        this.updatedAt = updatedAt;
+    }
 
 }

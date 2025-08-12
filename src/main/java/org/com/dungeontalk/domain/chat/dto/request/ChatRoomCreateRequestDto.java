@@ -10,7 +10,7 @@ import org.com.dungeontalk.domain.chat.common.ChatRoomType;
 @Setter
 public class ChatRoomCreateRequestDto {
     private String roomName;
-    private ChatRoomType roomType;
     private ChatMode mode;
     private List<String> participantIds;
+    private Long maxCapacity;               // 선택 입력 (null이면 기본값 사용)
 }

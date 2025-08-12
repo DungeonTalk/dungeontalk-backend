@@ -26,6 +26,9 @@
   <label>사용자 ID</label>
   <input id="userId" value="testuser1" />
 
+  <label>닉네임 (회원가입 시 사용)</label>
+  <input id="nickName" placeholder="예: 코드스쳐님" />
+
   <label>비밀번호</label>
   <input id="password" type="password" value="password123" />
 
@@ -47,10 +50,10 @@
   const log = (...a)=> DEBUG && console.log('[AUTH]', ...a);
   const err = (...a)=> DEBUG && console.error('[AUTH]', ...a);
 
-  // (인증 API는 기존 경로 유지 가정)
-  const API_LOGIN = '/v1/auth/login';
+  const API_LOGIN    = '/v1/auth/login';
   const API_REGISTER = '/v1/member/register';
-  const NEXT_PAGE = '/chat-ssr-test.html';
+  const API_ME       = '/v1/member/me';
+  const NEXT_PAGE    = '/chat-ssr-test.html';
 
   function show(msg, type='success'){
     const el = document.getElementById('message');
@@ -60,17 +63,25 @@
 
   async function register(){
     const name = document.getElementById('userId').value.trim();
+    const nickName = document.getElementById('nickName').value.trim();
     const password = document.getElementById('password').value.trim();
-    if(!name || !password) return show('ID/비밀번호를 입력하세요','error');
+    if(!name || !password){ show('ID/비밀번호를 입력하세요','error'); return; }
+
+    const body = {
+      name: name,
+      nickName: nickName || (name + '님'),
+      password: password
+    };
 
     try{
-      log('POST register', name);
+      log('POST register', body);
       const res = await fetch(API_REGISTER, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ name, nickName: name+'님', password })
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
       });
       log('POST register →', res.status);
-      if(!res.ok){ return show('회원가입 실패: '+(await res.text()), 'error'); }
+      if(!res.ok){ show('회원가입 실패: '+(await res.text()), 'error'); return; }
       show('회원가입 성공! 이제 로그인하세요.');
     }catch(e){ err('register error', e); show('회원가입 오류: '+e.message, 'error'); }
   }
@@ -78,24 +89,46 @@
   async function login(){
     const name = document.getElementById('userId').value.trim();
     const password = document.getElementById('password').value.trim();
-    if(!name || !password) return show('ID/비밀번호를 입력하세요','error');
+    if(!name || !password){ show('ID/비밀번호를 입력하세요','error'); return; }
 
     try{
-      log('POST login', name);
+      log('POST login', {name});
       const res = await fetch(API_LOGIN, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ name, password })
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name:name, password:password })
       });
       log('POST login →', res.status);
-      if(!res.ok){ return show('로그인 실패: '+(await res.text()), 'error'); }
+      if(!res.ok){ show('로그인 실패: '+(await res.text()), 'error'); return; }
 
       const body = await res.json();
       const data = body.data || body;
-      localStorage.setItem('authToken', data.accessToken);
-      localStorage.setItem('currentUser', JSON.stringify({ id: data.memberId, nickname: name+'님' }));
+      const token = data.accessToken;
+      const memberId = data.memberId;
+
+      localStorage.setItem('authToken', token);
+
+      let profileNick = null, profileId = memberId;
+      try{
+        const me = await fetch(API_ME, { headers: { Authorization: 'Bearer ' + token }});
+        if(me.ok){
+          const meBody = await me.json();
+          const meData = meBody.data || meBody;
+          profileId   = meData.id || meData.memberId || memberId;
+          profileNick = meData.nickName || meData.nickname || null;
+          log('GET /me →', me.status, meData);
+        }else{
+          log('GET /me skipped', me.status);
+        }
+      }catch(e){ log('GET /me error', e); }
+
+      localStorage.setItem('currentUser', JSON.stringify({
+        id: profileId,
+        nickname: profileNick || (name + '님')
+      }));
 
       show('로그인 성공! 채팅 페이지로 이동합니다.');
-      setTimeout(()=>location.href = NEXT_PAGE, 900);
+      setTimeout(function(){ location.href = NEXT_PAGE; }, 600);
     }catch(e){ err('login error', e); show('로그인 오류: '+e.message,'error'); }
   }
 </script>
