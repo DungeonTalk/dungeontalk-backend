@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.com.dungeontalk.domain.room.common.RoomType;
 import org.com.dungeontalk.domain.chat.common.ChatMode;
 
@@ -18,7 +17,6 @@ import java.util.List;
  * AI 게임룸과 플레이어 채팅룸 생성 요청을 통합
  */
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -99,41 +97,37 @@ public class UnifiedRoomRequest {
     }
 
     /**
-     * 유효성 검증 - AI 게임룸 필수 필드 체크
+     * 유효성 검증 및 기본값 설정을 위한 빌더 생성
      */
-    public void validateForAiGameRoom() {
-        if (!isAiGameRoom()) {
-            return;
-        }
-        
-        // AI 게임룸 특별 검증 로직이 필요하면 여기에 추가
-        if (maxParticipants == null) {
-            maxParticipants = 3; // AI 게임룸 기본값
-        }
+    public static UnifiedRoomRequestBuilder aiGameRoom() {
+        return UnifiedRoomRequest.builder()
+                .roomType(RoomType.AI_GAME)
+                .maxParticipants(3);
     }
 
     /**
-     * 유효성 검증 - 플레이어 채팅룸 필수 필드 체크
+     * 플레이어 채팅룸 생성을 위한 빌더
      */
-    public void validateForPlayerChatRoom() {
-        if (!isPlayerChatRoom()) {
-            return;
-        }
-        
-        // 플레이어 채팅룸 특별 검증 로직이 필요하면 여기에 추가
-        if (chatMode == null) {
-            chatMode = ChatMode.MULTI; // 기본값
-        }
+    public static UnifiedRoomRequestBuilder playerChatRoom() {
+        return UnifiedRoomRequest.builder()
+                .roomType(RoomType.PLAYER_CHAT)
+                .chatMode(ChatMode.MULTI);
     }
 
     /**
-     * 룸 타입에 따른 자동 검증
+     * 룸 타입에 따른 유효성 검증
      */
     public void validateByRoomType() {
-        if (isAiGameRoom()) {
-            validateForAiGameRoom();
-        } else if (isPlayerChatRoom()) {
-            validateForPlayerChatRoom();
+        if (roomType == null) {
+            throw new IllegalArgumentException("룸 타입은 필수입니다");
+        }
+        
+        if (isAiGameRoom() && maxParticipants == null) {
+            throw new IllegalArgumentException("AI 게임룸은 최대 참여자 수가 필요합니다");
+        }
+        
+        if (isPlayerChatRoom() && chatMode == null) {
+            throw new IllegalArgumentException("플레이어 채팅룸은 채팅 모드가 필요합니다");
         }
     }
 }

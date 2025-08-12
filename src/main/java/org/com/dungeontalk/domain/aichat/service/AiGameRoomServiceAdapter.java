@@ -3,7 +3,11 @@ package org.com.dungeontalk.domain.aichat.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.aichat.dto.request.AiGameRoomCreateRequest;
+import org.com.dungeontalk.domain.aichat.dto.request.AiGameRoomJoinRequest;
+import org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest;
 import org.com.dungeontalk.domain.aichat.dto.response.AiGameRoomResponse;
+import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
+import org.com.dungeontalk.domain.aichat.common.AiMessageType;
 import org.com.dungeontalk.domain.room.common.RoomType;
 import org.com.dungeontalk.domain.room.dto.UnifiedRoomRequest;
 import org.com.dungeontalk.domain.room.dto.UnifiedRoomResponse;
@@ -58,8 +62,7 @@ public class AiGameRoomServiceAdapter implements RoomService {
             for (String participantId : request.getParticipantIds()) {
                 if (!participantId.equals(request.getCreatorId())) {
                     try {
-                        org.com.dungeontalk.domain.aichat.dto.request.AiGameRoomJoinRequest joinReq = 
-                            new org.com.dungeontalk.domain.aichat.dto.request.AiGameRoomJoinRequest();
+                        AiGameRoomJoinRequest joinReq = new AiGameRoomJoinRequest();
                         joinReq.setAiGameRoomId(aiResponse.getId());
                         joinReq.setParticipantId(participantId);
                         joinReq.setParticipantNickname(participantId); // 기본값으로 ID 사용
@@ -109,8 +112,7 @@ public class AiGameRoomServiceAdapter implements RoomService {
     public UnifiedRoomResponse joinRoom(String roomId, String memberId) {
         log.info("AI 게임룸 참여 (어댑터): roomId={}, memberId={}", roomId, memberId);
         
-        org.com.dungeontalk.domain.aichat.dto.request.AiGameRoomJoinRequest joinRequest = 
-            new org.com.dungeontalk.domain.aichat.dto.request.AiGameRoomJoinRequest();
+        AiGameRoomJoinRequest joinRequest = new AiGameRoomJoinRequest();
         joinRequest.setAiGameRoomId(roomId);
         joinRequest.setParticipantId(memberId);
         joinRequest.setParticipantNickname(memberId); // 기본값으로 ID 사용
@@ -151,9 +153,7 @@ public class AiGameRoomServiceAdapter implements RoomService {
         }
         
         // UnifiedMessageRequest -> AiGameMessageSendRequest 변환
-        org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest aiRequest = 
-            new org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest();
-        
+        AiGameMessageSendRequest aiRequest = new AiGameMessageSendRequest();
         aiRequest.setAiGameRoomId(request.getAiGameRoomId() != null ? request.getAiGameRoomId() : request.getRoomId());
         aiRequest.setSenderId(request.getSenderId());
         aiRequest.setContent(request.getContent());
@@ -174,13 +174,11 @@ public class AiGameRoomServiceAdapter implements RoomService {
     public void sendSystemMessage(String roomId, String message) {
         log.debug("AI 게임룸 시스템 메시지 전송 (어댑터): roomId={}", roomId);
         
-        org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest systemRequest = 
-            new org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest();
-        
+        AiGameMessageSendRequest systemRequest = new AiGameMessageSendRequest();
         systemRequest.setAiGameRoomId(roomId);
         systemRequest.setSenderId("SYSTEM");
         systemRequest.setContent(message);
-        systemRequest.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM);
+        systemRequest.setMessageType(AiMessageType.SYSTEM);
         systemRequest.setSenderNickname("SYSTEM");
         
         try {
@@ -206,7 +204,7 @@ public class AiGameRoomServiceAdapter implements RoomService {
     public boolean isRoomActive(String roomId) {
         try {
             AiGameRoomResponse room = aiGameRoomService.getAiGameRoom(roomId);
-            return room.getStatus() == org.com.dungeontalk.domain.aichat.common.AiGameStatus.ACTIVE;
+            return room.getStatus() == AiGameStatus.ACTIVE;
         } catch (Exception e) {
             return false;
         }
@@ -246,23 +244,23 @@ public class AiGameRoomServiceAdapter implements RoomService {
     /**
      * 통합 메시지 타입을 AI 메시지 타입으로 매핑
      */
-    private org.com.dungeontalk.domain.aichat.common.AiMessageType mapToAiMessageType(
+    private AiMessageType mapToAiMessageType(
             org.com.dungeontalk.domain.room.common.UnifiedMessageType unifiedType) {
         
         switch (unifiedType) {
             case USER:
-                return org.com.dungeontalk.domain.aichat.common.AiMessageType.USER;
+                return AiMessageType.USER;
             case SYSTEM:
-                return org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM;
+                return AiMessageType.SYSTEM;
             case AI_RESPONSE:
-                return org.com.dungeontalk.domain.aichat.common.AiMessageType.AI;
+                return AiMessageType.AI;
             case GAME_ACTION:
-                return org.com.dungeontalk.domain.aichat.common.AiMessageType.USER; // GAME_ACTION이 없으므로 USER로 대체
+                return AiMessageType.USER; // GAME_ACTION이 없으므로 USER로 대체
             case GAME_STATE:
-                return org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM;
+                return AiMessageType.SYSTEM;
             default:
                 log.warn("지원하지 않는 메시지 타입: {}. USER 타입으로 대체", unifiedType);
-                return org.com.dungeontalk.domain.aichat.common.AiMessageType.USER;
+                return AiMessageType.USER;
         }
     }
 }

@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.room.dto.UnifiedMessageRequest;
 import org.com.dungeontalk.domain.room.service.RoomService;
 import org.com.dungeontalk.domain.room.service.RoomServiceFactory;
+import org.com.dungeontalk.domain.room.common.RoomType;
+import org.com.dungeontalk.domain.room.common.UnifiedMessageType;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -43,11 +45,13 @@ public class UnifiedStompController {
             // 요청 유효성 검증
             request.validateByRoomType();
             
-            // roomType과 요청의 roomType 일치 확인
+            // roomType과 요청의 roomType 일치 확인 및 빌더로 새 객체 생성
             if (!roomType.equals(request.getRoomType().getCode())) {
                 log.warn("경로의 roomType({})과 요청의 roomType({})이 일치하지 않음", 
                         roomType, request.getRoomType().getCode());
-                request.setRoomType(org.com.dungeontalk.domain.room.common.RoomType.fromCode(roomType));
+                request = request.toBuilder()
+                        .roomType(RoomType.fromCode(roomType))
+                        .build();
             }
             
             // 해당 타입의 서비스 가져오기
@@ -81,10 +85,12 @@ public class UnifiedStompController {
                 roomType, request.getRoomId(), request.getSenderId());
         
         try {
-            // roomType 설정
-            request.setRoomType(org.com.dungeontalk.domain.room.common.RoomType.fromCode(roomType));
-            request.setMessageType(org.com.dungeontalk.domain.room.common.UnifiedMessageType.SYSTEM);
-            request.setContent(request.getSenderId() + "님이 입장했습니다.");
+            // roomType 설정 및 빌더로 새 객체 생성
+            request = request.toBuilder()
+                    .roomType(RoomType.fromCode(roomType))
+                    .messageType(UnifiedMessageType.SYSTEM)
+                    .content(request.getSenderId() + "님이 입장했습니다.")
+                    .build();
             
             // 요청 유효성 검증
             request.validateByRoomType();
@@ -119,10 +125,12 @@ public class UnifiedStompController {
                 roomType, request.getRoomId(), request.getSenderId());
         
         try {
-            // roomType 설정
-            request.setRoomType(org.com.dungeontalk.domain.room.common.RoomType.fromCode(roomType));
-            request.setMessageType(org.com.dungeontalk.domain.room.common.UnifiedMessageType.SYSTEM);
-            request.setContent(request.getSenderId() + "님이 퇴장했습니다.");
+            // roomType 설정 및 빌더로 새 객체 생성
+            request = request.toBuilder()
+                    .roomType(RoomType.fromCode(roomType))
+                    .messageType(UnifiedMessageType.SYSTEM)
+                    .content(request.getSenderId() + "님이 퇴장했습니다.")
+                    .build();
             
             // 요청 유효성 검증
             request.validateByRoomType();
@@ -155,12 +163,12 @@ public class UnifiedStompController {
         log.debug("AI 게임 턴 시작: roomId={}", request.getRoomId());
         
         try {
-            request.setRoomType(org.com.dungeontalk.domain.room.common.RoomType.AI_GAME);
-            request.setMessageType(org.com.dungeontalk.domain.room.common.UnifiedMessageType.GAME_STATE);
-            
-            if (request.getContent() == null || request.getContent().trim().isEmpty()) {
-                request.setContent("새로운 턴이 시작되었습니다.");
-            }
+            request = request.toBuilder()
+                    .roomType(RoomType.AI_GAME)
+                    .messageType(UnifiedMessageType.GAME_STATE)
+                    .content(request.getContent() != null && !request.getContent().trim().isEmpty() 
+                            ? request.getContent() : "새로운 턴이 시작되었습니다.")
+                    .build();
             
             RoomService roomService = roomServiceFactory.getService("ai");
             roomService.processMessage(request);
@@ -178,12 +186,12 @@ public class UnifiedStompController {
         log.debug("AI 게임 턴 종료: roomId={}", request.getRoomId());
         
         try {
-            request.setRoomType(org.com.dungeontalk.domain.room.common.RoomType.AI_GAME);
-            request.setMessageType(org.com.dungeontalk.domain.room.common.UnifiedMessageType.GAME_STATE);
-            
-            if (request.getContent() == null || request.getContent().trim().isEmpty()) {
-                request.setContent("턴이 종료되었습니다.");
-            }
+            request = request.toBuilder()
+                    .roomType(RoomType.AI_GAME)
+                    .messageType(UnifiedMessageType.GAME_STATE)
+                    .content(request.getContent() != null && !request.getContent().trim().isEmpty() 
+                            ? request.getContent() : "턴이 종료되었습니다.")
+                    .build();
             
             RoomService roomService = roomServiceFactory.getService("ai");
             roomService.processMessage(request);

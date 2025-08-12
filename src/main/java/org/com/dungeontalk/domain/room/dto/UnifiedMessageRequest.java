@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.com.dungeontalk.domain.room.common.RoomType;
 import org.com.dungeontalk.domain.room.common.UnifiedMessageType;
 
@@ -16,10 +15,9 @@ import jakarta.validation.constraints.NotNull;
  * AI 채팅과 플레이어 채팅의 메시지 요청을 통합
  */
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class UnifiedMessageRequest {
 
     // === 공통 필드 ===
@@ -117,79 +115,63 @@ public class UnifiedMessageRequest {
     }
 
     /**
-     * AI 게임용 필드 설정
+     * AI 게임 메시지 생성을 위한 빌더
      */
-    public void setAiGameFields(String aiGameRoomId, String gameActionType, Integer turnNumber) {
-        this.aiGameRoomId = aiGameRoomId;
-        this.gameActionType = gameActionType;
-        this.turnNumber = turnNumber;
+    public static UnifiedMessageRequestBuilder aiGameMessage() {
+        return UnifiedMessageRequest.builder()
+                .roomType(RoomType.AI_GAME)
+                .messageType(UnifiedMessageType.USER);
     }
 
     /**
-     * 플레이어 채팅용 필드 설정
+     * 플레이어 채팅 메시지 생성을 위한 빌더
      */
-    public void setPlayerChatFields(String chatRoomId, String senderNickname) {
-        this.chatRoomId = chatRoomId;
-        this.senderNickname = senderNickname;
+    public static UnifiedMessageRequestBuilder playerChatMessage() {
+        return UnifiedMessageRequest.builder()
+                .roomType(RoomType.PLAYER_CHAT)
+                .messageType(UnifiedMessageType.USER);
     }
 
     /**
-     * 룸 타입에 따른 자동 필드 설정
+     * 시스템 메시지 생성을 위한 빌더
      */
-    public void autoSetFieldsByRoomType() {
-        if (isAiGameMessage() && aiGameRoomId == null) {
-            this.aiGameRoomId = this.roomId;
-        } else if (isPlayerChatMessage() && chatRoomId == null) {
-            this.chatRoomId = this.roomId;
-        }
+    public static UnifiedMessageRequestBuilder systemMessage() {
+        return UnifiedMessageRequest.builder()
+                .messageType(UnifiedMessageType.SYSTEM);
     }
 
     /**
-     * 유효성 검증 - AI 게임 메시지
+     * 자동으로 roomId에 맞는 전용 필드 설정
      */
-    public void validateForAiGame() {
-        if (!isAiGameMessage()) {
-            return;
-        }
-        
-        if (aiGameRoomId == null || aiGameRoomId.trim().isEmpty()) {
-            this.aiGameRoomId = this.roomId;
-        }
-        
-        // AI 게임 메시지 특별 검증 로직
-        if (messageType.isPlayerChatType()) {
-            throw new IllegalArgumentException("AI 게임에서는 플레이어 채팅 전용 메시지 타입을 사용할 수 없습니다: " + messageType);
-        }
+    public UnifiedMessageRequest withAutoFields() {
+        return this.toBuilder()
+                .aiGameRoomId(isAiGameMessage() ? roomId : aiGameRoomId)
+                .chatRoomId(isPlayerChatMessage() ? roomId : chatRoomId)
+                .build();
     }
 
     /**
-     * 유효성 검증 - 플레이어 채팅 메시지
-     */
-    public void validateForPlayerChat() {
-        if (!isPlayerChatMessage()) {
-            return;
-        }
-        
-        if (chatRoomId == null || chatRoomId.trim().isEmpty()) {
-            this.chatRoomId = this.roomId;
-        }
-        
-        // 플레이어 채팅 메시지 특별 검증 로직
-        if (messageType.isAiGameType()) {
-            throw new IllegalArgumentException("플레이어 채팅에서는 AI 게임 전용 메시지 타입을 사용할 수 없습니다: " + messageType);
-        }
-    }
-
-    /**
-     * 룸 타입에 따른 자동 검증
+     * 룸 타입에 따른 유효성 검증
      */
     public void validateByRoomType() {
-        autoSetFieldsByRoomType();
+        if (roomType == null) {
+            throw new IllegalArgumentException("룸 타입은 필수입니다");
+        }
         
-        if (isAiGameMessage()) {
-            validateForAiGame();
-        } else if (isPlayerChatMessage()) {
-            validateForPlayerChat();
+        if (messageType == null) {
+            throw new IllegalArgumentException("메시지 타입은 필수입니다");
+        }
+        
+        if (roomId == null || roomId.trim().isEmpty()) {
+            throw new IllegalArgumentException("룸 ID는 필수입니다");
+        }
+        
+        if (senderId == null || senderId.trim().isEmpty()) {
+            throw new IllegalArgumentException("발신자 ID는 필수입니다");
+        }
+        
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("메시지 내용은 필수입니다");
         }
     }
 }
