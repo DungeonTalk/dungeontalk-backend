@@ -1,5 +1,6 @@
 package org.com.dungeontalk.domain.auth.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
@@ -20,16 +21,31 @@ public class AuthController {
 
     // 로그인
     @PostMapping("/login")
-    public RsData<AuthLoginResponse> login(@RequestBody AuthLoginRequest request) {
-        AuthLoginResponse response = authService.login(request);
-        return RsData.of("200", "로그인 성공", response);
+    public RsData<AuthLoginResponse> login(
+            @RequestBody AuthLoginRequest request,
+            HttpServletResponse httpServletResponse) {
+
+        // 로그인 서비스 레이어 호출
+        AuthLoginResponse jwtTokenResponse = authService.login(request);
+
+        // 쿠키에 리프레시 토큰 저장
+        authService.saveRefreshTokenToCookie(httpServletResponse, jwtTokenResponse.refreshToken());
+
+        return RsData.of("200", "로그인 성공", jwtTokenResponse);
     }
 
     // JWT 토큰 재발급
     @PostMapping("/refresh")
-    public RsData<JwtTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+    public RsData<JwtTokenResponse> refreshToken(
+            @RequestBody RefreshTokenRequest request,
+            HttpServletResponse httpServletResponse) {
 
+        // RTR 서비스 레이어 호출
         JwtTokenResponse jwtTokenResponse = authService.refreshAccessToken(request.getRefreshToken());
+
+        // 쿠키에 리프레시 토큰 저장
+        authService.saveRefreshTokenToCookie(httpServletResponse, jwtTokenResponse.getRefreshToken());
+
         return RsData.of("200", "토큰 재발급 성공", jwtTokenResponse);
     }
 
@@ -37,11 +53,16 @@ public class AuthController {
     @PostMapping("/logout")
     public RsData<String> logout(
             @RequestHeader("Authorization") String authorizationHeader,
-            @CookieValue(value = "refreshToken", required = false) String refreshToken
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse httpServletResponse
     ) {
 
-
+        // 로그아웃 서비스 레이어 호출
         authService.logout(authorizationHeader, refreshToken);
+
+        // 쿠키에서 리프레시 토큰 제거
+        authService.removeRefreshTokenCookie(httpServletResponse);
+
         return RsData.of("200", "로그아웃 완료", null);
     }
 

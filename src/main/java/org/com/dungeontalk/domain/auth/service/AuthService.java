@@ -1,5 +1,6 @@
 package org.com.dungeontalk.domain.auth.service;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
@@ -7,6 +8,7 @@ import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
 import org.com.dungeontalk.domain.auth.manager.AuthRedisManager;
+import org.com.dungeontalk.domain.auth.manager.CookieManager;
 import org.com.dungeontalk.domain.auth.repository.AuthRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
@@ -32,6 +34,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final JwtRedisService jwtRedisService;
     private final AuthRedisManager authRedisManager;
+    private final CookieManager cookieManager;
 
     // 로그인 메서드
     public AuthLoginResponse login(AuthLoginRequest request) {
@@ -107,7 +110,6 @@ public class AuthService {
         );
         String newRefreshToken = jwtProvider.generateRefreshToken(auth.getMember().getId());
 
-
         // Session에 RT 최신화
         jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), newRefreshToken);
 
@@ -127,9 +129,6 @@ public class AuthService {
             accessToken = authorizationHeader.substring(7);
         }
 
-        /* 로그인 전 엑세스 토큰을 불러오는지 확인 -> 아님 현재의 엑세스 토큰을 넣어도 현재 엑세스 토큰을 가져옴 */
-        System.out.println("Access token : " + accessToken);
-
         // 엑세스 토큰 블랙리스트 추가
         String accessKey = "blacklist:access_token:" + accessToken;
         long remainExpiration = authRedisManager.calculateRemainingExpiration(accessToken);
@@ -145,5 +144,14 @@ public class AuthService {
 
     }
 
+    // 리프레시 토큰을 쿠키에 세팅
+    public void saveRefreshTokenToCookie(HttpServletResponse response, String refreshToken) {
+        cookieManager.addRefreshTokenCookie(response, refreshToken);
+    }
+
+    // 리프레시 토큰을 쿠키에서 제거
+    public void removeRefreshTokenCookie(HttpServletResponse response) {
+        cookieManager.clearRefreshTokenCookie(response);
+    }
 
 }
