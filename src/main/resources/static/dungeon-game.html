@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>🏰 던전톡 - 랜덤 매칭 RPG</title>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
@@ -546,6 +549,7 @@
         let authToken = null;
         let currentUser = null;
         let selectedWorld = null;
+        let gameSessionStarted = false;
         let matchingStompClient = null;
         let aiStompClient = null;
         let partyStompClient = null;
@@ -557,7 +561,9 @@
         
         // 초기화
         window.addEventListener('load', function() {
-            checkExistingLogin();
+            // 새로고침 시 로컬스토리지 초기화 (테스트 편의용)
+            clearAuthData();
+            console.log('🔄 새로고침 감지 - 로컬스토리지 초기화');
         });
         
         // 기존 로그인 확인
@@ -565,10 +571,44 @@
             authToken = localStorage.getItem('authToken');
             const userInfo = localStorage.getItem('currentUser');
             
-            if (authToken && userInfo) {
-                currentUser = JSON.parse(userInfo);
-                showLoggedInState();
+            console.log('인증 체크:', { 
+                authToken: authToken ? ('존재: ' + authToken.substring(0, 10) + '...') : 'null', 
+                userInfo: userInfo ? '존재' : 'null' 
+            });
+            
+            if (authToken && authToken !== 'null' && authToken.trim() !== '' && userInfo) {
+                try {
+                    currentUser = JSON.parse(userInfo);
+                    console.log('✅ 로그인 상태 확인:', currentUser.name);
+                    showLoggedInState();
+                } catch (e) {
+                    console.error('❌ 사용자 정보 파싱 오류:', e);
+                    clearAuthData();
+                }
+            } else {
+                console.log('⚠️ 로그인 필요');
+                clearAuthData();
             }
+        }
+        
+        function clearAuthData() {
+            authToken = null;
+            currentUser = null;
+            selectedWorld = null;
+            gameSessionStarted = false;
+            isMatching = false;
+            currentGameSession = null;
+            aiGameRoomId = null;
+            partyRoomId = null;
+            localStorage.clear(); // 모든 로컬스토리지 데이터 삭제
+            
+            // WebSocket 연결 종료
+            if (matchingStompClient && matchingStompClient.connected) {
+                matchingStompClient.disconnect();
+                matchingStompClient = null;
+            }
+            
+            console.log('🗑️ 모든 캐시 데이터 삭제 완료');
         }
         
         // 로그인 상태 UI 업데이트
@@ -732,6 +772,18 @@
                 return;
             }
             
+            if (!authToken || authToken === 'null') {
+                console.error('❌ JWT 토큰이 없음');
+                alert('로그인이 필요합니다.');
+                return;
+            }
+            
+            if (!currentUser || !currentUser.id) {
+                console.error('❌ 사용자 정보가 없음');
+                alert('로그인 정보가 유효하지 않습니다.');
+                return;
+            }
+            
             try {
                 console.log('매칭 시작 API 호출:', '/api/v1/match/join', { memberId: currentUser.id, worldType: selectedWorld });
                 const response = await fetch('/api/v1/match/join', {
@@ -769,7 +821,7 @@
         async function cancelMatching() {
             try {
                 const response = await fetch('/api/v1/match/cancel', {
-                    method: 'POST',
+                    method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + authToken,
@@ -866,6 +918,21 @@
         // 게임 세션 시작
         async function startGameSession(matchData) {
             try {
+                // 중복 요청 방지
+                if (gameSessionStarted) {
+                    console.log('🔄 게임 세션이 이미 시작됨, 중복 요청 무시');
+                    return;
+                }
+                
+                // JWT 토큰 유효성 검사
+                if (!authToken || authToken === 'null' || authToken.trim() === '') {
+                    console.error('❌ JWT 토큰이 없거나 유효하지 않음:', authToken);
+                    throw new Error('인증 토큰이 필요합니다. 다시 로그인해주세요.');
+                }
+                
+                gameSessionStarted = true;
+                console.log('🔑 JWT 토큰 확인됨, AI 게임 세션 시작 요청:', aiGameRoomId);
+                
                 // AI 게임방 세션 시작
                 const sessionResponse = await fetch(`/api/v1/aichat/rooms/${aiGameRoomId}/start`, {
                     method: 'POST',
@@ -895,12 +962,30 @@
                     addUserMessage('system', `참여자: ${matchData.participants.join(', ')}`);
                     
                 } else {
-                    console.error('AI 게임 세션 시작 실패');
-                    alert('AI 게임 세션 시작 실패: ' + (sessionResult.msg || '알 수 없는 오류'));
+                    console.error('❌ AI 게임 세션 시작 실패:', {
+                        status: sessionResponse.status,
+                        statusText: sessionResponse.statusText,
+                        result: sessionResult
+                    });
+                    
+                    if (sessionResponse.status === 401) {
+                        alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                        clearAuthData();
+                        showLoginModal();
+                    } else {
+                        alert('AI 게임 세션 시작 실패: ' + (sessionResult.msg || '알 수 없는 오류'));
+                    }
+                    gameSessionStarted = false; // 실패 시 플래그 리셋
                 }
             } catch (error) {
-                console.error('게임 세션 시작 오류:', error);
-                alert('게임 세션 시작 오류: ' + error.message);
+                console.error('❌ 게임 세션 시작 오류:', error);
+                gameSessionStarted = false; // 에러 시 플래그 리셋
+                if (error.message.includes('인증')) {
+                    clearAuthData();
+                    showLoginModal();
+                } else {
+                    alert('게임 세션 시작 오류: ' + error.message);
+                }
             }
         }
         

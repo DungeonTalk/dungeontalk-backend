@@ -22,6 +22,7 @@ import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.util.UuidV7Creator;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -95,8 +96,11 @@ public class MatchingService {
 
             // 4. WebSocket으로 상태 업데이트 전송
             webSocketService.sendQueueStatusUpdate(memberId, worldType, userPosition, queueSize, 0);
+            
+            // 5. 다른 대기 중인 사용자들에게도 업데이트된 큐 정보 전송
+            notifyAllWaitingUsers(worldType, queueSize);
 
-            // 5. 매칭 가능한지 확인하고 처리
+            // 6. 매칭 가능한지 확인하고 처리
             if (queueManager.canProcessMatching(worldType)) {
                 // 비동기로 매칭 처리 (별도 스레드에서)
                 processMatchingAsync(worldType);
@@ -137,6 +141,11 @@ public class MatchingService {
         if (worldType != null) {
             try {
                 webSocketService.sendMatchingCancelled(memberId, worldType);
+                
+                // 다른 대기 중인 사용자들에게도 업데이트된 큐 정보 전송
+                int updatedQueueSize = queueManager.getQueueSize(worldType);
+                notifyAllWaitingUsers(worldType, updatedQueueSize);
+                
                 log.info("매칭 취소 WebSocket 알림 전송 완료: memberId={}", memberId);
             } catch (Exception e) {
                 log.warn("매칭 취소 WebSocket 알림 전송 실패: memberId={}, error={}", memberId, e.getMessage());
@@ -342,5 +351,50 @@ public class MatchingService {
         redisTemplate.expire(sessionKey, Duration.ofSeconds(MatchingConstants.SESSION_INFO_TTL_SECONDS));
 
         log.info("매칭 세션 정보 저장 완료: gameSessionId={}", gameSessionId);
+    }
+
+    /**
+     * 해당 세계관의 모든 대기 중인 사용자들에게 큐 상태 업데이트 전송
+     */
+    private void notifyAllWaitingUsers(WorldType worldType, int currentQueueSize) {
+        try {
+            // Redis에서 해당 세계관의 모든 대기 중인 사용자 조회
+            String queueKey = worldType.getQueueKey();
+            List<String> waitingUsers = redisTemplate.opsForList().range(queueKey, 0, -1);
+            
+            if (waitingUsers != null && !waitingUsers.isEmpty()) {
+                // 각 사용자의 현재 위치 계산하여 개별 전송
+                for (int i = 0; i < waitingUsers.size(); i++) {
+                    String memberId = waitingUsers.get(i);
+                    int position = waitingUsers.size() - i; // FIFO 순서 (leftPush, rightPop)
+                    
+                    webSocketService.sendQueueStatusUpdate(
+                            memberId, worldType, position, currentQueueSize, 0);
+                }
+                
+                log.debug("대기 중인 모든 사용자에게 큐 상태 업데이트 전송: worldType={}, userCount={}", 
+                         worldType, waitingUsers.size());
+            }
+        } catch (Exception e) {
+            log.warn("대기 사용자 알림 전송 실패: worldType={}, error={}", worldType, e.getMessage());
+        }
+    }
+
+    /**
+     * 정기적으로 매칭 가능한 큐 처리 (5초마다)
+     */
+    @Scheduled(fixedDelay = 5000)
+    public void processAllQueueMatching() {
+        for (WorldType worldType : WorldType.values()) {
+            try {
+                if (queueManager.canProcessMatching(worldType)) {
+                    log.info("정기 매칭 처리 시작: worldType={}, queueSize={}", 
+                            worldType, queueManager.getQueueSize(worldType));
+                    processMatchingAsync(worldType);
+                }
+            } catch (Exception e) {
+                log.error("정기 매칭 처리 중 오류: worldType={}", worldType, e);
+            }
+        }
     }
 }
