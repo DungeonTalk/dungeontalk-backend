@@ -33,6 +33,7 @@ public class JwtService {
 
     // 토큰에서 멤버 객체 생성
     public Member getMemberFromToken(String token) {
+
         String memberId = extractIdFromToken(token);
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(ErrorCode.GLOBAL_ERROR));

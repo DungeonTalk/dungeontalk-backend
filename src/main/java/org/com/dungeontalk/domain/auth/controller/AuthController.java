@@ -10,10 +10,9 @@ import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.dto.response.RefreshTokenResponse;
 import org.com.dungeontalk.domain.auth.service.AuthService;
 import org.com.dungeontalk.global.rsData.RsData;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.com.dungeontalk.global.security.CustomUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -33,16 +32,20 @@ public class AuthController {
     // JWT 토큰 재발급
     @PostMapping("/refresh")
     public RsData<JwtTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
-        log.info("컨트롤러 진입");
 
         JwtTokenResponse jwtTokenResponse = authService.refreshAccessToken(request.getRefreshToken());
         return RsData.of("200", "토큰 재발급 성공", jwtTokenResponse);
     }
 
-    // 로그 아웃
+    //  로그 아웃
     @PostMapping("/logout")
-    public RsData<String> logout(HttpServletRequest request) {
-        authService.logout(request);
-        return RsData.of("200", "로그아웃 완료", null);
+    public RsData<String> logout(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @RequestHeader("Authorization") String authorizationHeader,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken
+    ) {
+        authService.logout(customUserDetails, authorizationHeader, refreshToken);
+        return RsData.of("200", "로그아웃 완료", "good");
     }
+
 }

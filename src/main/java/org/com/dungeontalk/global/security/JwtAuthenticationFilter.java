@@ -27,7 +27,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         List<String> publicApis = List.of(
                 "/v1/member/register",
-                "/v1/auth/login"
+                "/v1/auth/login",
+                "/v1/valkey/session/keys",
+                "/v1/valkey/session/all",
+                "/v1/valkey/session/test/save"
         );
 
         // 요청 경로가 publicApis 목록 중 하나로 시작하면 true 반환

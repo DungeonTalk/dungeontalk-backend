@@ -25,9 +25,10 @@ public class JwtRedisService {
 
         }
 
+        //  블랙리스트에 있는지 확인
         public boolean isTokenBlacklisted (String token){
             String hashedKey = DigestUtils.sha256Hex(token);
-            return Boolean.TRUE.equals(sessionRedis.hasKey("blacklist:" + hashedKey));
+            return sessionRedis.hasKey("blacklist:" + hashedKey);
         }
 
     }
