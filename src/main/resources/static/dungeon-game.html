@@ -821,7 +821,7 @@
         async function cancelMatching() {
             try {
                 const response = await fetch('/api/v1/match/cancel', {
-                    method: 'POST',
+                    method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + authToken,
