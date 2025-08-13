@@ -13,6 +13,8 @@ import org.com.dungeontalk.domain.room.dto.UnifiedRoomRequest;
 import org.com.dungeontalk.domain.room.dto.UnifiedRoomResponse;
 import org.com.dungeontalk.domain.room.dto.UnifiedMessageRequest;
 import org.com.dungeontalk.domain.room.service.RoomService;
+import org.com.dungeontalk.global.exception.ErrorCode;
+import org.com.dungeontalk.global.exception.customException.ChatException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -40,33 +42,36 @@ public class ChatRoomServiceAdapter implements RoomService {
         log.info("플레이어 채팅룸 생성 요청 (어댑터): roomName={}, creatorId={}", 
                 request.getRoomName(), request.getCreatorId());
         
-        // 요청 유효성 검증
+        // 입력 검증 실패 -> 일관된 에러 코드로 예외
         if (!request.isPlayerChatRoom()) {
-            throw new IllegalArgumentException("플레이어 채팅룸이 아닌 요청입니다: " + request.getRoomType());
+            throw new ChatException(ErrorCode.CHAT_INVALID_PAYLOAD,
+                "not a PLAYER_CHAT request: roomType=" + (request != null ? request.getRoomType() : "null"));
         }
         
-        // UnifiedRoomRequest -> ChatRoomCreateRequestDto 변환
-        ChatRoomCreateRequestDto chatRequest = new ChatRoomCreateRequestDto();
-        chatRequest.setRoomName(request.getRoomName());
-        chatRequest.setMode(request.getChatMode() != null ? request.getChatMode() : ChatMode.MULTI);
-        chatRequest.setMaxCapacity(request.getMaxCapacity());
+        // UnifiedRoomRequest -> ChatRoomCreateRequestDto 변환 (매핑)
+        ChatRoomCreateRequestDto chatRequest = ChatRoomCreateRequestDto.builder()
+            .roomName(request.getRoomName())
+            .mode(request.getChatMode() != null ? request.getChatMode() : ChatMode.MULTI)
+            .maxCapacity(request.getMaxCapacity()) // Integer 사용 권장
+            .build();
         
         // 기존 서비스 호출
-        ChatRoomDto chatResponse = chatRoomService.createRoom(chatRequest);
+        ChatRoomDto room = chatRoomService.createRoom(chatRequest);
         
-        // 참여자들 추가
+        // 초기 참여자 추가 (개별 실패는 경고 로그만 남기고 진행)
         if (request.getParticipantIds() != null && !request.getParticipantIds().isEmpty()) {
             for (String participantId : request.getParticipantIds()) {
                 try {
-                    chatRoomService.joinRoom(chatResponse.getId(), participantId);
-                } catch (Exception e) {
-                    log.warn("참여자 추가 실패: participantId={}, error={}", participantId, e.getMessage());
+                    chatRoomService.joinRoom(room.getId(), participantId);
+                } catch (ChatException ce) {
+                    log.warn("초기 참여자 추가 실패: roomId={}, participantId={}, code={}, msg={}",
+                        room.getId(), participantId, ce.getErrorCode().getErrorCode(), ce.getMessage());
                 }
             }
         }
         
         // ChatRoomDto -> UnifiedRoomResponse 변환
-        UnifiedRoomResponse response = UnifiedRoomResponse.fromPlayerChatRoom(chatResponse);
+        UnifiedRoomResponse response = UnifiedRoomResponse.fromPlayerChatRoom(room);
         
         log.info("플레이어 채팅룸 생성 완료 (어댑터): roomId={}", response.getRoomId());
         return response;
@@ -143,15 +148,17 @@ public class ChatRoomServiceAdapter implements RoomService {
 
     @Override
     public void processMessage(UnifiedMessageRequest request) {
-        log.debug("플레이어 채팅 메시지 처리 (어댑터): roomId={}, messageType={}", 
-                request.getRoomId(), request.getMessageType());
+        log.debug("플레이어 채팅 메시지 처리 (어댑터): roomId={}, messageType={}",
+            request != null ? request.getRoomId() : "null",
+            request != null ? request.getMessageType() : "null");
         
-        // 요청 유효성 검증
-        if (!request.isPlayerChatMessage()) {
-            throw new IllegalArgumentException("플레이어 채팅 메시지가 아닙니다: " + request.getRoomType());
+        // 요청 유효성 검증 (입력 검증)
+        if (request == null || !request.isPlayerChatMessage()) {
+            throw new ChatException(ErrorCode.CHAT_INVALID_PAYLOAD,
+                "not a PLAYER_CHAT message: request=" + request);
         }
         
-        // UnifiedMessageRequest -> ChatMessageSendRequestDto 변환 (빌더 패턴 사용)
+        // UnifiedMessageRequest -> ChatMessageSendRequestDto 변환 (빌더 패턴 사용), 매핑
         ChatMessageSendRequestDto chatRequest = ChatMessageSendRequestDto.builder()
                 .roomId(request.getChatRoomId() != null ? request.getChatRoomId() : request.getRoomId())
                 .senderId(request.getSenderId())
@@ -159,12 +166,6 @@ public class ChatRoomServiceAdapter implements RoomService {
                 .type(mapToChatMessageType(request.getMessageType()))
                 .senderNickname(request.getSenderNickname() != null ? request.getSenderNickname() : request.getSenderId())
                 .build();
-        
-        // 닉네임 설정 (있는 경우)
-        if (request.getSenderNickname() != null) {
-            // ChatMessageSendRequestDto에 nickname 필드가 있다면 설정
-            // 현재 구조상 nickname은 별도 처리가 필요할 수 있음
-        }
         
         // 기존 채팅 메시지 서비스 호출
         try {
@@ -179,6 +180,10 @@ public class ChatRoomServiceAdapter implements RoomService {
     @Override
     public void sendSystemMessage(String roomId, String message) {
         log.debug("플레이어 채팅룸 시스템 메시지 전송 (어댑터): roomId={}", roomId);
+
+        if (roomId == null || roomId.isBlank() || message == null || message.isBlank()) {
+            throw new ChatException(ErrorCode.CHAT_INVALID_PAYLOAD, "roomId/message required");
+        }
         
         ChatMessageSendRequestDto systemRequest = ChatMessageSendRequestDto.builder()
                 .roomId(roomId)
@@ -210,9 +215,8 @@ public class ChatRoomServiceAdapter implements RoomService {
     @Override
     public boolean isRoomActive(String roomId) {
         try {
-            ChatRoomDto room = chatRoomService.getRoomById(roomId);
-            // 채팅룸은 생성되면 활성 상태로 간주
-            return room != null;
+            chatRoomService.getRoomById(roomId);
+            return true;
         } catch (Exception e) {
             return false;
         }
@@ -221,9 +225,8 @@ public class ChatRoomServiceAdapter implements RoomService {
     @Override
     public boolean canJoinRoom(String roomId, String memberId) {
         try {
-            ChatRoomDto room = chatRoomService.getRoomById(roomId);
-            // 정원 체크는 chatRoomService.joinRoom()에서 처리되므로 여기서는 룸 존재 여부만 확인
-            return room != null;
+            chatRoomService.getRoomById(roomId);
+            return true;
         } catch (Exception e) {
             return false;
         }
@@ -257,17 +260,13 @@ public class ChatRoomServiceAdapter implements RoomService {
     private MessageType mapToChatMessageType(UnifiedMessageType unifiedType) {
         switch (unifiedType) {
             case USER:
-                return MessageType.TALK;
             case SYSTEM:
-                return MessageType.TALK; // SYSTEM이 없으므로 TALK으로 대체
             case OTHER_PLAYER:
+            case ROOM_INFO:
                 return MessageType.TALK;
             case PRESENCE:
                 return MessageType.PRESENCE;
-            case ROOM_INFO:
-                return MessageType.TALK;
             default:
-                log.warn("지원하지 않는 메시지 타입: {}. TALK 타입으로 대체", unifiedType);
                 return MessageType.TALK;
         }
     }

@@ -14,5 +14,5 @@ public class ChatRoomProperties {
     /** 방 생성 시 maxCapacity 미지정일 때 사용할 기본값. 0/음수 = 무제한 */
 
     @Value("${chat.room.default-max-capacity}")
-    private Long defaultMaxCapacity;
+    private Integer defaultMaxCapacity;
 }

@@ -20,19 +20,21 @@ public class WebSocketDisconnectHandler implements ApplicationListener<SessionDi
     public void onApplicationEvent(SessionDisconnectEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         Map<String, Object> attrs = accessor.getSessionAttributes();
-        String memberId = attrs != null ? (String) attrs.get("memberId") : null;
-        String roomId   = attrs != null ? (String) attrs.get("roomId")   : null;
+
+        if (attrs == null) return;
+
+        String memberId = (String) attrs.get("memberId");
+        String roomId   = (String) attrs.get("roomId");
 
         if (memberId == null || roomId == null) return;
 
-        // 같은 세션에서 중복 DISCONNECT가 오면 1회만 처리
-        Object already = attrs.get("leaveHandled");
-        if (already instanceof Boolean b && b) return;
+        Boolean handled = (Boolean) attrs.get("leaveHandled");
+        if (handled != null && handled) return;
 
         try {
-            chatRoomService.leaveRoom(roomId, memberId);   // 멱등
+            chatRoomService.leaveRoom(roomId, memberId);        // 멱등
         } finally {
-            if (attrs != null) attrs.put("leaveHandled", true);
+            attrs.put("leaveHandled", true);
         }
     }
 }

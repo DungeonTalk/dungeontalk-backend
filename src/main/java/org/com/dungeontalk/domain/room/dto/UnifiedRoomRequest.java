@@ -80,7 +80,7 @@ public class UnifiedRoomRequest {
     /**
      * 최대 용량 (플레이어 채팅룸용, 선택)
      */
-    private Long maxCapacity;
+    private Integer maxCapacity;
 
     /**
      * AI 게임룸 생성 요청인지 확인
