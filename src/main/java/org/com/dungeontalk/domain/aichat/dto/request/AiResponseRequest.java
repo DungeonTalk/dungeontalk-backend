@@ -13,6 +13,4 @@ public class AiResponseRequest {
     private String gameId;
     private String content;
     private int turnNumber;
-    private Long responseTime;
-    private String aiSources;
 }

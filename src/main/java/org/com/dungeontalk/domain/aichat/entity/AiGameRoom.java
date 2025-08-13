@@ -30,69 +30,20 @@ public class AiGameRoom {
 
     @Id
     private String id;
-
-    /**
-     * 연결된 게임 ID (PostgreSQL Game 테이블과 연동)
-     */
-    private String gameId;
-
-    /**
-     * AI 게임방 이름
-     */
-    private String roomName;
-
-    /**
-     * AI 게임방 설명 (선택사항)
-     */
-    private String description;
-
-    /**
-     * 게임방 상태 (생성됨, 활성, 일시정지, 완료, 에러)
-     */
-    private AiGameStatus status;
-
-    /**
-     * 현재 게임 진행 단계 (대기, 턴입력, AI응답, 종료)
-     */
-    private AiGamePhase currentPhase;
-
-    /**
-     * 현재 턴 번호 (1부터 시작)
-     */
+    private String gameId; // 연결된 게임 ID (PostgreSQL Game 테이블과 연동)
+    private String roomName; //AI 게임방 이름
+    private AiGameStatus status; //게임방 상태 (생성됨, 활성, 일시정지, 완료, 에러)
+    private AiGamePhase currentPhase; // 현재 게임 진행 단계 (대기, 턴입력, AI응답, 종료)
     @Builder.Default
-    private int currentTurn = 1;
-
-    /**
-     * 최대 참여 가능 인원 (기본 3명)
-     */
-    @Builder.Default
-    private int maxParticipants = 3;
-
-    /**
-     * 현재 참여중인 플레이어 ID 목록 (PostgreSQL Member 테이블의 ID)
-     */
-    @Builder.Default
+    private int currentTurn = 1; // 현재 턴 번호 (1부터 시작)
+    private int maxParticipants; // 최대 참여 가능 인원
+    @Builder.Default //현재 참여중인 플레이어 ID 목록 (PostgreSQL Member 테이블의 ID)
     private List<String> participants = new ArrayList<>();
-
-    /**
-     * 게임 설정 (TRPG 세계관, 난이도 등 - JSON 형태 저장 가능)
-     */
-    private String gameSettings;
-
-    /**
-     * 마지막 활동 시간 (플레이어 입력 또는 AI 응답 시간)
-     */
-    private LocalDateTime lastActivity;
-
+    private String gameSettings; // 게임 설정 (TRPG 세계관, 난이도 등 - JSON 형태 저장 가능)
     @CreatedDate
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    /**
-     * 게임방이 활성 상태인지 확인
-     */
+    // 마지막 활동 시간 (플레이어 입력 또는 AI 응답 시간)
     public boolean isActive() {
         return this.status == AiGameStatus.ACTIVE;
     }

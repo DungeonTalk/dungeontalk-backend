@@ -785,8 +785,8 @@
             }
             
             try {
-                console.log('매칭 시작 API 호출:', '/api/v1/match/join', { memberId: currentUser.id, worldType: selectedWorld });
-                const response = await fetch('/api/v1/match/join', {
+                console.log('매칭 시작 API 호출:', '/v1/match/join', { memberId: currentUser.id, worldType: selectedWorld });
+                const response = await fetch('/v1/match/join', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -820,7 +820,7 @@
         // 매칭 취소
         async function cancelMatching() {
             try {
-                const response = await fetch('/api/v1/match/cancel', {
+                const response = await fetch('/v1/match/cancel', {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
@@ -934,7 +934,7 @@
                 console.log('🔑 JWT 토큰 확인됨, AI 게임 세션 시작 요청:', aiGameRoomId);
                 
                 // AI 게임방 세션 시작
-                const sessionResponse = await fetch(`/api/v1/aichat/rooms/${aiGameRoomId}/start`, {
+                const sessionResponse = await fetch(`/v1/rooms/ai/${aiGameRoomId}/start`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1190,10 +1190,11 @@
             
             console.log('AI 응답 요청 시작:', requestData);
             
-            fetch(`/api/v1/aichat/ai-service/rooms/${aiGameRoomId}/generate`, {
+            fetch(`/v1/rooms/ai/${aiGameRoomId}/ai/generate`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + authToken
                 },
                 body: JSON.stringify(requestData)
             })

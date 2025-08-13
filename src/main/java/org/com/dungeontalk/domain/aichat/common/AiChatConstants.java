@@ -38,4 +38,9 @@ public final class AiChatConstants {
     
     // AI 컨텍스트 설정
     public static final int DEFAULT_CONTEXT_MESSAGE_COUNT = 5;  // 기본 컨텍스트 메시지 개수
+    
+    // 게임방 기본 설정
+    public static final int DEFAULT_MAX_PARTICIPANTS = 3;  // 기본 최대 참여자 수
+    public static final int MIN_PARTICIPANTS = 1;         // 최소 참여자 수
+    public static final int MAX_PARTICIPANTS_LIMIT = 5;   // 최대 참여자 수 제한
 }
