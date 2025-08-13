@@ -1,5 +1,6 @@
 package org.com.dungeontalk.domain.auth.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
 import org.com.dungeontalk.domain.auth.manager.AuthRedisManager;
 import org.com.dungeontalk.domain.auth.manager.CookieManager;
+import org.com.dungeontalk.domain.auth.manager.LoginAttemptManager;
 import org.com.dungeontalk.domain.auth.repository.AuthRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
@@ -35,9 +37,34 @@ public class AuthService {
     private final JwtRedisService jwtRedisService;
     private final AuthRedisManager authRedisManager;
     private final CookieManager cookieManager;
+    private final LoginAttemptManager loginAttemptManager;
 
-    // 로그인 메서드
-    public AuthLoginResponse login(AuthLoginRequest request) {
+    // 보안 기능이 추가 된 로그인 메서드
+    public AuthLoginResponse login(AuthLoginRequest request, HttpServletRequest httpServletRequest) throws InterruptedException {
+
+        // 로그인 디바이스 ip 추출
+        String ip = httpServletRequest.getHeader("X-Forwarded-For");
+        if (ip == null) ip = httpServletRequest.getRemoteAddr();
+
+        // 로그인 시도 전 체크
+        loginAttemptManager.preCheck(request.name(), ip);
+
+        try {
+            // 실질적인 로그인 로직 호출
+            AuthLoginResponse response = actualLogin(request);
+
+            // 성공 시 초기화
+            loginAttemptManager.loginSucceeded(request.name());
+            return response;
+        } catch (MemberException ex) {
+            // 실패 시 기록 + 딜레이/잠금 적용
+            loginAttemptManager.loginFailed(request.name());
+            throw ex;
+        }
+    }
+
+    // 실질적인 로그인 메서드
+    public AuthLoginResponse actualLogin(AuthLoginRequest request) {
 
         // 회원 조회
         Member member = memberRepository.findByName(request.name())
@@ -86,6 +113,11 @@ public class AuthService {
     // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
     public JwtTokenResponse refreshAccessToken(String refreshToken) {
 
+        // REFACTOR GUIDE
+        /* 유효성 검사 */
+        /* 새로운 JWT 생성 */
+        /* 새로운 JWT 적용 */
+
         // 토큰 서명/포맷 검사
         if (!jwtProvider.validateToken(refreshToken)) {
             throw new MemberException(ErrorCode.INVALID_JWT_TOKEN);
@@ -101,8 +133,6 @@ public class AuthService {
                 .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         // 새로운 Access Token과 Refresh Token을 반환
-//        String newAccessToken = jwtProvider.generateAccessToken(auth.getId(), auth.getMember().getName(), auth.getMember().getNickName());
-//        String newRefreshToken = jwtProvider.generateRefreshToken(auth.getId());
         String newAccessToken = jwtProvider.generateAccessToken(
                 auth.getMember().getId(),
                 auth.getMember().getName(),

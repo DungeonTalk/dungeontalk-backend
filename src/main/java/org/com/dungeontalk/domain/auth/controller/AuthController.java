@@ -1,5 +1,6 @@
 package org.com.dungeontalk.domain.auth.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,10 +24,11 @@ public class AuthController {
     @PostMapping("/login")
     public RsData<AuthLoginResponse> login(
             @RequestBody AuthLoginRequest request,
-            HttpServletResponse httpServletResponse) {
+            HttpServletRequest httpServletRequest,
+            HttpServletResponse httpServletResponse) throws InterruptedException {
 
         // 로그인 서비스 레이어 호출
-        AuthLoginResponse jwtTokenResponse = authService.login(request);
+        AuthLoginResponse jwtTokenResponse = authService.login(request,httpServletRequest);
 
         // 쿠키에 리프레시 토큰 저장
         authService.saveRefreshTokenToCookie(httpServletResponse, jwtTokenResponse.refreshToken());
@@ -36,6 +38,7 @@ public class AuthController {
 
     // JWT 토큰 재발급
     @PostMapping("/refresh")
+
     public RsData<JwtTokenResponse> refreshToken(
             @RequestBody RefreshTokenRequest request,
             HttpServletResponse httpServletResponse) {
