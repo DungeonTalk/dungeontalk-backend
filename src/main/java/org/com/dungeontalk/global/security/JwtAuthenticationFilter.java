@@ -33,7 +33,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 "/v1/auth/refresh",
                 "/v1/valkey/session/test/save",
                 "/dungeon-game.html",
-                "/ws-chat"
+                "/ws-chat",
+                // Swagger UI 관련 경로들
+                "/swagger-ui",
+                "/v3/api-docs",
+                "/webjars",
+                "/swagger-resources"
         );
 
         // 요청 경로가 publicApis 목록 중 하나로 시작하면 true 반환
