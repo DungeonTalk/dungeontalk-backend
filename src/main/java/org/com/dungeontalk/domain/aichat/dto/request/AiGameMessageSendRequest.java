@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.extern.jackson.Jacksonized;
 import org.com.dungeontalk.domain.aichat.common.AiMessageType;
 
 import jakarta.validation.constraints.NotBlank;
@@ -12,10 +12,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 @Getter
-@Setter
+@Builder
+@Jacksonized
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class AiGameMessageSendRequest {
 
     @NotBlank(message = "AI 게임방 ID는 필수입니다")
@@ -40,4 +40,5 @@ public class AiGameMessageSendRequest {
     private int turnNumber;
 
     private int messageOrder;
+
 }

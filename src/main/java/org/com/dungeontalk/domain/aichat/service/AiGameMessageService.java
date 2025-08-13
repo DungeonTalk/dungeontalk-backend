@@ -99,11 +99,12 @@ public class AiGameMessageService {
         }
         
         try {
-            AiGenerateRequest aiRequest = new AiGenerateRequest();
-            aiRequest.setGameId(request.getGameId());
-            aiRequest.setCurrentUser(request.getSenderId());
-            aiRequest.setCurrentMessage(request.getContent());
-            aiRequest.setTurnNumber(request.getTurnNumber());
+            AiGenerateRequest aiRequest = AiGenerateRequest.builder()
+                    .gameId(request.getGameId())
+                    .currentUser(request.getSenderId())
+                    .currentMessage(request.getContent())
+                    .turnNumber(request.getTurnNumber())
+                    .build();
                     
             log.info("AI 응답 자동 트리거: roomId={}, user={}, turn={}", 
                      request.getAiGameRoomId(), request.getSenderId(), request.getTurnNumber());
@@ -124,11 +125,19 @@ public class AiGameMessageService {
     public RsData<String> handleJoinRoom(AiGameMessageSendRequest request) {
         try {
             // 입장 시스템 메시지 생성
-            request.setContent(request.getSenderNickname() + "님이 AI 게임에 참여했습니다.");
-            request.setMessageType(AiMessageType.SYSTEM);
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(request.getSenderId())
+                    .senderNickname(request.getSenderNickname())
+                    .content(request.getSenderNickname() + "님이 AI 게임에 참여했습니다.")
+                    .messageType(AiMessageType.SYSTEM)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
 
             // 메시지 처리
-            processMessage(request);
+            processMessage(systemMessage);
 
             log.info("AI 채팅방 입장 완료: roomId={}, participant={}", 
                      request.getAiGameRoomId(), request.getSenderId());
@@ -152,11 +161,19 @@ public class AiGameMessageService {
     public RsData<String> handleLeaveRoom(AiGameMessageSendRequest request) {
         try {
             // 퇴장 시스템 메시지 생성
-            request.setContent(request.getSenderNickname() + "님이 AI 게임에서 나갔습니다.");
-            request.setMessageType(AiMessageType.SYSTEM);
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(request.getSenderId())
+                    .senderNickname(request.getSenderNickname())
+                    .content(request.getSenderNickname() + "님이 AI 게임에서 나갔습니다.")
+                    .messageType(AiMessageType.SYSTEM)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
 
             // 메시지 처리
-            processMessage(request);
+            processMessage(systemMessage);
 
             log.info("AI 채팅방 퇴장 완료: roomId={}, participant={}", 
                      request.getAiGameRoomId(), request.getSenderId());
@@ -179,11 +196,18 @@ public class AiGameMessageService {
     @Transactional
     public RsData<String> handleStartTurn(AiGameMessageSendRequest request) {
         try {
-            request.setMessageType(AiMessageType.TURN_START);
-            request.setSenderId(SYSTEM_SENDER_ID);
-            request.setSenderNickname(SYSTEM_SENDER_NICKNAME);
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(SYSTEM_SENDER_ID)
+                    .senderNickname(SYSTEM_SENDER_NICKNAME)
+                    .content(request.getContent())
+                    .messageType(AiMessageType.TURN_START)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
 
-            processMessage(request);
+            processMessage(systemMessage);
 
             log.info("AI 게임 턴 시작: roomId={}, turn={}", 
                      request.getAiGameRoomId(), request.getTurnNumber());
@@ -206,11 +230,18 @@ public class AiGameMessageService {
     @Transactional
     public RsData<String> handleEndTurn(AiGameMessageSendRequest request) {
         try {
-            request.setMessageType(AiMessageType.TURN_END);
-            request.setSenderId(SYSTEM_SENDER_ID);
-            request.setSenderNickname(SYSTEM_SENDER_NICKNAME);
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(SYSTEM_SENDER_ID)
+                    .senderNickname(SYSTEM_SENDER_NICKNAME)
+                    .content(request.getContent())
+                    .messageType(AiMessageType.TURN_END)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
 
-            processMessage(request);
+            processMessage(systemMessage);
 
             // AI 응답 완료 후 락 해제
             aiGameStateService.unlockAfterAiResponse(request.getAiGameRoomId());
