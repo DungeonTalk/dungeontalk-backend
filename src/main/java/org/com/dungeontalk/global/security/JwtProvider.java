@@ -15,7 +15,8 @@ import java.util.Date;
 
 @Slf4j
 @Service
-public class JwtProvider {
+public class
+JwtProvider {
     @Value("${jwt.secret}")
     private String SECRET_KEY;
 

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>캐릭터 API 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #666;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        .error {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .flex {
+            display: flex;
+            gap: 20px;
+        }
+        .flex-item {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎮 캐릭터 API 테스트 페이지</h1>
+
+    <!-- 데이터 초기화 -->
+    <div class="section">
+        <h2>0. 데이터 초기화 (필수!)</h2>
+        <p>⚠️ 테스트 전에 반드시 실행하세요. 기존 데이터를 삭제하고 새로운 종족 데이터를 생성합니다.</p>
+        <button onclick="initializeData()">데이터 초기화 실행</button>
+        <div id="initResult" class="result"></div>
+    </div>
+
+    <!-- 종족 목록 조회 -->
+    <div class="section">
+        <h2>1. 종족 목록 조회</h2>
+        <button onclick="getRaces()">종족 목록 가져오기</button>
+        <div id="racesResult" class="result"></div>
+    </div>
+
+    <!-- 캐릭터 생성 -->
+    <div class="section">
+        <h2>2. 캐릭터 생성</h2>
+        <div class="form-group">
+            <label>멤버 ID:</label>
+            <input type="text" id="createMemberId" placeholder="user123" value="testUser001">
+        </div>
+        <div class="form-group">
+            <label>종족:</label>
+            <select id="createRaceTypeId">
+                <option value="">종족을 선택하세요</option>
+            </select>
+        </div>
+        <button onclick="createCharacter()">캐릭터 생성</button>
+        <div id="createResult" class="result"></div>
+    </div>
+
+    <div class="flex">
+        <!-- 캐릭터 상세 조회 -->
+        <div class="flex-item section">
+            <h2>3. 캐릭터 상세 조회</h2>
+            <div class="form-group">
+                <label>캐릭터 ID:</label>
+                <input type="text" id="detailCharacterId" placeholder="캐릭터 ID를 입력하세요">
+            </div>
+            <button onclick="getCharacterDetail()">상세 조회</button>
+            <div id="detailResult" class="result"></div>
+        </div>
+
+        <!-- 멤버 캐릭터 목록 조회 -->
+        <div class="flex-item section">
+            <h2>4. 멤버 캐릭터 목록</h2>
+            <div class="form-group">
+                <label>멤버 ID:</label>
+                <input type="text" id="listMemberId" placeholder="user123" value="testUser001">
+            </div>
+            <button onclick="getMemberCharacters()">캐릭터 목록 조회</button>
+            <div id="listResult" class="result"></div>
+        </div>
+    </div>
+
+    <!-- 스탯 계산 테스트 -->
+    <div class="section">
+        <h2>5. 스탯 계산 테스트</h2>
+        <div class="form-group">
+            <label>캐릭터 ID:</label>
+            <input type="text" id="statCharacterId" placeholder="캐릭터 ID를 입력하세요">
+        </div>
+        <button onclick="calculateStats()">모든 스탯 계산</button>
+        <div id="statResult" class="result"></div>
+    </div>
+
+    <!-- 전체 플로우 테스트 -->
+    <div class="section">
+        <h2>6. 전체 플로우 테스트</h2>
+        <p>종족 조회 → 캐릭터 생성 → 상세 조회 → 스탯 계산을 순서대로 실행합니다.</p>
+        <button onclick="runFullTest()">전체 플로우 실행</button>
+        <div id="fullTestResult" class="result"></div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '';
+
+    // 결과 표시 함수
+    function showResult(elementId, data, isError = false) {
+        const element = document.getElementById(elementId);
+        element.textContent = JSON.stringify(data, null, 2);
+        element.className = `result ${isError ? 'error' : 'success'}`;
+    }
+
+    // 종족 목록 조회
+    async function getRaces() {
+        try {
+            const response = await fetch(`${API_BASE}/v1/characters/races`);
+            const data = await response.json();
+            showResult('racesResult', data);
+
+            // 종족 선택박스에 옵션 추가
+            const select = document.getElementById('createRaceTypeId');
+            select.innerHTML = '<option value="">종족을 선택하세요</option>';
+            data.forEach(race => {
+                const option = document.createElement('option');
+                option.value = race;
+                option.textContent = race;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            showResult('racesResult', { error: error.message }, true);
+        }
+    }
+
+    // 캐릭터 생성
+    async function createCharacter() {
+        const memberId = document.getElementById('createMemberId').value;
+        const raceTypeId = document.getElementById('createRaceTypeId').value;
+
+        if (!memberId || !raceTypeId) {
+            showResult('createResult', { error: '멤버 ID와 종족을 입력해주세요.' }, true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/v1/characters`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ memberId, raceTypeId })
+            });
+
+            const data = await response.json();
+            showResult('createResult', data);
+
+            // 생성된 캐릭터 ID를 다른 입력폼에 자동 입력
+            if (data.id) {
+                document.getElementById('detailCharacterId').value = data.id;
+                document.getElementById('statCharacterId').value = data.id;
+            }
+        } catch (error) {
+            showResult('createResult', { error: error.message }, true);
+        }
+    }
+
+    // 캐릭터 상세 조회
+    async function getCharacterDetail() {
+        const characterId = document.getElementById('detailCharacterId').value;
+
+        if (!characterId) {
+            showResult('detailResult', { error: '캐릭터 ID를 입력해주세요.' }, true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/v1/characters/${characterId}`);
+            const data = await response.json();
+            showResult('detailResult', data);
+        } catch (error) {
+            showResult('detailResult', { error: error.message }, true);
+        }
+    }
+
+    // 멤버 캐릭터 목록 조회
+    async function getMemberCharacters() {
+        const memberId = document.getElementById('listMemberId').value;
+
+        if (!memberId) {
+            showResult('listResult', { error: '멤버 ID를 입력해주세요.' }, true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/v1/characters?memberId=${memberId}`);
+            const data = await response.json();
+            showResult('listResult', data);
+        } catch (error) {
+            showResult('listResult', { error: error.message }, true);
+        }
+    }
+
+    // 스탯 계산 테스트
+    async function calculateStats() {
+        const characterId = document.getElementById('statCharacterId').value;
+
+        if (!characterId) {
+            showResult('statResult', { error: '캐릭터 ID를 입력해주세요.' }, true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/v1/stat/${characterId}/calculated`);
+            const data = await response.json();
+            showResult('statResult', data);
+        } catch (error) {
+            showResult('statResult', { error: error.message }, true);
+        }
+    }
+
+    // 전체 플로우 테스트
+    async function runFullTest() {
+        const resultElement = document.getElementById('fullTestResult');
+        resultElement.textContent = '전체 플로우 테스트 시작...\n';
+
+        try {
+            // 1. 종족 목록 조회
+            resultElement.textContent += '1. 종족 목록 조회 중...\n';
+            const racesResponse = await fetch(`${API_BASE}/v1/characters/races`);
+            const races = await racesResponse.json();
+            resultElement.textContent += `✅ 종족 목록: ${JSON.stringify(races)}\n\n`;
+
+            if (races.length === 0) {
+                throw new Error('사용 가능한 종족이 없습니다.');
+            }
+
+            // 2. 캐릭터 생성
+            const testMemberId = 'fullTestUser' + Date.now();
+            const testRace = races[0];
+            resultElement.textContent += `2. 캐릭터 생성 중... (memberId: ${testMemberId}, race: ${testRace})\n`;
+
+            const createResponse = await fetch(`${API_BASE}/v1/characters`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId: testMemberId, raceTypeId: testRace })
+            });
+            const character = await createResponse.json();
+            resultElement.textContent += `✅ 캐릭터 생성 완료: ${character.id}\n\n`;
+
+            // 3. 캐릭터 상세 조회
+            resultElement.textContent += '3. 캐릭터 상세 조회 중...\n';
+            const detailResponse = await fetch(`${API_BASE}/v1/characters/${character.id}`);
+            const detail = await detailResponse.json();
+            resultElement.textContent += `✅ 상세 조회 완료\n`;
+            resultElement.textContent += `   - 종족명: ${detail.raceName}\n`;
+            resultElement.textContent += `   - HP: ${detail.hp}, MP: ${detail.mp}\n`;
+            resultElement.textContent += `   - 물리공격: ${detail.physicalAttack}, 마법공격: ${detail.magicAttack}\n\n`;
+
+            // 4. 스탯 계산 API 별도 호출
+            resultElement.textContent += '4. 스탯 계산 API 테스트 중...\n';
+            const statResponse = await fetch(`${API_BASE}/v1/stat/${character.id}/calculated`);
+            const stats = await statResponse.json();
+            resultElement.textContent += `✅ 스탯 계산 완료\n`;
+            resultElement.textContent += `   - 계산된 HP: ${stats.hp}, MP: ${stats.mp}\n\n`;
+
+            resultElement.textContent += '🎉 전체 플로우 테스트 성공!';
+            resultElement.className = 'result success';
+
+        } catch (error) {
+            resultElement.textContent += `❌ 에러 발생: ${error.message}`;
+            resultElement.className = 'result error';
+        }
+    }
+
+    // 데이터 초기화 함수
+    async function initializeData() {
+        const resultElement = document.getElementById('initResult');
+        resultElement.textContent = '데이터 초기화 중...\n';
+
+        try {
+            // 1. 기존 데이터 삭제
+            resultElement.textContent += '1. 기존 RaceStats 데이터 삭제 중...\n';
+            const deleteResponse = await fetch(`${API_BASE}/init/race-stats`, {
+                method: 'DELETE'
+            });
+            const deleteResult = await deleteResponse.text();
+            resultElement.textContent += `✅ ${deleteResult}\n\n`;
+
+            // 2. 새로운 데이터 생성
+            resultElement.textContent += '2. 새로운 종족 데이터 생성 중...\n';
+            const createResponse = await fetch(`${API_BASE}/init/race-stats`, {
+                method: 'POST'
+            });
+            const newData = await createResponse.json();
+            resultElement.textContent += `✅ 생성된 종족:\n`;
+            newData.forEach(race => {
+                resultElement.textContent += `   - ID: ${race.id}, 이름: ${race.race}\n`;
+            });
+
+            resultElement.textContent += '\n🎉 데이터 초기화 완료! 이제 테스트를 시작할 수 있습니다.';
+            resultElement.className = 'result success';
+
+            // 종족 목록 자동 새로고침
+            getRaces();
+
+        } catch (error) {
+            resultElement.textContent += `❌ 에러 발생: ${error.message}`;
+            resultElement.className = 'result error';
+        }
+    }
+
+    // 페이지 로드 시 종족 목록 자동 조회
+    window.onload = function() {
+        getRaces();
+    };
+</script>
+</body>
+</html>

@@ -81,6 +81,9 @@ dependencies {
     /* Swagger UI */
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0"
 
+    // StatCulculate
+    implementation 'net.objecthunter:exp4j:0.4.8'
+
 }
 
 tasks.named('test') {
