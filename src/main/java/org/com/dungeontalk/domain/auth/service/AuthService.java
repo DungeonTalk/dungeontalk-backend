@@ -8,17 +8,16 @@ import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
 import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
+import org.com.dungeontalk.domain.auth.manager.ActualLoginManager;
 import org.com.dungeontalk.domain.auth.manager.AuthRedisManager;
+import org.com.dungeontalk.domain.auth.manager.BruteForceManager;
 import org.com.dungeontalk.domain.auth.manager.CookieManager;
-import org.com.dungeontalk.domain.auth.manager.LoginAttemptManager;
 import org.com.dungeontalk.domain.auth.repository.AuthRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
-import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.MemberException;
 import org.com.dungeontalk.global.security.JwtProvider;
 import org.com.dungeontalk.global.security.JwtRedisService;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,35 +29,24 @@ import java.util.Optional;
 @Transactional
 public class AuthService {
 
-    private final MemberRepository memberRepository;
     private final AuthRepository authRepository;
-    private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final JwtRedisService jwtRedisService;
     private final AuthRedisManager authRedisManager;
     private final CookieManager cookieManager;
-    private final LoginAttemptManager loginAttemptManager;
+    private final BruteForceManager bruteForceManager;
+    private final ActualLoginManager actualLoginManager;
 
     // 보안 기능이 추가 된 로그인 메서드
     public AuthLoginResponse login(AuthLoginRequest request, HttpServletRequest httpServletRequest) throws InterruptedException {
 
-        // 로그인 디바이스 ip 추출
-        String ip = httpServletRequest.getHeader("X-Forwarded-For");
-        if (ip == null) ip = httpServletRequest.getRemoteAddr();
-
-        // 로그인 시도 전 체크
-        loginAttemptManager.preCheck(request.name(), ip);
-
+        bruteForceManager.preCheck(request.name(), httpServletRequest); // 로그인 시도 전 이상 행동 존재 유무 체크
         try {
-            // 실질적인 로그인 로직 호출
-            AuthLoginResponse response = actualLogin(request);
-
-            // 성공 시 초기화
-            loginAttemptManager.loginSucceeded(request.name());
-            return response;
+            AuthLoginResponse authLoginResponse = actualLogin(request); // 실질적인 로그인 메서드 호출
+            bruteForceManager.loginSucceeded(request.name()); // 로그인 성공시 기존 실패/정지 기록 삭제
+            return authLoginResponse;
         } catch (MemberException ex) {
-            // 실패 시 기록 + 딜레이/잠금 적용
-            loginAttemptManager.loginFailed(request.name());
+            bruteForceManager.loginFailed(request.name()); // Delay, Cool Down 방어
             throw ex;
         }
     }
@@ -66,47 +54,13 @@ public class AuthService {
     // 실질적인 로그인 메서드
     public AuthLoginResponse actualLogin(AuthLoginRequest request) {
 
-        // 회원 조회
-        Member member = memberRepository.findByName(request.name())
-                .orElseThrow(() -> new MemberException(ErrorCode.GLOBAL_ERROR));
+        Member member = actualLoginManager.validateMember(request); // 유저 검증
+        JwtTokenResponse jwtTokenResponse = actualLoginManager.generateToken(member); // JWT 토큰 생성
+        actualLoginManager.updateMemberRefreshToken(member, jwtTokenResponse); // RefreshToken 갱신
 
-        // 비밀번호 검증
-        if (!passwordEncoder.matches(request.password(), member.getPassword())) {
-            throw new MemberException(ErrorCode.GLOBAL_ERROR);
-        }
-
-        // 토큰 생성
-        String accessToken = jwtProvider.generateAccessToken(member.getId(), member.getName(), member.getNickName());
-        String refreshToken = jwtProvider.generateRefreshToken(member.getId());
-
-       // Auth 엔티티 생성
-        Optional<Auth> existingAuthOpt = authRepository.findByMember(member);
-
-        if (existingAuthOpt.isPresent()) {
-            Auth auth = existingAuthOpt.get();
-            auth.setAccessToken(null);
-            auth.setRefreshToken(refreshToken);
-            authRepository.save(auth);
-        } else {
-            Auth newAuth = Auth.builder()
-                    .member(member)
-                    .email(member.getName())
-                    .tokenType("bearer")
-                    .accessToken(null)
-                    .refreshToken(refreshToken)
-                    .build();
-
-            authRepository.save(newAuth);
-
-        }
-
-        // session에 저장
-        jwtRedisService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
-
-        return new AuthLoginResponse(
-                member.getId(),
-                accessToken,
-                refreshToken
+        return new AuthLoginResponse(member.getId(),
+                jwtTokenResponse.getAccessToken(),
+                jwtTokenResponse.getRefreshToken()
         );
     }
 
@@ -164,12 +118,12 @@ public class AuthService {
         long remainExpiration = authRedisManager.calculateRemainingExpiration(accessToken);
         authRedisManager.uploadAccessTokenToRedis(accessKey, remainExpiration);
 
-        //  RDB에서 해시 된 RT 제거
+        //  RDB에서 RT 제거
         Auth auth = authRepository.findByRefreshToken(refreshToken)
                 .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
         auth.setRefreshToken(null);
 
-        // Valkey에서 해시 된 RT 제거
+        // Valkey에서 RT 제거
         authRedisManager.deleteRefreshToken(refreshToken);
 
     }
