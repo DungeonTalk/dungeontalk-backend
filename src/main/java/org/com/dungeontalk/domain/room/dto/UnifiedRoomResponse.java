@@ -139,7 +139,6 @@ public class UnifiedRoomResponse {
                 .roomId(aiResponse.getId())
                 .roomType(RoomType.AI_GAME)
                 .roomName(aiResponse.getRoomName())
-                .description(aiResponse.getDescription())
                 .status(mapAiGameStatus(aiResponse.getStatus()))
                 .currentParticipants(aiResponse.getCurrentParticipantCount())
                 .maxParticipants(aiResponse.getMaxParticipants())
@@ -149,8 +148,6 @@ public class UnifiedRoomResponse {
                 // AI 게임룸 전용 필드
                 .gameId(aiResponse.getGameId())
                 .currentTurn(aiResponse.getCurrentTurn())
-                .lastActivity(aiResponse.getLastActivity() != null ? 
-                          aiResponse.getLastActivity().atZone(java.time.ZoneOffset.UTC).toInstant() : null)
                 .build();
     }
 

@@ -21,7 +21,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/aichat")
+@RequestMapping("/v1/aichat")
 @RequiredArgsConstructor
 public class AiGameRoomController {
 

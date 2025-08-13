@@ -57,11 +57,4 @@ public interface AiGameRoomRepository extends MongoRepository<AiGameRoom, String
      */
     Page<AiGameRoom> findByParticipantsContaining(String participantId, Pageable pageable);
 
-    /**
-     * 마지막 활동 시간이 특정 시간 이전인 비활성 게임방 조회
-     * (자동 정리용)
-     * @param cutoffTime 기준 시간
-     * @return 비활성 게임방 목록
-     */
-    List<AiGameRoom> findByLastActivityBefore(LocalDateTime cutoffTime);
 }

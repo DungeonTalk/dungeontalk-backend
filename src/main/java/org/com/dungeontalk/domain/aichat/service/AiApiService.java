@@ -19,7 +19,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiResponseService {
+public class AiApiService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;

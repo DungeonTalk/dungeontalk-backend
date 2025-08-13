@@ -22,8 +22,6 @@ public class AiGameMessageDto {
     private AiMessageType messageType;
     private int turnNumber;
     private int messageOrder;
-    private Long aiResponseTime;
-    private String aiSources;
     private LocalDateTime createdAt;
 
     /**
@@ -40,8 +38,6 @@ public class AiGameMessageDto {
                 .messageType(message.getMessageType())
                 .turnNumber(message.getTurnNumber())
                 .messageOrder(message.getMessageOrder())
-                .aiResponseTime(message.getAiResponseTime())
-                .aiSources(message.getAiSources())
                 .createdAt(message.getCreatedAt())
                 .build();
     }

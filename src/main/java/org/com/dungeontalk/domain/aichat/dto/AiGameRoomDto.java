@@ -18,16 +18,13 @@ public class AiGameRoomDto {
     private String id;
     private String gameId;
     private String roomName;
-    private String description;
     private AiGameStatus status;
     private AiGamePhase currentPhase;
     private int currentTurn;
     private int maxParticipants;
     private List<String> participants;
     private String gameSettings;
-    private LocalDateTime lastActivity;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     /**
      * Entity를 DTO로 변환
@@ -37,16 +34,13 @@ public class AiGameRoomDto {
                 .id(room.getId())
                 .gameId(room.getGameId())
                 .roomName(room.getRoomName())
-                .description(room.getDescription())
                 .status(room.getStatus())
                 .currentPhase(room.getCurrentPhase())
                 .currentTurn(room.getCurrentTurn())
                 .maxParticipants(room.getMaxParticipants())
                 .participants(room.getParticipants())
                 .gameSettings(room.getGameSettings())
-                .lastActivity(room.getLastActivity())
                 .createdAt(room.getCreatedAt())
-                .updatedAt(room.getUpdatedAt())
                 .build();
     }
 

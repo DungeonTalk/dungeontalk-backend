@@ -1,13 +1,19 @@
 package org.com.dungeontalk.domain.chat.dto.request;
 
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.com.dungeontalk.domain.chat.common.ChatMode;
 import org.com.dungeontalk.domain.chat.common.ChatRoomType;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChatRoomCreateRequestDto {
     private String roomName;
     private ChatMode mode;
