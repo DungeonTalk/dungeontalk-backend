@@ -168,9 +168,11 @@ public class AiGameRoomServiceAdapter implements RoomService {
                 .messageOrder(0) // 기본값 0
                 .build();
         
-        // 기존 AI 메시지 서비스 호출
+        // AI 메시지 서비스 호출 - 욕설 필터링이 포함된 handleWebSocketMessage 사용
         try {
-            aiGameMessageService.processMessage(aiRequest);
+            log.debug("AI 게임 메시지 욕설 필터링 처리 시작: roomId={}, content={}", 
+                     request.getRoomId(), request.getContent());
+            aiGameMessageService.handleWebSocketMessage(aiRequest);
         } catch (Exception e) {
             log.error("AI 게임 메시지 처리 중 오류 발생: roomId={}, error={}", 
                     request.getRoomId(), e.getMessage(), e);
