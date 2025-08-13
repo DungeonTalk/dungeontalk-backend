@@ -15,7 +15,8 @@ import org.com.dungeontalk.domain.chat.entity.ChatMessage;
 import org.com.dungeontalk.domain.chat.repository.ChatMessageRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
-import org.com.dungeontalk.global.redis.ChatRoomMemberManager;
+import org.com.dungeontalk.global.exception.ErrorCode;
+import org.com.dungeontalk.global.exception.customException.ChatException;
 import org.com.dungeontalk.global.redis.RedisPublisher;
 import org.com.dungeontalk.global.util.UuidV7Creator;
 import org.springframework.data.domain.Page;
@@ -32,71 +33,50 @@ public class ChatMessageService {
     private final ObjectMapper objectMapper;
 
     // 참여자/인원/브로드캐스트는 ChatRoomService에 위임
-    private final ChatRoomService chatRoomService;;
+    private final ChatRoomService chatRoomService;
 
     /**
      * STOMP 메시지 분기 처리 (Controller에서 단일 호출)
      */
     public ChatMessageDto processMessage(ChatMessageSendRequestDto dto) throws JsonProcessingException {
-        ChatMessageDto chatMessageDto = null;
-
-        if (dto.getType() == MessageType.JOIN) {
-            // 1) 입장 처리(인원 제한, Mongo/Redis, 접속수 브로드캐스트)
-            boolean added = chatRoomService.joinRoom(dto.getRoomId(), dto.getSenderId());
-            if (added) {            // ✅ 실제로 추가됐을 때만 시스템 메시지 생성/발행
-                chatMessageDto = saveSystemMessage(dto.getRoomId(), dto.getSenderId(), MessageType.JOIN);
-            }                       // 중복 입장인 경우 시스템 메시지 생성/발행 안 함 (Presence는 ChatRoomService가 이미 브로드캐스트)
-        } else if (dto.getType() == MessageType.LEAVE) {
-            boolean removed = chatRoomService.leaveRoom(dto.getRoomId(), dto.getSenderId());
-            if (removed) {
-                chatMessageDto = saveSystemMessage(dto.getRoomId(), dto.getSenderId(), MessageType.LEAVE);
-            } // 중복 퇴장인 경우도 시스템 메시지 생성/발행 안 함
-        } else if (dto.getType() == MessageType.TALK) {
-            chatMessageDto = handleTalkMessage(dto);
-        } else {
-            throw new IllegalArgumentException("유효하지 않은 메시지 타입");
+        if (dto == null) {
+            throw new ChatException(ErrorCode.CHAT_INVALID_PAYLOAD, "payload=null");
         }
 
+        if (dto.getType() == null) {
+            throw new ChatException(ErrorCode.CHAT_INVALID_MESSAGE_TYPE, "type=null");
+        }
+
+        ChatMessageDto chatMessageDto = null;
+
+        switch (dto.getType()) {
+            // 정원 체크 + 입장(멱등)
+            case JOIN -> chatRoomService.joinRoom(dto.getRoomId(), dto.getSenderId());   // 예외는 하위에서 throw
+            case LEAVE -> chatRoomService.leaveRoom(dto.getRoomId(), dto.getSenderId());
+            case TALK -> chatMessageDto = handleTalkMessage(dto);
+            case PRESENCE -> { return null; }       // 클라이언트가 직접 PRESENCE를 보낼 일은 없음(보완)
+            default -> throw new ChatException(ErrorCode.CHAT_INVALID_MESSAGE_TYPE, "type=" + dto.getType());
+        }
+
+        // TALK일 때만 브로드캐스트
         if (chatMessageDto != null) {
-            // 메시지 브로드캐스트
-            String json = objectMapper.writeValueAsString(chatMessageDto);
-            redisPublisher.publish(dto.getRoomId(), json);
+            redisPublisher.publish(dto.getRoomId(), objectMapper.writeValueAsString(chatMessageDto));
         }
 
         return chatMessageDto;    // chatMessageDto null이면 컨트롤러는 아무 것도 브로드캐스트하지 않음
     }
 
     /**
-     * 메세지 저장
-     */
-    private ChatMessageDto saveSystemMessage(String roomId, String memberId, MessageType type) {
-        String member = memberRepository.findById(memberId)
-            .map(Member::getNickName)
-            .orElse("알 수 없음");
-
-        String content = (type == MessageType.JOIN)
-            ? member + "이 입장했습니다."
-            : member + "이 퇴장했습니다.";
-
-        ChatMessage msg = ChatMessage.builder()
-            .messageId(UuidV7Creator.create())
-            .roomId(roomId)
-            .senderId(memberId)
-            .content(content)
-            .type(type)
-            .createdAt(Instant.now())
-            .updatedAt(Instant.now())
-            .build();
-
-        ChatMessage saved = chatMessageRepository.save(msg);
-        return ChatMessageDto.fromEntity(saved, member);
-    }
-
-    /**
      * TALK 메시지 처리
      */
     public ChatMessageDto handleTalkMessage(ChatMessageSendRequestDto dto) {
-        Member sender = getSender(dto);
+        if (dto.getRoomId() == null || dto.getSenderId() == null
+            || dto.getContent() == null || dto.getContent().isBlank()) {
+            throw new ChatException(ErrorCode.CHAT_INVALID_PAYLOAD, "roomId/senderId/content required");
+        }
+
+        Member sender = memberRepository.findById(dto.getSenderId())
+            .orElseThrow(() -> new ChatException(ErrorCode.CHAT_MEMBER_NOT_FOUND, "senderId=" + dto.getSenderId()));
 
         ChatMessage message = ChatMessage.builder()
             .messageId(dto.getMessageId() != null ? dto.getMessageId() : UuidV7Creator.create())
@@ -126,8 +106,7 @@ public class ChatMessageService {
             .collect(Collectors.toList());
 
         // PostgreSQL에서 senderId로 회원 닉네임 조회
-        List<Member> members = memberRepository.findByIdIn(senderIds);
-        Map<String, String> senderIdToNicknameMap = members.stream()
+        Map<String, String> idToNick = memberRepository.findByIdIn(senderIds).stream()
             .collect(Collectors.toMap(Member::getId, Member::getNickName));
 
         // 메시지를 DTO로 변환하면서 senderNickname 매핑
@@ -135,15 +114,10 @@ public class ChatMessageService {
             .id(msg.getMessageId())
             .roomId(msg.getRoomId())
             .senderId(msg.getSenderId())
-            .senderNickname(senderIdToNicknameMap.getOrDefault(msg.getSenderId(), "알 수 없음"))
-            .message(msg.getContent())
+            .senderNickname(idToNick.getOrDefault(msg.getSenderId(), "알 수 없음"))
+            .content(msg.getContent())           // 응답 DTO는 content로 일치
             .createdAt(msg.getCreatedAt())
             .build());
-    }
-
-    private Member getSender(ChatMessageSendRequestDto dto) {
-        return memberRepository.findById(dto.getSenderId())
-            .orElseThrow(() -> new IllegalArgumentException("발신자 정보 없음"));
     }
 
 }
