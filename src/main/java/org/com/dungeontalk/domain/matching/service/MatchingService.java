@@ -327,17 +327,17 @@ public class MatchingService {
      * @deprecated 통합 룸 생성 메서드 createUnifiedRooms() 사용 권장
      */
     @Deprecated
-    private ChatRoomDto createChatRoom(String gameSessionId, List<String> participants, WorldType worldType) {
-        ChatRoomCreateRequestDto request = new ChatRoomCreateRequestDto();
-        request.setRoomName(new StringBuilder()
-                .append(worldType.getDisplayName())
-                .append(" 채팅방")
-                .toString());
-        request.setMode(ChatMode.MULTI);
-        request.setParticipantIds(participants);
-
-        return chatRoomService.createRoom(request);
-    }
+//    private ChatRoomDto createChatRoom(String gameSessionId, List<String> participants, WorldType worldType) {
+//        ChatRoomCreateRequestDto request = new ChatRoomCreateRequestDto();
+//        request.setRoomName(new StringBuilder()
+//                .append(worldType.getDisplayName())
+//                .append(" 채팅방")
+//                .toString());
+//        request.setMode(ChatMode.MULTI);
+//        request.setParticipantIds(participants);
+//
+//        return chatRoomService.createRoom(request);
+//    }
 
     /**
      * 매칭 세션 정보 Redis 저장
