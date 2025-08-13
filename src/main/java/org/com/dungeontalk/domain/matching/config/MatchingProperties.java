@@ -29,7 +29,6 @@ public class MatchingProperties {
     private final Timing timing = new Timing();
 
     @Getter
-    @Setter
     public static class ThreadPool {
         /**
          * 기본 스레드 수
@@ -53,7 +52,6 @@ public class MatchingProperties {
     }
 
     @Getter
-    @Setter
     public static class Ttl {
         /**
          * 사용자 상태 TTL (초)
@@ -72,7 +70,6 @@ public class MatchingProperties {
     }
 
     @Getter
-    @Setter
     public static class Timing {
         /**
          * 매칭 예상 소요 시간 (초)

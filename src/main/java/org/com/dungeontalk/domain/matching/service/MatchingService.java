@@ -306,16 +306,16 @@ public class MatchingService {
      */
     @Deprecated
     private AiGameRoomResponse createAiGameRoom(String gameSessionId, List<String> participants, WorldType worldType) {
-        AiGameRoomCreateRequest request = new AiGameRoomCreateRequest();
-        request.setGameId(gameSessionId);
-        request.setRoomName(new StringBuilder()
-                .append(worldType.getDisplayName())
-                .append(" 랜덤 매칭")
-                .toString());
-        // description 필드 제거됨
-        request.setMaxParticipants(DEFAULT_MAX_PARTICIPANTS);
-        request.setGameSettings(worldType.getGameSettings());
-        request.setCreatorId(participants.get(0)); // 첫 번째 사용자를 생성자로
+        AiGameRoomCreateRequest request = AiGameRoomCreateRequest.builder()
+                .gameId(gameSessionId)
+                .roomName(new StringBuilder()
+                        .append(worldType.getDisplayName())
+                        .append(" 랜덤 매칭")
+                        .toString())
+                .maxParticipants(DEFAULT_MAX_PARTICIPANTS)
+                .gameSettings(worldType.getGameSettings())
+                .creatorId(participants.get(0)) // 첫 번째 사용자를 생성자로
+                .build();
 
         return aiGameRoomService.createAiGameRoom(request);
     }
