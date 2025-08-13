@@ -21,14 +21,12 @@ public class AiGameRoomResponse {
     private String roomId; // 프론트엔드 호환성을 위한 필드 (id와 동일한 값)
     private String gameId;
     private String roomName;
-    private String description;
     private AiGameStatus status;
     private AiGamePhase currentPhase;
     private int currentTurn;
     private int maxParticipants;
     private int currentParticipantCount;
     private List<String> participants;
-    private LocalDateTime lastActivity;
     private LocalDateTime createdAt;
 
     /**
@@ -55,7 +53,6 @@ public class AiGameRoomResponse {
                 .roomId(room.getId()) // 프론트엔드 호환성을 위해 동일한 값 설정
                 .gameId(room.getGameId())
                 .roomName(room.getRoomName())
-                .description(room.getDescription())
                 .status(room.getStatus())
                 .currentPhase(room.getCurrentPhase())
                 .currentTurn(room.getCurrentTurn())
@@ -64,7 +61,6 @@ public class AiGameRoomResponse {
                 .participants(Optional.ofNullable(room.getParticipants())
                         .map(ArrayList::new)
                         .orElseGet(ArrayList::new))
-                .lastActivity(room.getLastActivity())
                 .createdAt(room.getCreatedAt())
                 .build();
     }

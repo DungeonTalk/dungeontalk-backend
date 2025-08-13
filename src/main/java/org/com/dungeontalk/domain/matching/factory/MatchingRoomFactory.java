@@ -34,13 +34,14 @@ public class MatchingRoomFactory {
         log.debug("AI 게임방 생성 시작: sessionId={}, worldType={}", 
                  context.getGameSessionId(), context.getWorldType());
         
-        AiGameRoomCreateRequest request = new AiGameRoomCreateRequest();
-        request.setGameId(context.getGameSessionId());
-        request.setRoomName(buildAiGameRoomName(context.getWorldType()));
-        request.setDescription(buildAiGameRoomDescription(context.getWorldType()));
-        request.setMaxParticipants(MatchingConstants.REQUIRED_PARTICIPANTS);
-        request.setGameSettings(context.getWorldType().getGameSettings());
-        request.setCreatorId(selectCreator(context.getParticipants()));
+        AiGameRoomCreateRequest request = AiGameRoomCreateRequest.builder()
+                .gameId(context.getGameSessionId())
+                .roomName(buildAiGameRoomName(context.getWorldType()))
+                // description 필드 제거됨
+                .maxParticipants(MatchingConstants.REQUIRED_PARTICIPANTS)
+                .gameSettings(context.getWorldType().getGameSettings())
+                .creatorId(selectCreator(context.getParticipants()))
+                .build();
         
         AiGameRoomResponse response = aiGameRoomService.createAiGameRoom(request);
         
@@ -52,6 +53,7 @@ public class MatchingRoomFactory {
     /**
      * 채팅방 생성
      */
+ 
 //    public ChatRoomDto createChatRoom(RoomCreationContext context) {
 //        log.debug("채팅방 생성 시작: sessionId={}, worldType={}",
 //                 context.getGameSessionId(), context.getWorldType());

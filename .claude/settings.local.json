@@ -29,7 +29,10 @@
       "Bash(fi)",
       "Bash(done)",
       "Bash(git fetch:*)",
-      "Bash(.gradlew --stop)"
+      "Bash(.gradlew --stop)",
+      "Bash(git mv:*)",
+      "Bash(git rm:*)",
+      "Bash(gradlew:*)"
     ],
     "deny": []
   }

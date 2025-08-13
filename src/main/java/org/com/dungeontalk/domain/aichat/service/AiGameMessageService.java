@@ -13,10 +13,16 @@ import org.com.dungeontalk.domain.aichat.entity.AiGameMessage;
 import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 import org.com.dungeontalk.domain.aichat.repository.AiGameMessageRepository;
 import org.com.dungeontalk.domain.aichat.repository.AiGameRoomRepository;
+import org.com.dungeontalk.domain.aichat.util.AiChatErrorHandler;
+import org.com.dungeontalk.domain.aichat.util.AiChatLogUtils;
 import org.com.dungeontalk.domain.aichat.util.AiGameValidator;
 import org.com.dungeontalk.domain.aichat.service.AiGameRoomService;
+import org.com.dungeontalk.domain.aichat.event.AiTurnProcessEvent;
+import org.com.dungeontalk.domain.aichat.dto.request.AiGenerateRequest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.AiChatException;
+import org.com.dungeontalk.global.rsData.RsData;
 import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 import org.com.dungeontalk.domain.aichat.config.AiChatConfigHelper;
 import org.com.dungeontalk.domain.aichat.dto.request.AiMessageSaveRequest;
@@ -44,12 +50,78 @@ public class AiGameMessageService {
     private final AiGameRoomService aiGameRoomService;
     private final RedisPublisher redisPublisher;
     private final ObjectMapper objectMapper;
+    private final AiGameStateService aiGameStateService;
+    private final AiChatErrorHandler errorHandler;
+    private final ApplicationEventPublisher eventPublisher;
+
+    /**
+     * WebSocket 메시지 처리 (컨트롤러 단순화용)
+     */
+    @Transactional  
+    public RsData<String> handleWebSocketMessage(AiGameMessageSendRequest request) {
+        AiChatLogUtils.logGameActionStart("AI 채팅 메시지 수신", request.getAiGameRoomId());
+
+        errorHandler.executeWithLogging(() -> {
+            // AI 응답 처리 중인지 확인
+            if (aiGameStateService.isAiProcessing(request.getAiGameRoomId())) {
+                log.warn("AI 응답 처리 중이므로 메시지 전송 차단: roomId={}", request.getAiGameRoomId());
+                return;
+            }
+
+            // 세션 유효성 검증
+            if (!aiGameStateService.isSessionValid(request.getAiGameRoomId())) {
+                log.warn("유효하지 않은 게임 세션: roomId={}", request.getAiGameRoomId());
+                return;
+            }
+
+            // 메시지 처리
+            processMessage(request);
+
+            // 세션 만료 시간 연장
+            aiGameStateService.extendSession(request.getAiGameRoomId());
+
+            AiChatLogUtils.logGameAction("AI 채팅 메시지 처리", request.getAiGameRoomId(), 
+                                      request.getSenderId(), request.getMessageType());
+        }, "AI 채팅 메시지 처리", request.getAiGameRoomId());
+        
+        // 사용자 메시지인 경우 AI 응답 자동 트리거
+        triggerAiResponseIfNeeded(request);
+        
+        return RsData.of("200", "메시지 전송 완료", null);
+    }
+    
+    /**
+     * 필요시 AI 응답 트리거 (비즈니스 로직)
+     */
+    private void triggerAiResponseIfNeeded(AiGameMessageSendRequest request) {
+        if (request.getMessageType() != AiMessageType.USER) {
+            return; // USER 타입이 아니면 AI 트리거 안 함
+        }
+        
+        try {
+            AiGenerateRequest aiRequest = new AiGenerateRequest();
+            aiRequest.setGameId(request.getGameId());
+            aiRequest.setCurrentUser(request.getSenderId());
+            aiRequest.setCurrentMessage(request.getContent());
+            aiRequest.setTurnNumber(request.getTurnNumber());
+                    
+            log.info("AI 응답 자동 트리거: roomId={}, user={}, turn={}", 
+                     request.getAiGameRoomId(), request.getSenderId(), request.getTurnNumber());
+                     
+            eventPublisher.publishEvent(new AiTurnProcessEvent(request.getAiGameRoomId(), aiRequest));
+            
+        } catch (Exception e) {
+            log.error("AI 응답 자동 트리거 실패: roomId={}, error={}", 
+                     request.getAiGameRoomId(), e.getMessage(), e);
+            // 예외를 다시 던지지 않음 - 메시지 전송은 성공했으므로
+        }
+    }
 
     /**
      * AI 채팅방 입장 처리 (컨트롤러 단순화용)
      */
     @Transactional
-    public void handleJoinRoom(AiGameMessageSendRequest request) {
+    public RsData<String> handleJoinRoom(AiGameMessageSendRequest request) {
         try {
             // 입장 시스템 메시지 생성
             request.setContent(request.getSenderNickname() + "님이 AI 게임에 참여했습니다.");
@@ -60,15 +132,16 @@ public class AiGameMessageService {
 
             log.info("AI 채팅방 입장 완료: roomId={}, participant={}", 
                      request.getAiGameRoomId(), request.getSenderId());
+            return RsData.of("200", "게임방 입장 완료", null);
 
         } catch (AiChatException e) {
             log.error("AI 채팅방 입장 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
                       request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
-            throw e;
+            return RsData.of("400", "게임방 입장 실패: " + e.getMessage(), null);
         } catch (Exception e) {
             log.error("예상치 못한 AI 채팅방 입장 오류: roomId={}, error={}", 
                       request.getAiGameRoomId(), e.getMessage(), e);
-            throw new AiChatException(ErrorCode.AI_RESPONSE_PROCESSING_ERROR, "AI 채팅방 입장 중 오류 발생");
+            return RsData.of("500", "게임방 입장 중 오류 발생", null);
         }
     }
 
@@ -76,7 +149,7 @@ public class AiGameMessageService {
      * AI 채팅방 퇴장 처리 (컨트롤러 단순화용)
      */
     @Transactional
-    public void handleLeaveRoom(AiGameMessageSendRequest request) {
+    public RsData<String> handleLeaveRoom(AiGameMessageSendRequest request) {
         try {
             // 퇴장 시스템 메시지 생성
             request.setContent(request.getSenderNickname() + "님이 AI 게임에서 나갔습니다.");
@@ -87,15 +160,16 @@ public class AiGameMessageService {
 
             log.info("AI 채팅방 퇴장 완료: roomId={}, participant={}", 
                      request.getAiGameRoomId(), request.getSenderId());
+            return RsData.of("200", "게임방 퇴장 완료", null);
 
         } catch (AiChatException e) {
             log.error("AI 채팅방 퇴장 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
                       request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
-            throw e;
+            return RsData.of("400", "게임방 퇴장 실패: " + e.getMessage(), null);
         } catch (Exception e) {
             log.error("예상치 못한 AI 채팅방 퇴장 오류: roomId={}, error={}", 
                       request.getAiGameRoomId(), e.getMessage(), e);
-            throw new AiChatException(ErrorCode.AI_RESPONSE_PROCESSING_ERROR, "AI 채팅방 퇴장 중 오류 발생");
+            return RsData.of("500", "게임방 퇴장 중 오류 발생", null);
         }
     }
 
@@ -103,7 +177,7 @@ public class AiGameMessageService {
      * AI 게임 턴 시작 처리 (컨트롤러 단순화용)
      */
     @Transactional
-    public void handleStartTurn(AiGameMessageSendRequest request) {
+    public RsData<String> handleStartTurn(AiGameMessageSendRequest request) {
         try {
             request.setMessageType(AiMessageType.TURN_START);
             request.setSenderId(SYSTEM_SENDER_ID);
@@ -113,15 +187,16 @@ public class AiGameMessageService {
 
             log.info("AI 게임 턴 시작: roomId={}, turn={}", 
                      request.getAiGameRoomId(), request.getTurnNumber());
+            return RsData.of("200", "턴 시작 완료", null);
 
         } catch (AiChatException e) {
             log.error("AI 게임 턴 시작 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
                       request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
-            throw e;
+            return RsData.of("400", "턴 시작 실패: " + e.getMessage(), null);
         } catch (Exception e) {
             log.error("예상치 못한 AI 게임 턴 시작 오류: roomId={}, error={}", 
                       request.getAiGameRoomId(), e.getMessage(), e);
-            throw new AiChatException(ErrorCode.AI_RESPONSE_PROCESSING_ERROR, "AI 게임 턴 시작 중 오류 발생");
+            return RsData.of("500", "턴 시작 중 오류 발생", null);
         }
     }
 
@@ -129,7 +204,7 @@ public class AiGameMessageService {
      * AI 게임 턴 종료 처리 (컨트롤러 단순화용)
      */
     @Transactional
-    public void handleEndTurn(AiGameMessageSendRequest request, AiGameStateService aiGameStateService) {
+    public RsData<String> handleEndTurn(AiGameMessageSendRequest request) {
         try {
             request.setMessageType(AiMessageType.TURN_END);
             request.setSenderId(SYSTEM_SENDER_ID);
@@ -142,15 +217,16 @@ public class AiGameMessageService {
 
             log.info("AI 게임 턴 종료: roomId={}, turn={}", 
                      request.getAiGameRoomId(), request.getTurnNumber());
+            return RsData.of("200", "턴 종료 완료", null);
 
         } catch (AiChatException e) {
             log.error("AI 게임 턴 종료 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
                       request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
-            throw e;
+            return RsData.of("400", "턴 종료 실패: " + e.getMessage(), null);
         } catch (Exception e) {
             log.error("예상치 못한 AI 게임 턴 종료 오류: roomId={}, error={}", 
                       request.getAiGameRoomId(), e.getMessage(), e);
-            throw new AiChatException(ErrorCode.AI_RESPONSE_PROCESSING_ERROR, "AI 게임 턴 종료 중 오류 발생");
+            return RsData.of("500", "턴 종료 중 오류 발생", null);
         }
     }
 
@@ -213,11 +289,14 @@ public class AiGameMessageService {
         AiGameMessage saved = aiGameMessageRepository.save(message);
         
         // 게임방 마지막 활동 시간 업데이트
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
         aiGameRoomRepository.save(room);
 
         log.info("사용자 메시지 저장 완료: roomId={}, sender={}, turn={}", 
                  request.getAiGameRoomId(), request.getSenderId(), request.getTurnNumber());
+
+        // TODO: AI 응답 트리거는 별도 컴포넌트에서 처리
+        // (순환 의존성 방지를 위해 직접 호출하지 않음)
 
         return AiGameMessageDto.fromEntity(saved);
     }
@@ -242,8 +321,6 @@ public class AiGameMessageService {
                 .messageType(AiMessageType.AI)
                 .turnNumber(request.getTurnNumber())
                 .messageOrder(nextMessageOrder)
-                .aiResponseTime(request.getResponseTime())
-                .aiSources(request.getAiSources())
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -263,7 +340,7 @@ public class AiGameMessageService {
         }
 
         log.info("AI 메시지 저장 완료: roomId={}, turn={}, responseTime={}ms", 
-                 request.getAiGameRoomId(), request.getTurnNumber(), request.getResponseTime());
+                 request.getAiGameRoomId(), request.getTurnNumber());
 
         return messageDto;
     }
@@ -281,8 +358,6 @@ public class AiGameMessageService {
                 .gameId(gameId)
                 .content(content)
                 .turnNumber(turnNumber)
-                .responseTime(responseTime)
-                .aiSources(aiSources)
                 .build();
         
         return saveAiMessage(request);
@@ -436,8 +511,16 @@ public class AiGameMessageService {
      */
     private void updateRoomLastActivity(String aiGameRoomId) {
         AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
         aiGameRoomRepository.save(room);
     }
+
+    /**
+     * AI 턴 처리 (Controller에서 호출)
+     */
+    public void processAiTurn(String aiGameRoomId, AiGenerateRequest aiRequest) {
+        eventPublisher.publishEvent(new AiTurnProcessEvent(aiGameRoomId, aiRequest));
+    }
+
 
 }

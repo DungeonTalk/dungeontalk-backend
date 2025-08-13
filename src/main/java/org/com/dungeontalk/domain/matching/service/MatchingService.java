@@ -21,7 +21,7 @@ import org.com.dungeontalk.domain.matching.dto.response.MatchingCompleteResponse
 import org.com.dungeontalk.domain.matching.dto.response.MatchingStatusResponse;
 import org.com.dungeontalk.domain.matching.dto.response.QueueStatsResponse;
 import org.com.dungeontalk.domain.matching.dto.response.WorldQueueInfo;
-import org.com.dungeontalk.domain.matching.exception.MatchingException;
+import org.com.dungeontalk.global.exception.customException.AiChatException;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.util.UuidV7Creator;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
 @Slf4j
 @Service
@@ -57,7 +59,7 @@ public class MatchingService {
             log.info("WebSocket 매칭 참가 요청: memberId={}, worldType={}", memberId, worldType);
             joinMatching(memberId, worldType);
             
-        } catch (MatchingException e) {
+        } catch (AiChatException e) {
             log.error("WebSocket 매칭 참가 중 매칭 오류: memberId={}, error={}", memberId, e.getMessage());
             webSocketService.sendError(memberId, e.getMessage());
         } catch (Exception e) {
@@ -88,7 +90,7 @@ public class MatchingService {
 
         // 1. 중복 참가 체크
         if (queueManager.isUserInQueue(memberId)) {
-            throw new MatchingException(ErrorCode.MATCHING_USER_ALREADY_IN_QUEUE);
+            throw new AiChatException(ErrorCode.MATCHING_USER_ALREADY_IN_QUEUE);
         }
 
         try {
@@ -118,7 +120,7 @@ public class MatchingService {
 
         } catch (Exception e) {
             log.error("매칭 참가 중 오류 발생: memberId={}, worldType={}", memberId, worldType, e);
-            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, e.getMessage());
+            throw new AiChatException(ErrorCode.MATCHING_PROCESSING_ERROR, e.getMessage());
         }
     }
 
@@ -167,7 +169,7 @@ public class MatchingService {
         Map<Object, Object> userInfo = queueManager.getUserMatchingInfo(memberId);
         
         if (userInfo.isEmpty()) {
-            throw new MatchingException(ErrorCode.MATCHING_USER_NOT_IN_QUEUE);
+            throw new AiChatException(ErrorCode.MATCHING_USER_NOT_IN_QUEUE);
         }
 
         String worldTypeName = (String) userInfo.get("worldType");
@@ -286,7 +288,7 @@ public class MatchingService {
 
         } catch (Exception e) {
             log.error("매칭 처리 중 오류 발생: worldType={}", worldType, e);
-            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, e.getMessage());
+            throw new AiChatException(ErrorCode.MATCHING_PROCESSING_ERROR, e.getMessage());
         }
         
         } finally {
@@ -310,12 +312,8 @@ public class MatchingService {
                 .append(worldType.getDisplayName())
                 .append(" 랜덤 매칭")
                 .toString());
-        request.setDescription(new StringBuilder()
-                .append("랜덤 매칭으로 생성된 ")
-                .append(worldType.getDisplayName())
-                .append(" 게임방")
-                .toString());
-        request.setMaxParticipants(3);
+        // description 필드 제거됨
+        request.setMaxParticipants(DEFAULT_MAX_PARTICIPANTS);
         request.setGameSettings(worldType.getGameSettings());
         request.setCreatorId(participants.get(0)); // 첫 번째 사용자를 생성자로
 
@@ -422,8 +420,7 @@ public class MatchingService {
             UnifiedRoomRequest aiRoomRequest = UnifiedRoomRequest.builder()
                     .roomType(RoomType.AI_GAME)
                     .roomName(worldType.getDisplayName() + " 랜덤 매칭")
-                    .description("랜덤 매칭으로 생성된 " + worldType.getDisplayName() + " 게임방")
-                    .maxParticipants(3)
+                    .maxParticipants(DEFAULT_MAX_PARTICIPANTS)
                     .creatorId(participants.get(0))
                     .participantIds(participants)
                     .gameId(gameSessionId)
@@ -437,7 +434,7 @@ public class MatchingService {
             UnifiedRoomRequest chatRoomRequest = UnifiedRoomRequest.builder()
                     .roomType(RoomType.PLAYER_CHAT)
                     .roomName(worldType.getDisplayName() + " 채팅방")
-                    .maxParticipants(3)
+                    .maxParticipants(DEFAULT_MAX_PARTICIPANTS)
                     .creatorId(participants.get(0))
                     .participantIds(participants)
                     .chatMode(ChatMode.MULTI)
@@ -452,7 +449,7 @@ public class MatchingService {
             
         } catch (Exception e) {
             log.error("통합 룸 생성 중 오류 발생: gameSessionId={}", gameSessionId, e);
-            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, "룸 생성 실패: " + e.getMessage());
+            throw new AiChatException(ErrorCode.MATCHING_PROCESSING_ERROR, "룸 생성 실패: " + e.getMessage());
         }
     }
 
@@ -511,7 +508,7 @@ public class MatchingService {
 
         } catch (Exception e) {
             log.error("통합 룸 기반 매칭 처리 중 오류 발생: worldType={}", worldType, e);
-            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, e.getMessage());
+            throw new AiChatException(ErrorCode.MATCHING_PROCESSING_ERROR, e.getMessage());
         }
         
         } finally {

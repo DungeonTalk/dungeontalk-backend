@@ -10,7 +10,8 @@ import org.com.dungeontalk.global.util.UuidV7Creator;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 
 @MappedSuperclass
 @Getter
@@ -28,10 +29,10 @@ public class BaseEntity {
     private String id;
 
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     // UUID 자동 할당
     @PrePersist

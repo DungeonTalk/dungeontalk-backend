@@ -46,14 +46,15 @@ public class AiGameRoomServiceAdapter implements RoomService {
             throw new IllegalArgumentException("AI 게임룸이 아닌 요청입니다: " + request.getRoomType());
         }
         
-        // UnifiedRoomRequest -> AiGameRoomCreateRequest 변환
-        AiGameRoomCreateRequest aiRequest = new AiGameRoomCreateRequest();
-        aiRequest.setGameId(request.getGameId());
-        aiRequest.setRoomName(request.getRoomName());
-        aiRequest.setDescription(request.getDescription());
-        aiRequest.setMaxParticipants(request.getMaxParticipants() != null ? request.getMaxParticipants() : 3);
-        aiRequest.setGameSettings(request.getGameSettings());
-        aiRequest.setCreatorId(request.getCreatorId());
+        // UnifiedRoomRequest -> AiGameRoomCreateRequest 변환 (빌더 패턴 사용)
+        AiGameRoomCreateRequest aiRequest = AiGameRoomCreateRequest.builder()
+                .gameId(request.getGameId())
+                .roomName(request.getRoomName())
+                // description 필드 제거됨
+                .maxParticipants(request.getMaxParticipants() != null ? request.getMaxParticipants() : 3)
+                .gameSettings(request.getGameSettings())
+                .creatorId(request.getCreatorId())
+                .build();
         
         // 기존 서비스 호출
         AiGameRoomResponse aiResponse = aiGameRoomService.createAiGameRoom(aiRequest);
@@ -63,10 +64,11 @@ public class AiGameRoomServiceAdapter implements RoomService {
             for (String participantId : request.getParticipantIds()) {
                 if (!participantId.equals(request.getCreatorId())) {
                     try {
-                        AiGameRoomJoinRequest joinReq = new AiGameRoomJoinRequest();
-                        joinReq.setAiGameRoomId(aiResponse.getId());
-                        joinReq.setParticipantId(participantId);
-                        joinReq.setParticipantNickname(participantId); // 기본값으로 ID 사용
+                        AiGameRoomJoinRequest joinReq = AiGameRoomJoinRequest.builder()
+                                .aiGameRoomId(aiResponse.getId())
+                                .participantId(participantId)
+                                .participantNickname(participantId) // 기본값으로 ID 사용
+                                .build();
                         aiGameRoomService.joinAiGameRoom(joinReq);
                     } catch (Exception e) {
                         log.warn("참여자 추가 실패: participantId={}, error={}", participantId, e.getMessage());
@@ -113,10 +115,11 @@ public class AiGameRoomServiceAdapter implements RoomService {
     public UnifiedRoomResponse joinRoom(String roomId, String memberId) {
         log.info("AI 게임룸 참여 (어댑터): roomId={}, memberId={}", roomId, memberId);
         
-        AiGameRoomJoinRequest joinRequest = new AiGameRoomJoinRequest();
-        joinRequest.setAiGameRoomId(roomId);
-        joinRequest.setParticipantId(memberId);
-        joinRequest.setParticipantNickname(memberId); // 기본값으로 ID 사용
+        AiGameRoomJoinRequest joinRequest = AiGameRoomJoinRequest.builder()
+                .aiGameRoomId(roomId)
+                .participantId(memberId)
+                .participantNickname(memberId) // 기본값으로 ID 사용
+                .build();
         
         AiGameRoomResponse aiResponse = aiGameRoomService.joinAiGameRoom(joinRequest);
         return UnifiedRoomResponse.fromAiGameRoom(aiResponse);
