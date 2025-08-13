@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -31,35 +33,46 @@ public class ValkeyService {
         sessionRedis.opsForValue().set(key, value);
     }
 
-    public Map<String, String> getAllSessionKeyValues() {
-        Set<String> keys = sessionRedis.keys("*");  // 모든 키 조회
-        Map<String, String> result = new HashMap<>();
+    // 모든 키-값 조회
+    public Map<String, Instant> getAllSessionKeyValues() {
+        Set<String> keys = sessionRedis.keys("*");
+        Map<String, Instant> result = new HashMap<>();
 
         if (keys != null && !keys.isEmpty()) {
             for (String key : keys) {
-                String value = sessionRedis.opsForValue().get(key);  // String 타입 값 조회
-                result.put(key, value);
+                String valueStr = sessionRedis.opsForValue().get(key);
+                if (valueStr != null) {
+                    try {
+                        Instant value = Instant.parse(valueStr);
+                        result.put(key, value);
+                    } catch (DateTimeParseException e) {
+                        // 파싱 불가능한 값은 무시하거나 로그 처리
+                        System.out.println("Invalid Instant format for key: " + key + ", value: " + valueStr);
+                    }
+                }
             }
         }
-
         return result;
     }
 
-    // Redis 세션에 저장된 test키 모두 조회
-    public Map<String, String> getAllTestKeySessionData() {
-        String pattern = "test-key*";  // test-key로 시작하는 모든 키 조회
-        Set<String> keys = sessionRedis.keys(pattern);
-        Map<String, String> result = new HashMap<>();
-
-        if (keys != null) {
-            for (String key : keys) {
-                String value = sessionRedis.opsForValue().get(key);  // String 타입 값 조회
-                result.put(key, value);
-            }
-        }
-
-        return result;
-    }
+    /* DEPRECATED CODE */
+//    public Map<String, String> getAllSessionKeyValues() {
+//        Set<String> keys = sessionRedis.keys("*");  // 모든 키 조회
+//        Map<String, String> result = new HashMap<>();
+//
+//        if (keys != null && !keys.isEmpty()) {
+//            for (String key : keys) {
+//                String  valueStr  = sessionRedis.opsForValue().get(key);  // String 타입 값 조회
+//                if ( valueStr  != null) {
+//                    Instant value = Instant.parse( valueStr );  // String -> Instant 변환
+//                    result.put(key, value);
+//                }
+//                // result.put(key, value);
+//            }
+//        }
+//
+//        return result;
+//    }
 
 
     public Set<String> getAllSessionKeys() {

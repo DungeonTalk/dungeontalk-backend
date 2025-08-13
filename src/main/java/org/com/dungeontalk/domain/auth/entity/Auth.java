@@ -1,14 +1,13 @@
 package org.com.dungeontalk.domain.auth.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.global.common.entity.BaseEntity;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "auth")
@@ -19,12 +18,6 @@ import java.time.LocalDateTime;
 @SuperBuilder
 public class Auth extends BaseEntity {
 
-//    @EmbeddedId
-//    private AuthId authId;
-    // ManyToOne으로 member 참조 (member_id 필드와 연동)
-    //@MapsId("memberId") // AuthId.memberId와 매핑
-
-    //@JoinColumn(name = "member_id", insertable = false, updatable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")  // insertable/updatable 옵션 제거
     private Member member;
@@ -41,12 +34,4 @@ public class Auth extends BaseEntity {
 
     @Column(name = "refresh_token", columnDefinition = "text")
     private String refreshToken;
-
-//    @CreationTimestamp
-//    @Column(name = "created_at", updatable = false)
-//    private LocalDateTime createdAt;
-//
-//    @UpdateTimestamp
-//    @Column(name = "updated_at")
-//    private LocalDateTime updatedAt;
 }
