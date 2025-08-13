@@ -52,21 +52,21 @@ public class MatchingRoomFactory {
     /**
      * 채팅방 생성
      */
-    public ChatRoomDto createChatRoom(RoomCreationContext context) {
-        log.debug("채팅방 생성 시작: sessionId={}, worldType={}", 
-                 context.getGameSessionId(), context.getWorldType());
-        
-        ChatRoomCreateRequestDto request = new ChatRoomCreateRequestDto();
-        request.setRoomName(buildChatRoomName(context.getWorldType()));
-        request.setMode(ChatMode.MULTI);
-        request.setParticipantIds(context.getParticipants());
-        
-        ChatRoomDto response = chatRoomService.createRoom(request);
-        
-        log.info("채팅방 생성 완료: roomId={}, sessionId={}", 
-                response.getId(), context.getGameSessionId());
-        return response;
-    }
+//    public ChatRoomDto createChatRoom(RoomCreationContext context) {
+//        log.debug("채팅방 생성 시작: sessionId={}, worldType={}",
+//                 context.getGameSessionId(), context.getWorldType());
+//
+//        ChatRoomCreateRequestDto request = new ChatRoomCreateRequestDto();
+//        request.setRoomName(buildChatRoomName(context.getWorldType()));
+//        request.setMode(ChatMode.MULTI);
+//        request.setParticipantIds(context.getParticipants());
+//
+//        ChatRoomDto response = chatRoomService.createRoom(request);
+//
+//        log.info("채팅방 생성 완료: roomId={}, sessionId={}",
+//                response.getId(), context.getGameSessionId());
+//        return response;
+//    }
     
     /**
      * AI 게임방 이름 생성
