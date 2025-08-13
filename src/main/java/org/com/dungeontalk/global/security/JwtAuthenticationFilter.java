@@ -31,7 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 "/v1/valkey/session/keys",
                 "/v1/valkey/session/all",
                 "/v1/auth/refresh",
-                "/v1/valkey/session/test/save"
+                "/v1/valkey/session/test/save",
+                "/dungeon-game.html",
+                "/ws-chat"
         );
 
         // 요청 경로가 publicApis 목록 중 하나로 시작하면 true 반환

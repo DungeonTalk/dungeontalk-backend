@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.matching.common.MatchingConstants;
 import org.com.dungeontalk.domain.matching.common.MatchingStatus;
 import org.com.dungeontalk.domain.matching.common.WorldType;
-import org.com.dungeontalk.domain.matching.exception.MatchingException;
+import org.com.dungeontalk.global.exception.customException.AiChatException;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.QueryTimeoutException;
@@ -254,15 +254,15 @@ public class MatchingQueueManager {
         } catch (QueryTimeoutException e) {
             log.error("큐 정리 중 타임아웃 발생: worldType={}", worldType, e);
             // 타임아웃 시 재시도나 부분 정리 전략 고려
-            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, "큐 정리 타임아웃: " + e.getMessage());
+            throw new AiChatException(ErrorCode.MATCHING_PROCESSING_ERROR, "큐 정리 타임아웃: " + e.getMessage());
         } catch (DataAccessException e) {
             log.error("큐 정리 중 Redis 액세스 오류 발생: worldType={}", worldType, e);
             // Redis 연결 문제 시 예외 전파
-            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, "Redis 액세스 오류: " + e.getMessage());
+            throw new AiChatException(ErrorCode.MATCHING_PROCESSING_ERROR, "Redis 액세스 오류: " + e.getMessage());
         } catch (Exception e) {
             log.error("큐 정리 중 예상치 못한 오류 발생: worldType={}", worldType, e);
             // 기타 예외도 전파하여 호출자가 적절히 처리할 수 있도록 함
-            throw new MatchingException(ErrorCode.MATCHING_PROCESSING_ERROR, "큐 정리 오류: " + e.getMessage());
+            throw new AiChatException(ErrorCode.MATCHING_PROCESSING_ERROR, "큐 정리 오류: " + e.getMessage());
         }
         
         // 큐와 통계 데이터 삭제

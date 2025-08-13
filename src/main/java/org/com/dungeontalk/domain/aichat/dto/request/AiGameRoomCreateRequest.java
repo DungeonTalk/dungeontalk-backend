@@ -1,6 +1,9 @@
 package org.com.dungeontalk.domain.aichat.dto.request;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import jakarta.validation.constraints.Max;
@@ -9,6 +12,9 @@ import jakarta.validation.constraints.NotBlank;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AiGameRoomCreateRequest {
 
     @NotBlank(message = "게임 ID는 필수입니다")
@@ -18,7 +24,8 @@ public class AiGameRoomCreateRequest {
     private String roomName;
 
     @Min(value = 1, message = "최대 참여자는 최소 1명 이상이어야 합니다")
-    @Max(value = 5, message = "최대 참여자는 5명을 초과할 수 없습니다")
+    @Max(value = 4, message = "최대 참여자는 4명을 초과할 수 없습니다")
+    @Builder.Default
     private int maxParticipants = 3;
 
     private String gameSettings;

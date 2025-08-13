@@ -60,7 +60,6 @@ public class AiGameStateService {
         // MongoDB에서 게임 상태 변경
         room.setStatus(AiGameStatus.ACTIVE);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
-        // lastActivity 필드 제거됨
 
         AiGameRoom saved = aiGameRoomRepository.save(room);
         log.info("🎮 게임방 상태 변경 완료: roomId={}, newStatus={}, newPhase={}", 
@@ -95,7 +94,6 @@ public class AiGameStateService {
         }
 
         room.setCurrentPhase(newPhase);
-        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -119,7 +117,6 @@ public class AiGameStateService {
         int newTurn = room.getCurrentTurn() + 1;
         room.setCurrentTurn(newTurn);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
-        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -167,7 +164,6 @@ public class AiGameStateService {
 
         room.setStatus(AiGameStatus.COMPLETED);
         room.setCurrentPhase(AiGamePhase.GAME_END);
-        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -192,7 +188,6 @@ public class AiGameStateService {
         }
 
         room.setStatus(AiGameStatus.PAUSED);
-        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -216,7 +211,6 @@ public class AiGameStateService {
 
         room.setStatus(AiGameStatus.ACTIVE);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
-        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -254,28 +248,14 @@ public class AiGameStateService {
     }
 
     /**
-     * 비활성 게임 정리
+     * 비활성 게임 정리 (lastActivity 필드 제거로 인해 임시 비활성화)
+     * TODO: createdAt 기반 또는 다른 방식으로 비활성 게임 정리 로직 재구현 필요
      */
     @Transactional
     public void cleanupInactiveGames(int hoursAgo) {
-        LocalDateTime cutoffTime = LocalDateTime.now().minusHours(hoursAgo);
-        List<AiGameRoom> inactiveRooms = aiGameRoomRepository.findByLastActivityBefore(cutoffTime);
-
-        for (AiGameRoom room : inactiveRooms) {
-            if (room.getStatus() == AiGameStatus.ACTIVE || room.getStatus() == AiGameStatus.PAUSED) {
-                room.setStatus(AiGameStatus.COMPLETED);
-                room.setCurrentPhase(AiGamePhase.GAME_END);
-                        
-                // Valkey 정리
-                String sessionKey = AI_GAME_SESSION_PREFIX + room.getId();
-                String lockKey = AI_GAME_TURN_LOCK_PREFIX + room.getId();
-                valkeyService.delete(sessionKey);
-                valkeyService.delete(lockKey);
-            }
-        }
-
-        aiGameRoomRepository.saveAll(inactiveRooms);
-        log.info("비활성 AI 게임 정리 완료: {} 개 게임방", inactiveRooms.size());
+        log.info("비활성 게임 정리 기능이 임시 비활성화됨 (lastActivity 필드 제거로 인해)");
+        // 임시적으로 메서드를 비활성화
+        // 향후 createdAt 또는 다른 필드 기반으로 재구현 예정
     }
 
     private String createSessionData(AiGameRoom room) {
