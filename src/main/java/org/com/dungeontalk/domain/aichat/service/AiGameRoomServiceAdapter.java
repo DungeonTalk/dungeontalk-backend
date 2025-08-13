@@ -50,7 +50,7 @@ public class AiGameRoomServiceAdapter implements RoomService {
         AiGameRoomCreateRequest aiRequest = new AiGameRoomCreateRequest();
         aiRequest.setGameId(request.getGameId());
         aiRequest.setRoomName(request.getRoomName());
-        aiRequest.setDescription(request.getDescription());
+        // description 필드 제거됨
         aiRequest.setMaxParticipants(request.getMaxParticipants() != null ? request.getMaxParticipants() : 3);
         aiRequest.setGameSettings(request.getGameSettings());
         aiRequest.setCreatorId(request.getCreatorId());

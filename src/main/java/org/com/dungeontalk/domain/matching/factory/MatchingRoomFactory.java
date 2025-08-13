@@ -37,7 +37,7 @@ public class MatchingRoomFactory {
         AiGameRoomCreateRequest request = new AiGameRoomCreateRequest();
         request.setGameId(context.getGameSessionId());
         request.setRoomName(buildAiGameRoomName(context.getWorldType()));
-        request.setDescription(buildAiGameRoomDescription(context.getWorldType()));
+        // description 필드 제거됨
         request.setMaxParticipants(MatchingConstants.REQUIRED_PARTICIPANTS);
         request.setGameSettings(context.getWorldType().getGameSettings());
         request.setCreatorId(selectCreator(context.getParticipants()));

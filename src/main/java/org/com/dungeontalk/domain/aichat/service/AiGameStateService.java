@@ -60,7 +60,7 @@ public class AiGameStateService {
         // MongoDB에서 게임 상태 변경
         room.setStatus(AiGameStatus.ACTIVE);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
 
         AiGameRoom saved = aiGameRoomRepository.save(room);
         log.info("🎮 게임방 상태 변경 완료: roomId={}, newStatus={}, newPhase={}", 
@@ -95,7 +95,7 @@ public class AiGameStateService {
         }
 
         room.setCurrentPhase(newPhase);
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -119,7 +119,7 @@ public class AiGameStateService {
         int newTurn = room.getCurrentTurn() + 1;
         room.setCurrentTurn(newTurn);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -167,7 +167,7 @@ public class AiGameStateService {
 
         room.setStatus(AiGameStatus.COMPLETED);
         room.setCurrentPhase(AiGamePhase.GAME_END);
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -192,7 +192,7 @@ public class AiGameStateService {
         }
 
         room.setStatus(AiGameStatus.PAUSED);
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 
@@ -216,7 +216,7 @@ public class AiGameStateService {
 
         room.setStatus(AiGameStatus.ACTIVE);
         room.setCurrentPhase(AiGamePhase.TURN_INPUT);
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
 
         aiGameRoomRepository.save(room);
 

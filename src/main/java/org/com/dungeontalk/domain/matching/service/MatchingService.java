@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -310,12 +312,8 @@ public class MatchingService {
                 .append(worldType.getDisplayName())
                 .append(" 랜덤 매칭")
                 .toString());
-        request.setDescription(new StringBuilder()
-                .append("랜덤 매칭으로 생성된 ")
-                .append(worldType.getDisplayName())
-                .append(" 게임방")
-                .toString());
-        request.setMaxParticipants(3);
+        // description 필드 제거됨
+        request.setMaxParticipants(DEFAULT_MAX_PARTICIPANTS);
         request.setGameSettings(worldType.getGameSettings());
         request.setCreatorId(participants.get(0)); // 첫 번째 사용자를 생성자로
 
@@ -422,8 +420,7 @@ public class MatchingService {
             UnifiedRoomRequest aiRoomRequest = UnifiedRoomRequest.builder()
                     .roomType(RoomType.AI_GAME)
                     .roomName(worldType.getDisplayName() + " 랜덤 매칭")
-                    .description("랜덤 매칭으로 생성된 " + worldType.getDisplayName() + " 게임방")
-                    .maxParticipants(3)
+                    .maxParticipants(DEFAULT_MAX_PARTICIPANTS)
                     .creatorId(participants.get(0))
                     .participantIds(participants)
                     .gameId(gameSessionId)
@@ -437,7 +434,7 @@ public class MatchingService {
             UnifiedRoomRequest chatRoomRequest = UnifiedRoomRequest.builder()
                     .roomType(RoomType.PLAYER_CHAT)
                     .roomName(worldType.getDisplayName() + " 채팅방")
-                    .maxParticipants(3)
+                    .maxParticipants(DEFAULT_MAX_PARTICIPANTS)
                     .creatorId(participants.get(0))
                     .participantIds(participants)
                     .chatMode(ChatMode.MULTI)
