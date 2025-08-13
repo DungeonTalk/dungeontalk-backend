@@ -44,9 +44,14 @@ public enum ErrorCode {
     MATCHING_USER_ALREADY_IN_QUEUE("400-MT01", "이미 매칭 대기 중입니다"),
     MATCHING_QUEUE_FULL("400-MT02", "매칭 대기열이 가득 찼습니다"),
     MATCHING_USER_NOT_IN_QUEUE("404-MT03", "매칭 대기 중이 아닙니다"),
-    MATCHING_PROCESSING_ERROR("500-MT04", "매칭 처리 중 오류가 발생했습니다");
+    MATCHING_PROCESSING_ERROR("500-MT04", "매칭 처리 중 오류가 발생했습니다"),
 
-
+    /* 채팅 관련 : 4xx */
+    CHAT_ROOM_NOT_FOUND("404-CH01", "채팅방을 찾을 수 없습니다."),
+    CHAT_MEMBER_NOT_FOUND("404-CH02", "사용자 정보를 찾을 수 없습니다."),
+    CHAT_CAPACITY_EXCEEDED("409-CH03", "채팅방 정원을 초과했습니다."),
+    CHAT_INVALID_MESSAGE_TYPE("400-CH04", "유효하지 않은 메시지 타입입니다."),
+    CHAT_INVALID_PAYLOAD("400-CH05", "메시지 페이로드가 유효하지 않습니다.");
 
     private final String errorCode;
     private final String message;
