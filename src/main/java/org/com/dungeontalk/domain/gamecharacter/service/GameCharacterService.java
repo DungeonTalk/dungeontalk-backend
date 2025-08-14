@@ -55,8 +55,12 @@ public class GameCharacterService {
                 .orElseThrow(() -> new IllegalArgumentException("Character not found: " + id));
     }
 
-    public List<GameCharacter> findByMemberId(String memberId) {
-        return gameCharacterRepository.findByMemberId(memberId);
+    public GameCharacter findByMemberId(String memberId) {
+        var characters = gameCharacterRepository.findByMemberId(memberId);
+        if (characters.isEmpty()) {
+            throw new IllegalArgumentException("Character not found for member: " + memberId);
+        }
+        return characters.get(0); // MVP: 첫 번째 캐릭터 반환
     }
 
     public GameCharacterDetailResponse findDetailById(String id) {

@@ -1,6 +1,7 @@
 package org.com.dungeontalk.domain.stat.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.com.dungeontalk.domain.gamecharacter.repository.GameCharacterRepository;
 import org.com.dungeontalk.domain.stat.entity.RaceStats;
 import org.com.dungeontalk.domain.stat.repository.RaceStatsRepository;
 import org.springframework.context.annotation.Profile;
@@ -15,6 +16,7 @@ import java.util.List;
 public class DataInitController {
 
     private final RaceStatsRepository raceStatsRepository;
+    private final GameCharacterRepository gameCharacterRepository;
 
     // 기존 데이터 모두 삭제
     @DeleteMapping("/race-stats")
@@ -68,5 +70,31 @@ public class DataInitController {
     @GetMapping("/race-stats")
     public List<RaceStats> getAllRaceStats() {
         return raceStatsRepository.findAll();
+    }
+
+    // 캐릭터 데이터 모두 삭제
+    @DeleteMapping("/characters")
+    public String clearCharacters() {
+        long count = gameCharacterRepository.count();
+        gameCharacterRepository.deleteAll();
+        return "삭제된 Character 데이터: " + count + "개";
+    }
+
+    // 모든 테스트 데이터 초기화 (권장 순서)
+    @PostMapping("/all")
+    public String initializeAllData() {
+        // 1. 기존 캐릭터 삭제
+        long characterCount = gameCharacterRepository.count();
+        gameCharacterRepository.deleteAll();
+        
+        // 2. 기존 종족 스탯 삭제
+        long raceStatsCount = raceStatsRepository.count();
+        raceStatsRepository.deleteAll();
+        
+        // 3. 새로운 종족 스탯 생성
+        createTestRaceStats();
+        
+        return String.format("데이터 초기화 완료 - 삭제된 캐릭터: %d개, 삭제된 종족 스탯: %d개, 새로 생성된 종족 스탯: 3개", 
+                            characterCount, raceStatsCount);
     }
 }

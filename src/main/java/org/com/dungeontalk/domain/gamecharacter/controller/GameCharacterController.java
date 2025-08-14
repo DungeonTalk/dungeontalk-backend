@@ -27,19 +27,24 @@ public class GameCharacterController {
         return GameCharacterResponse.from(character);
     }
 
-    // 특정 캐릭터 상세 정보 조회 (캐릭터 상세 화면에서 사용)
+    // 특정 캐릭터 기본 정보 조회 (계산된 스탯 없이)
+    @GetMapping("/basic/{id}")
+    public GameCharacterResponse getCharacterBasic(@PathVariable String id) {
+        var character = gameCharacterService.findById(id);
+        return GameCharacterResponse.from(character);
+    }
+
+    // 특정 캐릭터 상세 정보 조회 (계산된 스탯 포함)
     @GetMapping("/{id}")
-    public GameCharacterDetailResponse getCharacter(@PathVariable String id) {
+    public GameCharacterDetailResponse getCharacterDetail(@PathVariable String id) {
         return gameCharacterService.findDetailById(id);
     }
 
-    // 특정 멤버가 소유한 모든 캐릭터 목록 조회 (캐릭터 선택 화면에서 사용)
+    // 특정 멤버의 캐릭터 조회 (MVP: 1개 멤버당 1개 캐릭터)
     @GetMapping
-    public List<GameCharacterResponse> getCharactersByMember(@RequestParam String memberId) {
-        var characters = gameCharacterService.findByMemberId(memberId);
-        return characters.stream()
-                .map(GameCharacterResponse::from)
-                .toList();
+    public GameCharacterResponse getCharacterByMember(@RequestParam String memberId) {
+        var character = gameCharacterService.findByMemberId(memberId);
+        return GameCharacterResponse.from(character);
     }
 
     // 사용 가능한 모든 종족 목록 조회 (캐릭터 생성 시 종족 선택에서 사용)
