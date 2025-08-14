@@ -40,7 +40,7 @@ public class DataInitController {
         elf.setMagicAttack("int * 1.8");
         elf.setEvasionRate("dex * 1.5");
         elf.setAccuracy("50 + (dex * 0.8)");
-        elf.setDiceOdds("lux * 0.15");
+        elf.setDiceOdds("luk * 0.15");
 
         // 인간
         RaceStats human = new RaceStats();
@@ -51,7 +51,7 @@ public class DataInitController {
         human.setMagicAttack("int * 1.3");
         human.setEvasionRate("dex * 1.0");
         human.setAccuracy("60 + (dex * 1.0)");
-        human.setDiceOdds("lux * 0.12");
+        human.setDiceOdds("luk * 0.12");
 
         // 드워프
         RaceStats dwarf = new RaceStats();
@@ -62,7 +62,7 @@ public class DataInitController {
         dwarf.setMagicAttack("int * 1.0");
         dwarf.setEvasionRate("dex * 0.8");
         dwarf.setAccuracy("70 + (dex * 0.6)");
-        dwarf.setDiceOdds("lux * 0.10");
+        dwarf.setDiceOdds("luk * 0.10");
 
         List<RaceStats> raceStatsList = List.of(elf, human, dwarf);
         var savedRaceStats = raceStatsRepository.saveAll(raceStatsList);
