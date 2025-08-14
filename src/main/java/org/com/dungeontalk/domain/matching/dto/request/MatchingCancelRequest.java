@@ -1,14 +1,23 @@
 package org.com.dungeontalk.domain.matching.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.extern.jackson.Jacksonized;
 
 import jakarta.validation.constraints.NotBlank;
 
+@Schema(description = "게임 매칭 취소 요청")
 @Getter
-@Setter
+@Builder
+@Jacksonized
+@NoArgsConstructor
+@AllArgsConstructor
 public class MatchingCancelRequest {
 
+    @Schema(description = "회원 ID", example = "user-12345", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "회원 ID는 필수입니다")
     private String memberId;
 }

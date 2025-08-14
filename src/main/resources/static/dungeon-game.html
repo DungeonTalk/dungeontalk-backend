@@ -507,7 +507,7 @@
                     <div class="chat-info" style="padding: 10px; background: #e8f5e8; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
                         🎲 AI 게임 마스터와 RPG를 진행하세요. 행동을 입력하면 AI가 결과를 알려줍니다.
                     </div>
-                    <div class="chat-messages" id="aiMessages"></div>
+                    <div class="chat-messages" id="aiMessages" style="scroll-behavior: smooth;"></div>
                     <div class="chat-input">
                         <input type="text" id="aiMessageInput" placeholder="AI에게 행동이나 질문을 입력하세요... (예: 주변을 둘러본다, 문을 연다)" 
                                onkeypress="if(event.key==='Enter') sendAiMessage()" disabled>
@@ -521,7 +521,7 @@
                     <div class="chat-info" style="padding: 10px; background: #e3f2fd; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
                         💬 다른 플레이어들과 자유롭게 대화하세요. 전략을 논의하거나 잡담을 나눠보세요!
                     </div>
-                    <div class="chat-messages" id="userMessages"></div>
+                    <div class="chat-messages" id="userMessages" style="scroll-behavior: smooth;"></div>
                     <div class="chat-input">
                         <input type="text" id="userMessageInput" placeholder="다른 플레이어들과 채팅하세요..." 
                                onkeypress="if(event.key==='Enter') sendUserMessage()" disabled>
@@ -534,9 +534,9 @@
             <div class="chat-panel">
                 <h3>🎯 게임 정보</h3>
                 
-                <div style="margin-bottom: 20px;">
-                    <strong>참여자</strong>
-                    <div class="participants-list" id="participantsList"></div>
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <p>🎮 AI와 함께 RPG 모험을 즐겨보세요!</p>
+                    <p>💬 플레이어 채팅으로 전략을 공유하세요.</p>
                 </div>
             </div>
             
@@ -899,8 +899,7 @@
             updateStatus('matchingInfo', '매칭 완료');
             updateStatus('roomInfo', `AI: ${aiGameRoomId.substring(0, 8)}... | 파티: ${partyRoomId.substring(0, 8)}...`);
             
-            // 참여자 표시
-            updateParticipantsList(data.participants);
+            // 참여자 표시 제거됨
             
             // 게임 시작
             startGameSession(data);
@@ -1281,7 +1280,8 @@
                 
             const formattedContent = escapedContent
                 .replace(/\n/g, '<br>')           // \n을 <br>로 변환
-                .replace(/\r\n/g, '<br>')        // \r\n을 <br>로 변환  
+                .replace(/\r\n/g, '<br>')        // \r\n을 <br>로 변환
+                .replace(/\*{3,}/g, '<span style="color: #666; font-style: italic;">[BLOCKED]</span>')  // ***를 [BLOCKED]로 변환 (마크다운 처리 전에)
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **텍스트**를 굵게
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')            // *텍스트*를 기울임
                 .replace(/`(.*?)`/g, '<code>$1</code>');         // `코드`를 코드 스타일
@@ -1306,7 +1306,8 @@
                 
             const formattedContent = escapedContent
                 .replace(/\n/g, '<br>')           // \n을 <br>로 변환
-                .replace(/\r\n/g, '<br>')        // \r\n을 <br>로 변환  
+                .replace(/\r\n/g, '<br>')        // \r\n을 <br>로 변환
+                .replace(/\*{3,}/g, '<span style="color: #666; font-style: italic;">[BLOCKED]</span>')  // ***를 [BLOCKED]로 변환 (마크다운 처리 전에)
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **텍스트**를 굵게
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')            // *텍스트*를 기울임
                 .replace(/`(.*?)`/g, '<code>$1</code>');         // `코드`를 코드 스타일
@@ -1316,21 +1317,7 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
-        // 참여자 목록 업데이트
-        function updateParticipantsList(participants) {
-            const listDiv = document.getElementById('participantsList');
-            listDiv.innerHTML = '';
-            
-            participants.forEach(participant => {
-                const participantDiv = document.createElement('div');
-                participantDiv.className = 'participant';
-                if (participant === currentUser.id) {
-                    participantDiv.classList.add('current-user');
-                }
-                participantDiv.textContent = participant;
-                listDiv.appendChild(participantDiv);
-            });
-        }
+        // 참여자 목록 업데이트 함수 제거됨
         
         
         // 유틸리티 함수들

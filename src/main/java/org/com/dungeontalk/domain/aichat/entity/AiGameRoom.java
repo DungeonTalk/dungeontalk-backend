@@ -21,11 +21,10 @@ import java.util.List;
  */
 @Document(collection = "ai_game_rooms")
 @Getter
-@Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-@Builder
+@Builder(toBuilder = true)
 public class AiGameRoom {
 
     @Id
@@ -63,4 +62,5 @@ public class AiGameRoom {
     public int getCurrentParticipantCount() {
         return this.participants != null ? this.participants.size() : 0;
     }
+
 }

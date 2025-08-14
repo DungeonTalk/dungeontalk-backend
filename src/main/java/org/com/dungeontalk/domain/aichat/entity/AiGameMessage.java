@@ -15,10 +15,9 @@ import java.time.LocalDateTime;
  */
 @Document(collection = "ai_game_messages")
 @Getter
-@Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class AiGameMessage {
 
     @Id
