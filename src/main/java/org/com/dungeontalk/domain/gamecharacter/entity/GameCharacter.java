@@ -30,7 +30,7 @@ public class GameCharacter extends BaseEntity {
     private Long totalExp;
 
     @Column(name = "unspent_points", nullable = false)
-    private Integer unspentPoints = 0;
+    private Integer unspentPoints = 0; // 추가로 스텟을 찍을 수 있는 남은 증가치
 
     @Column(name = "str")
     private Integer str;

@@ -179,13 +179,16 @@
     async function getRaces() {
         try {
             const response = await fetch(`${API_BASE}/v1/characters/races`);
-            const data = await response.json();
-            showResult('racesResult', data);
+            const rsData = await response.json();
+            showResult('racesResult', rsData);
 
+            // RsData에서 실제 데이터 추출
+            const races = rsData.data;
+            
             // 종족 선택박스에 옵션 추가
             const select = document.getElementById('createRaceTypeId');
             select.innerHTML = '<option value="">종족을 선택하세요</option>';
-            data.forEach(race => {
+            races.forEach(race => {
                 const option = document.createElement('option');
                 option.value = race;
                 option.textContent = race;
@@ -215,14 +218,17 @@
                 body: JSON.stringify({ memberId, raceTypeId })
             });
 
-            const data = await response.json();
-            showResult('createResult', data);
+            const rsData = await response.json();
+            showResult('createResult', rsData);
 
+            // RsData에서 실제 데이터 추출
+            const character = rsData.data;
+            
             // 생성된 캐릭터 ID를 다른 입력폼에 자동 입력
-            if (data.id) {
-                document.getElementById('detailCharacterId').value = data.id;
-                document.getElementById('statCharacterId').value = data.id;
-                document.getElementById('listCharacterId').value = data.id;
+            if (character && character.id) {
+                document.getElementById('detailCharacterId').value = character.id;
+                document.getElementById('statCharacterId').value = character.id;
+                document.getElementById('listCharacterId').value = character.id;
             }
         } catch (error) {
             showResult('createResult', { error: error.message }, true);
@@ -292,7 +298,8 @@
             // 1. 종족 목록 조회
             resultElement.textContent += '1. 종족 목록 조회 중...\n';
             const racesResponse = await fetch(`${API_BASE}/v1/characters/races`);
-            const races = await racesResponse.json();
+            const racesRsData = await racesResponse.json();
+            const races = racesRsData.data;
             resultElement.textContent += `✅ 종족 목록: ${JSON.stringify(races)}\n\n`;
 
             if (races.length === 0) {
@@ -309,13 +316,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ memberId: testMemberId, raceTypeId: testRace })
             });
-            const character = await createResponse.json();
+            const createRsData = await createResponse.json();
+            const character = createRsData.data;
             resultElement.textContent += `✅ 캐릭터 생성 완료: ${character.id}\n\n`;
 
             // 3. 캐릭터 상세 조회
             resultElement.textContent += '3. 캐릭터 상세 조회 중...\n';
             const detailResponse = await fetch(`${API_BASE}/v1/characters/${character.id}`);
-            const detail = await detailResponse.json();
+            const detailRsData = await detailResponse.json();
+            const detail = detailRsData.data;
             resultElement.textContent += `✅ 상세 조회 완료\n`;
             resultElement.textContent += `   - 종족명: ${detail.raceName}\n`;
             resultElement.textContent += `   - HP: ${detail.hp}, MP: ${detail.mp}\n`;
@@ -324,7 +333,8 @@
             // 4. 스탯 계산 API 별도 호출
             resultElement.textContent += '4. 스탯 계산 API 테스트 중...\n';
             const statResponse = await fetch(`${API_BASE}/v1/stat/${character.id}/calculated`);
-            const stats = await statResponse.json();
+            const statRsData = await statResponse.json();
+            const stats = statRsData.data;
             resultElement.textContent += `✅ 스탯 계산 완료\n`;
             resultElement.textContent += `   - 계산된 HP: ${stats.hp}, MP: ${stats.mp}\n\n`;
 
@@ -346,8 +356,8 @@
             const response = await fetch(`${API_BASE}/init/all`, {
                 method: 'POST'
             });
-            const result = await response.text();
-            resultElement.textContent += `✅ ${result}\n\n`;
+            const rsData = await response.json();
+            resultElement.textContent += `✅ ${rsData.data}\n\n`;
 
             resultElement.textContent += '🎉 전체 데이터 초기화 완료! 이제 테스트를 시작할 수 있습니다.';
             resultElement.className = 'result success';
@@ -372,17 +382,18 @@
             const deleteResponse = await fetch(`${API_BASE}/init/race-stats`, {
                 method: 'DELETE'
             });
-            const deleteResult = await deleteResponse.text();
-            resultElement.textContent += `✅ ${deleteResult}\n\n`;
+            const deleteRsData = await deleteResponse.json();
+            resultElement.textContent += `✅ ${deleteRsData.data}\n\n`;
 
             // 2. 새로운 데이터 생성
             resultElement.textContent += '2. 새로운 종족 데이터 생성 중...\n';
             const createResponse = await fetch(`${API_BASE}/init/race-stats`, {
                 method: 'POST'
             });
-            const newData = await createResponse.json();
+            const createRsData = await createResponse.json();
+            const raceStats = createRsData.data;
             resultElement.textContent += `✅ 생성된 종족:\n`;
-            newData.forEach(race => {
+            raceStats.forEach(race => {
                 resultElement.textContent += `   - ID: ${race.id}, 이름: ${race.race}\n`;
             });
 

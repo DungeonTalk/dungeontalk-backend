@@ -21,6 +21,7 @@ public class GameCharacterService {
     private final RaceStatsRepository raceStatsRepository;
     private final StatAggregateService statAggregateService;
 
+    // 새로운 캐릭터 생성 (레벨 1, 모든 스탯 10으로 초기화)
     @Transactional
     public GameCharacter createCharacter(CreateCharacterRequest request) {
         // 종족명으로 RaceStats 조회하여 UUID 가져오기
@@ -45,24 +46,25 @@ public class GameCharacterService {
         return gameCharacterRepository.save(character);
     }
 
+    // 캐릭터 ID로 기본 정보 조회 (종족 스탯 없이)
     public GameCharacter findById(String id) {
         return gameCharacterRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Character not found: " + id));
     }
 
+    // 캐릭터 ID로 조회 + 종족 스탯 정보 포함 (fetch join 사용), 프론트에 데이터 보낼 때 사용
     public GameCharacter findByIdWithRace(String id) {
         return gameCharacterRepository.findWithRace(id)
                 .orElseThrow(() -> new IllegalArgumentException("Character not found: " + id));
     }
 
+    // 멤버 ID로 해당 멤버의 캐릭터 조회 (MVP: 1개 멤버당 1개 캐릭터)
     public GameCharacter findByMemberId(String memberId) {
-        var characters = gameCharacterRepository.findByMemberId(memberId);
-        if (characters.isEmpty()) {
-            throw new IllegalArgumentException("Character not found for member: " + memberId);
-        }
-        return characters.get(0); // MVP: 첫 번째 캐릭터 반환
+        return gameCharacterRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("Character not found for member: " + memberId));
     }
 
+    // 캐릭터 상세 정보 조회 (기본 정보 + 종족명 + 계산된 스탯)
     public GameCharacterDetailResponse findDetailById(String id) {
         GameCharacter character = gameCharacterRepository.findWithRace(id)
                 .orElseThrow(() -> new IllegalArgumentException("Character not found: " + id));
