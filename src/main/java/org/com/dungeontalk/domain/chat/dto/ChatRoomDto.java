@@ -15,6 +15,7 @@ public class ChatRoomDto {
     private String id;
     private String roomName;
     private ChatMode mode;
+    private Integer maxCapacity;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -22,6 +23,7 @@ public class ChatRoomDto {
         return ChatRoomDto.builder()
             .id(room.getId())
             .roomName(room.getRoomName() != null ? room.getRoomName() : "UNKNOWN")
+            .maxCapacity(room.getMaxCapacity())
             .mode(room.getMode())
             .createdAt(room.getCreatedAt())
             .updatedAt(room.getUpdatedAt())
