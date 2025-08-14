@@ -155,18 +155,16 @@ public class AiGameFlowService {
     }
 
     private AiGameMessageSendRequest createErrorSystemMessage(String roomId, AiErrorRequest request) {
-        AiGameMessageSendRequest systemMessage = new AiGameMessageSendRequest();
-        
-        systemMessage.setAiGameRoomId(roomId);
-        systemMessage.setGameId(request.getGameId());
-        systemMessage.setSenderId(SYSTEM_SENDER_ID);
-        systemMessage.setSenderNickname(SYSTEM_SENDER_NICKNAME);
-        systemMessage.setContent("AI 응답 생성 중 오류가 발생했습니다: " + request.getErrorMessage());
-        systemMessage.setMessageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM);
-        systemMessage.setTurnNumber(request.getTurnNumber());
-        systemMessage.setMessageOrder(ERROR_MESSAGE_ORDER);
-        
-        return systemMessage;
+        return AiGameMessageSendRequest.builder()
+                .aiGameRoomId(roomId)
+                .gameId(request.getGameId())
+                .senderId(SYSTEM_SENDER_ID)
+                .senderNickname(SYSTEM_SENDER_NICKNAME)
+                .content("AI 응답 생성 중 오류가 발생했습니다: " + request.getErrorMessage())
+                .messageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM)
+                .turnNumber(request.getTurnNumber())
+                .messageOrder(ERROR_MESSAGE_ORDER)
+                .build();
     }
 
     /**

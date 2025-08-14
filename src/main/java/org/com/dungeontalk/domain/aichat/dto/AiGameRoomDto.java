@@ -1,8 +1,9 @@
 package org.com.dungeontalk.domain.aichat.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 import org.com.dungeontalk.domain.aichat.common.AiGamePhase;
 import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
 import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
@@ -11,8 +12,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AiGameRoomDto {
 
     private String id;

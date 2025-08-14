@@ -1,16 +1,18 @@
 package org.com.dungeontalk.domain.aichat.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 import org.com.dungeontalk.domain.aichat.common.AiMessageType;
 import org.com.dungeontalk.domain.aichat.entity.AiGameMessage;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AiGameMessageResponse {
 
     private String messageId;

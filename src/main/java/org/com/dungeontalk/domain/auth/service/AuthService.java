@@ -1,5 +1,6 @@
 package org.com.dungeontalk.domain.auth.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,16 +8,16 @@ import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
 import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
+import org.com.dungeontalk.domain.auth.manager.ActualLoginManager;
 import org.com.dungeontalk.domain.auth.manager.AuthRedisManager;
+import org.com.dungeontalk.domain.auth.manager.BruteForceManager;
 import org.com.dungeontalk.domain.auth.manager.CookieManager;
 import org.com.dungeontalk.domain.auth.repository.AuthRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
-import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.MemberException;
 import org.com.dungeontalk.global.security.JwtProvider;
 import org.com.dungeontalk.global.security.JwtRedisService;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,63 +29,48 @@ import java.util.Optional;
 @Transactional
 public class AuthService {
 
-    private final MemberRepository memberRepository;
     private final AuthRepository authRepository;
-    private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final JwtRedisService jwtRedisService;
     private final AuthRedisManager authRedisManager;
     private final CookieManager cookieManager;
+    private final BruteForceManager bruteForceManager;
+    private final ActualLoginManager actualLoginManager;
 
-    // 로그인 메서드
-    public AuthLoginResponse login(AuthLoginRequest request) {
+    // 보안 기능이 추가 된 로그인 메서드
+    public AuthLoginResponse login(AuthLoginRequest request, HttpServletRequest httpServletRequest) throws InterruptedException {
 
-        // 회원 조회
-        Member member = memberRepository.findByName(request.name())
-                .orElseThrow(() -> new MemberException(ErrorCode.GLOBAL_ERROR));
-
-        // 비밀번호 검증
-        if (!passwordEncoder.matches(request.password(), member.getPassword())) {
-            throw new MemberException(ErrorCode.GLOBAL_ERROR);
+        bruteForceManager.preCheck(request.name(), httpServletRequest); // 로그인 시도 전 이상 행동 존재 유무 체크
+        try {
+            AuthLoginResponse authLoginResponse = actualLogin(request); // 실질적인 로그인 메서드 호출
+            bruteForceManager.loginSucceeded(request.name()); // 로그인 성공시 기존 실패/정지 기록 삭제
+            return authLoginResponse;
+        } catch (MemberException ex) {
+            bruteForceManager.loginFailed(request.name()); // Delay, Cool Down 방어
+            throw ex;
         }
+    }
 
-        // 토큰 생성
-        String accessToken = jwtProvider.generateAccessToken(member.getId(), member.getName(), member.getNickName());
-        String refreshToken = jwtProvider.generateRefreshToken(member.getId());
+    // 실질적인 로그인 메서드
+    public AuthLoginResponse actualLogin(AuthLoginRequest request) {
 
-       // Auth 엔티티 생성
-        Optional<Auth> existingAuthOpt = authRepository.findByMember(member);
+        Member member = actualLoginManager.validateMember(request); // 유저 검증
+        JwtTokenResponse jwtTokenResponse = actualLoginManager.generateToken(member); // JWT 토큰 생성
+        actualLoginManager.updateMemberRefreshToken(member, jwtTokenResponse); // RefreshToken 갱신
 
-        if (existingAuthOpt.isPresent()) {
-            Auth auth = existingAuthOpt.get();
-            auth.setAccessToken(null);
-            auth.setRefreshToken(refreshToken);
-            authRepository.save(auth);
-        } else {
-            Auth newAuth = Auth.builder()
-                    .member(member)
-                    .email(member.getName())
-                    .tokenType("bearer")
-                    .accessToken(null)
-                    .refreshToken(refreshToken)
-                    .build();
-
-            authRepository.save(newAuth);
-
-        }
-
-        // session에 저장
-        jwtRedisService.saveRefreshTokenToSessionRedis(member.getId(), refreshToken);
-
-        return new AuthLoginResponse(
-                member.getId(),
-                accessToken,
-                refreshToken
+        return new AuthLoginResponse(member.getId(),
+                jwtTokenResponse.getAccessToken(),
+                jwtTokenResponse.getRefreshToken()
         );
     }
 
     // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
     public JwtTokenResponse refreshAccessToken(String refreshToken) {
+
+        // REFACTOR GUIDE
+        /* 유효성 검사 */
+        /* 새로운 JWT 생성 */
+        /* 새로운 JWT 적용 */
 
         // 토큰 서명/포맷 검사
         if (!jwtProvider.validateToken(refreshToken)) {
@@ -101,8 +87,6 @@ public class AuthService {
                 .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         // 새로운 Access Token과 Refresh Token을 반환
-//        String newAccessToken = jwtProvider.generateAccessToken(auth.getId(), auth.getMember().getName(), auth.getMember().getNickName());
-//        String newRefreshToken = jwtProvider.generateRefreshToken(auth.getId());
         String newAccessToken = jwtProvider.generateAccessToken(
                 auth.getMember().getId(),
                 auth.getMember().getName(),
@@ -134,12 +118,12 @@ public class AuthService {
         long remainExpiration = authRedisManager.calculateRemainingExpiration(accessToken);
         authRedisManager.uploadAccessTokenToRedis(accessKey, remainExpiration);
 
-        //  RDB에서 해시 된 RT 제거
+        //  RDB에서 RT 제거
         Auth auth = authRepository.findByRefreshToken(refreshToken)
                 .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
         auth.setRefreshToken(null);
 
-        // Valkey에서 해시 된 RT 제거
+        // Valkey에서 RT 제거
         authRedisManager.deleteRefreshToken(refreshToken);
 
     }
