@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "게임 캐릭터", description = "게임 캐릭터 정보 조회 관련 API")
 @RestController
 @RequestMapping("/v1/characters")
 @RequiredArgsConstructor
