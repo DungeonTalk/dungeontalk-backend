@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.gamecharacter.repository.GameCharacterRepository;
 import org.com.dungeontalk.domain.stat.entity.RaceStats;
 import org.com.dungeontalk.domain.stat.repository.RaceStatsRepository;
+import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,17 +19,18 @@ public class DataInitController {
     private final RaceStatsRepository raceStatsRepository;
     private final GameCharacterRepository gameCharacterRepository;
 
-    // 기존 데이터 모두 삭제
+    // 기존 종족 스탯 데이터 모두 삭제
     @DeleteMapping("/race-stats")
-    public String clearRaceStats() {
+    public RsData<String> clearRaceStats() {
         long count = raceStatsRepository.count();
         raceStatsRepository.deleteAll();
-        return "삭제된 RaceStats 데이터: " + count + "개";
+        String message = "삭제된 RaceStats 데이터: " + count + "개";
+        return RsData.of("200", "RaceStats 삭제 완료", message);
     }
 
-    // 테스트용 RaceStats 데이터 생성
+    // 테스트용 종족 스탯 데이터 생성 (엘프, 인간, 드워프)
     @PostMapping("/race-stats")
-    public List<RaceStats> createTestRaceStats() {
+    public RsData<List<RaceStats>> createTestRaceStats() {
         // 엘프
         RaceStats elf = new RaceStats();
         elf.setRace("엘프");
@@ -63,26 +65,29 @@ public class DataInitController {
         dwarf.setDiceOdds("lux * 0.10");
 
         List<RaceStats> raceStatsList = List.of(elf, human, dwarf);
-        return raceStatsRepository.saveAll(raceStatsList);
+        var savedRaceStats = raceStatsRepository.saveAll(raceStatsList);
+        return RsData.of("201", "RaceStats 생성 완료", savedRaceStats);
     }
 
-    // 현재 RaceStats 데이터 확인
+    // 현재 등록된 모든 종족 스탯 데이터 조회
     @GetMapping("/race-stats")
-    public List<RaceStats> getAllRaceStats() {
-        return raceStatsRepository.findAll();
+    public RsData<List<RaceStats>> getAllRaceStats() {
+        var raceStats = raceStatsRepository.findAll();
+        return RsData.of("200", "RaceStats 조회 완료", raceStats);
     }
 
-    // 캐릭터 데이터 모두 삭제
+    // 기존 캐릭터 데이터 모두 삭제
     @DeleteMapping("/characters")
-    public String clearCharacters() {
+    public RsData<String> clearCharacters() {
         long count = gameCharacterRepository.count();
         gameCharacterRepository.deleteAll();
-        return "삭제된 Character 데이터: " + count + "개";
+        String message = "삭제된 Character 데이터: " + count + "개";
+        return RsData.of("200", "Character 삭제 완료", message);
     }
 
-    // 모든 테스트 데이터 초기화 (권장 순서)
+    // 모든 테스트 데이터 초기화 (캐릭터 삭제 → 종족 스탯 삭제 → 종족 스탯 생성)
     @PostMapping("/all")
-    public String initializeAllData() {
+    public RsData<String> initializeAllData() {
         // 1. 기존 캐릭터 삭제
         long characterCount = gameCharacterRepository.count();
         gameCharacterRepository.deleteAll();
@@ -94,7 +99,8 @@ public class DataInitController {
         // 3. 새로운 종족 스탯 생성
         createTestRaceStats();
         
-        return String.format("데이터 초기화 완료 - 삭제된 캐릭터: %d개, 삭제된 종족 스탯: %d개, 새로 생성된 종족 스탯: 3개", 
+        String message = String.format("데이터 초기화 완료 - 삭제된 캐릭터: %d개, 삭제된 종족 스탯: %d개, 새로 생성된 종족 스탯: 3개", 
                             characterCount, raceStatsCount);
+        return RsData.of("200", "전체 데이터 초기화 완료", message);
     }
 }

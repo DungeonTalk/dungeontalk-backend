@@ -23,7 +23,7 @@ public class StatAggregateService {
         this.calculator = calculator;
     }
 
-    /** DB 1쿼리(fetch join) + 메모리에서 전 스탯 계산 */
+    // DB 1쿼리(fetch join) + 메모리에서 전 스탯 계산
     @Transactional(readOnly = true)
     public Map<String, Double> calculateAllStats(String characterId) {
         GameCharacter gameCharacter = gameCharacterRepository.findWithRace(characterId)
@@ -57,7 +57,7 @@ public class StatAggregateService {
         return result;
     }
 
-    /** RaceStats의 String 필드 중 수식으로 쓰는 것만 수집 (키는 @Column name, 없으면 필드명) */
+    // RaceStats의 String 필드 중 수식으로 쓰는 것만 수집 (키는 @Column name, 없으면 필드명)
     private Map<String, String> extractFormulas(RaceStats rs) {
         Map<String, String> map = new LinkedHashMap<>();
         for (Field f : rs.getClass().getDeclaredFields()) {
@@ -77,7 +77,7 @@ public class StatAggregateService {
         return map;
     }
 
-    /** 스네이크케이스를 카멜케이스로 변환 */
+    // 스네이크케이스를 카멜케이스로 변환
     private String toCamelCase(String snakeCase) {
         if (snakeCase == null || snakeCase.isEmpty()) {
             return snakeCase;
