@@ -167,7 +167,6 @@ public class ChatRoomService {
      * (아직 사용 X)
      */
     @Transactional
-    @Deprecated
     public ChatRoomDto updateRoomCapacity(String roomId, Integer newCap) {
         ChatRoom room = chatRoomRepository.findById(roomId)
             .orElseThrow(() -> new ChatException(ErrorCode.CHAT_ROOM_NOT_FOUND, "roomId=" + roomId));

@@ -89,8 +89,30 @@ dependencies {
     // StatCulculate
     implementation 'net.objecthunter:exp4j:0.4.8'
 
+    /* ---------- TEST ---------- */
+    // Mockito 인라인(mockStatic 등)
+    testImplementation 'org.mockito:mockito-inline'
+
+    // H2 (JPA Repository 테스트용, MODE=PostgreSQL로 동작)
+    testRuntimeOnly 'com.h2database:h2'
+
+    // 선택: 비동기/리스너 테스트에 유용
+    testImplementation 'org.awaitility:awaitility'
+
+    // 선택: Testcontainers (테스트에서 Redis/Mongo/Postgres 띄울 때)
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mongodb'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:redis'
+    testImplementation "org.testcontainers:mongodb:1.20.1"
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+test {
+    useJUnitPlatform()
+    // 필요 시, 테스트 프로필 지정
+    systemProperty "spring.profiles.active", "test"
 }
