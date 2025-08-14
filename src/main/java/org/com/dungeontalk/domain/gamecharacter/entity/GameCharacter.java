@@ -47,8 +47,8 @@ public class GameCharacter extends BaseEntity {
     @Column(name = "dex")
     private Integer dex;
 
-    @Column(name = "lux")
-    private Integer lux;
+    @Column(name = "luk")
+    private Integer luk;
 
 //    @Column(name = "created_at")
 //    private LocalDateTime createdAt;
@@ -73,7 +73,7 @@ public class GameCharacter extends BaseEntity {
         map.put("int", this.int_);
         map.put("wis", this.wis);
         map.put("dex", this.dex);
-        map.put("lux", this.lux);
+        map.put("luk", this.luk);
         return map;
     }
 }

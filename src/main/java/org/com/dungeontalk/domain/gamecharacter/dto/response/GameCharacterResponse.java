@@ -16,7 +16,7 @@ public record GameCharacterResponse(
         Integer int_,
         Integer wis,
         Integer dex,
-        Integer lux,
+        Integer luk,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -33,7 +33,7 @@ public record GameCharacterResponse(
                 character.getInt_(),
                 character.getWis(),
                 character.getDex(),
-                character.getLux(),
+                character.getLuk(),
                 character.getCreatedAt(),
                 character.getUpdatedAt()
         );

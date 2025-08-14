@@ -41,7 +41,7 @@ public class GameCharacterService {
         character.setInt_(10);
         character.setWis(10);
         character.setDex(10);
-        character.setLux(10);
+        character.setLuk(10);
 
         return gameCharacterRepository.save(character);
     }
