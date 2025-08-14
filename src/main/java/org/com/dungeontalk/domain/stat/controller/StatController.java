@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.com.dungeontalk.domain.stat.dto.response.CalculatedStatsResponse;
 import org.com.dungeontalk.domain.stat.service.StatAggregateService;
 import org.com.dungeontalk.global.rsData.RsData;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Tag(name = "스탯", description = "게임 내 캐릭터 스탯 관련 API")
 @RestController
 @RequestMapping("/v1/stat")
 public class StatController {
