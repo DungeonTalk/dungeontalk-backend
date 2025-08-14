@@ -58,10 +58,12 @@ public class AiGameStateService {
         }
 
         // MongoDB에서 게임 상태 변경
-        room.setStatus(AiGameStatus.ACTIVE);
-        room.setCurrentPhase(AiGamePhase.TURN_INPUT);
+        AiGameRoom updatedRoom = room.toBuilder()
+                .status(AiGameStatus.ACTIVE)
+                .currentPhase(AiGamePhase.TURN_INPUT)
+                .build();
 
-        AiGameRoom saved = aiGameRoomRepository.save(room);
+        AiGameRoom saved = aiGameRoomRepository.save(updatedRoom);
         log.info("🎮 게임방 상태 변경 완료: roomId={}, newStatus={}, newPhase={}", 
                  aiGameRoomId, saved.getStatus(), saved.getCurrentPhase());
 
@@ -93,9 +95,11 @@ public class AiGameStateService {
             throw new AiChatException(ErrorCode.AI_GAME_ROOM_INVALID_STATE);
         }
 
-        room.setCurrentPhase(newPhase);
+        AiGameRoom updatedRoom = room.toBuilder()
+                .currentPhase(newPhase)
+                .build();
 
-        aiGameRoomRepository.save(room);
+        aiGameRoomRepository.save(updatedRoom);
 
         // Valkey 세션 정보 업데이트
         updateSessionPhase(aiGameRoomId, newPhase);
@@ -115,10 +119,12 @@ public class AiGameStateService {
         }
 
         int newTurn = room.getCurrentTurn() + 1;
-        room.setCurrentTurn(newTurn);
-        room.setCurrentPhase(AiGamePhase.TURN_INPUT);
+        AiGameRoom updatedRoom = room.toBuilder()
+                .currentTurn(newTurn)
+                .currentPhase(AiGamePhase.TURN_INPUT)
+                .build();
 
-        aiGameRoomRepository.save(room);
+        aiGameRoomRepository.save(updatedRoom);
 
         // Valkey 세션 정보 업데이트
         updateSessionTurn(aiGameRoomId, newTurn);
@@ -162,10 +168,12 @@ public class AiGameStateService {
     public void endGame(String aiGameRoomId) {
         AiGameRoom room = aiGameRoomService.getGameRoomEntity(aiGameRoomId);
 
-        room.setStatus(AiGameStatus.COMPLETED);
-        room.setCurrentPhase(AiGamePhase.GAME_END);
+        AiGameRoom updatedRoom = room.toBuilder()
+                .status(AiGameStatus.COMPLETED)
+                .currentPhase(AiGamePhase.GAME_END)
+                .build();
 
-        aiGameRoomRepository.save(room);
+        aiGameRoomRepository.save(updatedRoom);
 
         // Valkey 세션 정보 삭제
         String sessionKey = AI_GAME_SESSION_PREFIX + aiGameRoomId;
@@ -187,9 +195,11 @@ public class AiGameStateService {
             throw new IllegalStateException("일시정지할 수 없는 게임 상태입니다: " + room.getStatus());
         }
 
-        room.setStatus(AiGameStatus.PAUSED);
+        AiGameRoom updatedRoom = room.toBuilder()
+                .status(AiGameStatus.PAUSED)
+                .build();
 
-        aiGameRoomRepository.save(room);
+        aiGameRoomRepository.save(updatedRoom);
 
         // 락 해제 (일시정지 중에는 AI 처리 중단)
         String lockKey = AI_GAME_TURN_LOCK_PREFIX + aiGameRoomId;
@@ -209,10 +219,12 @@ public class AiGameStateService {
             throw new AiChatException(ErrorCode.AI_GAME_ROOM_INVALID_STATE);
         }
 
-        room.setStatus(AiGameStatus.ACTIVE);
-        room.setCurrentPhase(AiGamePhase.TURN_INPUT);
+        AiGameRoom updatedRoom = room.toBuilder()
+                .status(AiGameStatus.ACTIVE)
+                .currentPhase(AiGamePhase.TURN_INPUT)
+                .build();
 
-        aiGameRoomRepository.save(room);
+        aiGameRoomRepository.save(updatedRoom);
 
         log.info("AI 게임 재개: roomId={}", aiGameRoomId);
     }

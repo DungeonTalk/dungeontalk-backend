@@ -28,6 +28,9 @@ import org.com.dungeontalk.domain.aichat.config.AiChatConfigHelper;
 import org.com.dungeontalk.domain.aichat.dto.request.AiMessageSaveRequest;
 import org.com.dungeontalk.global.redis.RedisPublisher;
 import org.com.dungeontalk.global.util.UuidV7Creator;
+import org.com.dungeontalk.global.filter.ProfanityFilterService;
+import org.com.dungeontalk.global.filter.config.ProfanityFilterProperties;
+import org.com.dungeontalk.global.filter.dto.MessageValidationResult;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -48,6 +51,8 @@ public class AiGameMessageService {
     private final AiGameRoomRepository aiGameRoomRepository;
     private final AiGameValidator aiGameValidator;
     private final AiGameRoomService aiGameRoomService;
+    private final ProfanityFilterService profanityFilterService;
+    private final ProfanityFilterProperties profanityFilterProperties;
     private final RedisPublisher redisPublisher;
     private final ObjectMapper objectMapper;
     private final AiGameStateService aiGameStateService;
@@ -58,34 +63,54 @@ public class AiGameMessageService {
      * WebSocket 메시지 처리 (컨트롤러 단순화용)
      */
     @Transactional  
-    public RsData<String> handleWebSocketMessage(AiGameMessageSendRequest request) {
-        AiChatLogUtils.logGameActionStart("AI 채팅 메시지 수신", request.getAiGameRoomId());
+    public RsData<String> handleWebSocketMessage(AiGameMessageSendRequest originalRequest) {
+        AiChatLogUtils.logGameActionStart("AI 채팅 메시지 수신", originalRequest.getAiGameRoomId());
 
+        // 욕설 필터링 처리를 lambda 밖에서 처리
+        AiGameMessageSendRequest processedRequest = originalRequest;
+        log.debug("AI 채팅 욕설 필터링 체크: enabled={}, filterAiChat={}", 
+                 profanityFilterProperties.isEnabled(), 
+                 profanityFilterProperties.isFilterAiChat());
+        
+        if (profanityFilterProperties.isEnabled() && profanityFilterProperties.isFilterAiChat()) {
+            MessageValidationResult validation = validateMessage(originalRequest.getContent());
+            
+            processedRequest = handleProfanityFiltering(originalRequest, validation);
+            
+            if (processedRequest == null) {
+                // BLOCK 모드에서 욕설이 감지되면 메시지 전송 중단
+                return RsData.of("400", "부적절한 언어가 감지되어 메시지가 차단되었습니다", null);
+            }
+            
+            if (validation.isContainsProfanity()) {
+                log.info("AI 채팅 욕설 필터링 적용됨");
+            }
+        }
+
+        final AiGameMessageSendRequest finalRequest = processedRequest;
         errorHandler.executeWithLogging(() -> {
             // AI 응답 처리 중인지 확인
-            if (aiGameStateService.isAiProcessing(request.getAiGameRoomId())) {
-                log.warn("AI 응답 처리 중이므로 메시지 전송 차단: roomId={}", request.getAiGameRoomId());
+            if (aiGameStateService.isAiProcessing(finalRequest.getAiGameRoomId())) {
+                log.warn("AI 응답 처리 중이므로 메시지 전송 차단: roomId={}", finalRequest.getAiGameRoomId());
                 return;
             }
 
-            // 세션 유효성 검증
-            if (!aiGameStateService.isSessionValid(request.getAiGameRoomId())) {
-                log.warn("유효하지 않은 게임 세션: roomId={}", request.getAiGameRoomId());
-                return;
+            // 메시지 처리 (세션 유효성 검증은 processMessage 내부에서 처리)
+            processMessage(finalRequest);
+
+            // 세션 만료 시간 연장 시도 (세션이 유효할 때만)
+            try {
+                aiGameStateService.extendSession(finalRequest.getAiGameRoomId());
+            } catch (Exception e) {
+                log.debug("세션 연장 실패 (무시됨): roomId={}, error={}", finalRequest.getAiGameRoomId(), e.getMessage());
             }
 
-            // 메시지 처리
-            processMessage(request);
-
-            // 세션 만료 시간 연장
-            aiGameStateService.extendSession(request.getAiGameRoomId());
-
-            AiChatLogUtils.logGameAction("AI 채팅 메시지 처리", request.getAiGameRoomId(), 
-                                      request.getSenderId(), request.getMessageType());
-        }, "AI 채팅 메시지 처리", request.getAiGameRoomId());
+            AiChatLogUtils.logGameAction("AI 채팅 메시지 처리", finalRequest.getAiGameRoomId(), 
+                                      finalRequest.getSenderId(), finalRequest.getMessageType());
+        }, "AI 채팅 메시지 처리", finalRequest.getAiGameRoomId());
         
-        // 사용자 메시지인 경우 AI 응답 자동 트리거
-        triggerAiResponseIfNeeded(request);
+        // AI 자동 응답 비활성화 - 수동 클릭으로만 호출
+        // triggerAiResponseIfNeeded(finalRequest);
         
         return RsData.of("200", "메시지 전송 완료", null);
     }
@@ -99,11 +124,12 @@ public class AiGameMessageService {
         }
         
         try {
-            AiGenerateRequest aiRequest = new AiGenerateRequest();
-            aiRequest.setGameId(request.getGameId());
-            aiRequest.setCurrentUser(request.getSenderId());
-            aiRequest.setCurrentMessage(request.getContent());
-            aiRequest.setTurnNumber(request.getTurnNumber());
+            AiGenerateRequest aiRequest = AiGenerateRequest.builder()
+                    .gameId(request.getGameId())
+                    .currentUser(request.getSenderId())
+                    .currentMessage(request.getContent())
+                    .turnNumber(request.getTurnNumber())
+                    .build();
                     
             log.info("AI 응답 자동 트리거: roomId={}, user={}, turn={}", 
                      request.getAiGameRoomId(), request.getSenderId(), request.getTurnNumber());
@@ -124,11 +150,19 @@ public class AiGameMessageService {
     public RsData<String> handleJoinRoom(AiGameMessageSendRequest request) {
         try {
             // 입장 시스템 메시지 생성
-            request.setContent(request.getSenderNickname() + "님이 AI 게임에 참여했습니다.");
-            request.setMessageType(AiMessageType.SYSTEM);
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(request.getSenderId())
+                    .senderNickname(request.getSenderNickname())
+                    .content(request.getSenderNickname() + "님이 AI 게임에 참여했습니다.")
+                    .messageType(AiMessageType.SYSTEM)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
 
             // 메시지 처리
-            processMessage(request);
+            processMessage(systemMessage);
 
             log.info("AI 채팅방 입장 완료: roomId={}, participant={}", 
                      request.getAiGameRoomId(), request.getSenderId());
@@ -152,11 +186,19 @@ public class AiGameMessageService {
     public RsData<String> handleLeaveRoom(AiGameMessageSendRequest request) {
         try {
             // 퇴장 시스템 메시지 생성
-            request.setContent(request.getSenderNickname() + "님이 AI 게임에서 나갔습니다.");
-            request.setMessageType(AiMessageType.SYSTEM);
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(request.getSenderId())
+                    .senderNickname(request.getSenderNickname())
+                    .content(request.getSenderNickname() + "님이 AI 게임에서 나갔습니다.")
+                    .messageType(AiMessageType.SYSTEM)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
 
             // 메시지 처리
-            processMessage(request);
+            processMessage(systemMessage);
 
             log.info("AI 채팅방 퇴장 완료: roomId={}, participant={}", 
                      request.getAiGameRoomId(), request.getSenderId());
@@ -179,11 +221,18 @@ public class AiGameMessageService {
     @Transactional
     public RsData<String> handleStartTurn(AiGameMessageSendRequest request) {
         try {
-            request.setMessageType(AiMessageType.TURN_START);
-            request.setSenderId(SYSTEM_SENDER_ID);
-            request.setSenderNickname(SYSTEM_SENDER_NICKNAME);
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(SYSTEM_SENDER_ID)
+                    .senderNickname(SYSTEM_SENDER_NICKNAME)
+                    .content(request.getContent())
+                    .messageType(AiMessageType.TURN_START)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
 
-            processMessage(request);
+            processMessage(systemMessage);
 
             log.info("AI 게임 턴 시작: roomId={}, turn={}", 
                      request.getAiGameRoomId(), request.getTurnNumber());
@@ -206,11 +255,18 @@ public class AiGameMessageService {
     @Transactional
     public RsData<String> handleEndTurn(AiGameMessageSendRequest request) {
         try {
-            request.setMessageType(AiMessageType.TURN_END);
-            request.setSenderId(SYSTEM_SENDER_ID);
-            request.setSenderNickname(SYSTEM_SENDER_NICKNAME);
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(SYSTEM_SENDER_ID)
+                    .senderNickname(SYSTEM_SENDER_NICKNAME)
+                    .content(request.getContent())
+                    .messageType(AiMessageType.TURN_END)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
 
-            processMessage(request);
+            processMessage(systemMessage);
 
             // AI 응답 완료 후 락 해제
             aiGameStateService.unlockAfterAiResponse(request.getAiGameRoomId());
@@ -261,13 +317,26 @@ public class AiGameMessageService {
      */
     @Transactional
     public AiGameMessageDto handleUserMessage(AiGameMessageSendRequest request) {
-        aiGameValidator.validateGameRoomAndSender(request.getAiGameRoomId(), request.getSenderId());
+        try {
+            aiGameValidator.validateGameRoomAndSender(request.getAiGameRoomId(), request.getSenderId());
+        } catch (Exception e) {
+            log.warn("게임룸/발신자 검증 실패하지만 메시지 전송 허용: roomId={}, senderId={}, error={}", 
+                     request.getAiGameRoomId(), request.getSenderId(), e.getMessage());
+        }
 
-        AiGameRoom room = aiGameRoomService.getGameRoomEntity(request.getAiGameRoomId());
-
-        // 턴제 검증
-        if (!room.getCurrentPhase().equals(AiGamePhase.TURN_INPUT)) {
-            throw new AiChatException(ErrorCode.AI_GAME_MESSAGE_INVALID_STATE);
+        AiGameRoom room;
+        try {
+            room = aiGameRoomService.getGameRoomEntity(request.getAiGameRoomId());
+            
+            // 턴제 검증을 완화 - TURN_INPUT이 아니어도 메시지 허용
+            if (!room.getCurrentPhase().equals(AiGamePhase.TURN_INPUT)) {
+                log.warn("현재 게임 페이즈가 TURN_INPUT이 아니지만 메시지 허용: roomId={}, currentPhase={}", 
+                         request.getAiGameRoomId(), room.getCurrentPhase());
+            }
+        } catch (Exception e) {
+            log.warn("게임룸 조회 실패하지만 메시지 전송 계속 진행: roomId={}, error={}", 
+                     request.getAiGameRoomId(), e.getMessage());
+            room = null;
         }
 
         // 다음 메시지 순서 계산
@@ -288,9 +357,15 @@ public class AiGameMessageService {
 
         AiGameMessage saved = aiGameMessageRepository.save(message);
         
-        // 게임방 마지막 활동 시간 업데이트
-        // lastActivity 필드 제거됨
-        aiGameRoomRepository.save(room);
+        // 게임방 마지막 활동 시간 업데이트 (room이 null이 아닌 경우에만)
+        if (room != null) {
+            try {
+                // lastActivity 필드 제거됨
+                aiGameRoomRepository.save(room);
+            } catch (Exception e) {
+                log.warn("게임룸 저장 실패 (무시됨): roomId={}, error={}", request.getAiGameRoomId(), e.getMessage());
+            }
+        }
 
         log.info("사용자 메시지 저장 완료: roomId={}, sender={}, turn={}", 
                  request.getAiGameRoomId(), request.getSenderId(), request.getTurnNumber());
@@ -520,6 +595,86 @@ public class AiGameMessageService {
      */
     public void processAiTurn(String aiGameRoomId, AiGenerateRequest aiRequest) {
         eventPublisher.publishEvent(new AiTurnProcessEvent(aiGameRoomId, aiRequest));
+    }
+
+    /**
+     * 메시지 욕설 검증
+     */
+    private MessageValidationResult validateMessage(String message) {
+        if (profanityFilterService.containsProfanity(message)) {
+            String filteredMessage = profanityFilterService.filterProfanity(message);
+            return MessageValidationResult.profanityDetected(message, filteredMessage);
+        }
+        return MessageValidationResult.success(message);
+    }
+
+    /**
+     * 욕설 필터링 정책에 따른 메시지 처리
+     */
+    private AiGameMessageSendRequest handleProfanityFiltering(AiGameMessageSendRequest request, 
+                                                            MessageValidationResult validation) {
+        if (!validation.isContainsProfanity()) {
+            return request; // 욕설이 없으면 그대로 반환
+        }
+
+        switch (profanityFilterProperties.getMode()) {
+            case BLOCK:
+                // 욕설 포함 메시지 차단 및 경고 메시지 전송
+                log.warn("욕설 감지로 메시지 차단: roomId={}, userId={}, message={}", 
+                        request.getAiGameRoomId(), request.getSenderId(), request.getContent());
+                sendProfanityWarning(request.getAiGameRoomId(), request.getSenderId());
+                return null; // null 반환으로 메시지 처리 중단
+
+            case FILTER:
+                // 욕설을 필터링하여 메시지 교체
+                log.info("욕설 필터링 적용: roomId={}, userId={}, original={}, filtered={}", 
+                        request.getAiGameRoomId(), request.getSenderId(), 
+                        validation.getOriginalMessage(), validation.getFilteredMessage());
+                
+                return AiGameMessageSendRequest.builder()
+                        .aiGameRoomId(request.getAiGameRoomId())
+                        .gameId(request.getGameId())
+                        .senderId(request.getSenderId())
+                        .senderNickname(request.getSenderNickname())
+                        .content(validation.getFilteredMessage()) // 필터링된 메시지로 교체
+                        .messageType(request.getMessageType())
+                        .turnNumber(request.getTurnNumber())
+                        .messageOrder(request.getMessageOrder())
+                        .build();
+
+            case WARNING:
+                // 경고 로그만 남기고 원본 메시지 통과
+                log.warn("욕설 감지 (경고만 표시): roomId={}, userId={}, message={}", 
+                        request.getAiGameRoomId(), request.getSenderId(), request.getContent());
+                return request;
+
+            default:
+                return request;
+        }
+    }
+
+    /**
+     * 욕설 감지 시 경고 메시지 전송
+     */
+    private void sendProfanityWarning(String roomId, String userId) {
+        try {
+            AiGameMessageSendRequest warningMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(roomId)
+                    .gameId("SYSTEM")
+                    .senderId("SYSTEM")
+                    .senderNickname("시스템")
+                    .content("⚠️ 부적절한 언어가 감지되어 메시지가 차단되었습니다. 건전한 대화를 부탁드립니다.")
+                    .messageType(AiMessageType.SYSTEM)
+                    .turnNumber(0)
+                    .messageOrder(9999)
+                    .build();
+
+            // 경고 메시지를 해당 사용자에게만 전송
+            processMessage(warningMessage);
+            
+        } catch (Exception e) {
+            log.error("욕설 경고 메시지 전송 실패: roomId={}, userId={}", roomId, userId, e);
+        }
     }
 
 
