@@ -86,6 +86,9 @@ dependencies {
     // implementation 'com.github.VaneProject:bad-word-filtering:main-SNAPSHOT'
     // VaneProject 라이브러리 호환성 문제로 커스텀 구현 사용
 
+    // StatCulculate
+    implementation 'net.objecthunter:exp4j:0.4.8'
+
     /* ---------- TEST ---------- */
     // Mockito 인라인(mockStatic 등)
     testImplementation platform("org.mockito:mockito-bom:5.12.0")

@@ -32,6 +32,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 "/v1/valkey/session/all",
                 "/v1/auth/refresh",
                 "/v1/valkey/session/test/save",
+                "/v1/stat/",
+                "/v1/characters",
+                "/init/",
+                "/stat-calculator.html",
+                "/character-test.html",
                 "/dungeon-game.html",
                 "/ws-chat",
                 // Swagger UI 관련 경로들
