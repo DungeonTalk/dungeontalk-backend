@@ -80,7 +80,7 @@ public class StatAggregateService {
         // 첫 번째 단어는 그대로, 나머지는 첫 글자만 대문자
         result.append(words[0]);
         for (int i = 1; i < words.length; i++) {
-            if (words[i].length() > 0) {
+            if (!words[i].isEmpty()) {
                 result.append(Character.toUpperCase(words[i].charAt(0)));
                 if (words[i].length() > 1) {
                     result.append(words[i].substring(1));
