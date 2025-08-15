@@ -3,6 +3,9 @@ package org.com.dungeontalk.domain.gamecharacter.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.com.dungeontalk.domain.stat.entity.RaceStats;
 import org.com.dungeontalk.global.common.entity.BaseEntity;
 
@@ -11,6 +14,9 @@ import java.util.Map;
 
 @Getter
 @Setter
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "character")
 public class GameCharacter extends BaseEntity {
