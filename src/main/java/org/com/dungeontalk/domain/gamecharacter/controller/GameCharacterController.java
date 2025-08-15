@@ -37,8 +37,7 @@ public class GameCharacterController {
     })
     @PostMapping
     public RsData<GameCharacterResponse> createCharacter(@RequestBody CreateCharacterRequest request) {
-        var character = gameCharacterService.createCharacter(request);
-        var response = GameCharacterResponse.from(character);
+        var response = gameCharacterService.createCharacter(request);
         return RsData.of("201", "캐릭터 생성 완료", response);
     }
 
@@ -51,8 +50,7 @@ public class GameCharacterController {
     })
     @GetMapping("/basic/{id}")
     public RsData<GameCharacterResponse> getCharacterBasic(@PathVariable String id) {
-        var character = gameCharacterService.findById(id);
-        var response = GameCharacterResponse.from(character);
+        var response = gameCharacterService.findById(id);
         return RsData.of("200", "캐릭터 조회 완료", response);
     }
 
@@ -78,8 +76,7 @@ public class GameCharacterController {
     })
     @GetMapping
     public RsData<GameCharacterResponse> getCharacterByMember(@RequestParam String memberId) {
-        var character = gameCharacterService.findByMemberId(memberId);
-        var response = GameCharacterResponse.from(character);
+        var response = gameCharacterService.findByMemberId(memberId);
         return RsData.of("200", "멤버 캐릭터 조회 완료", response);
     }
 
