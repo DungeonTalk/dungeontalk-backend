@@ -90,5 +90,4 @@ public class StatAggregateService {
 
         return result.toString();
     }
-
 }
