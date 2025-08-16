@@ -11,6 +11,8 @@ import org.com.dungeontalk.domain.stat.service.StatAggregateService;
 import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @Tag(name = "스탯", description = "게임 내 캐릭터 스탯 관련 API")
 @RestController
 @RequestMapping("/v1/stat")
@@ -33,8 +35,8 @@ public class StatController {
     })
     @GetMapping("/{characterId}/calculated")
     public RsData<CalculatedStatsResponse> calculated(@PathVariable String characterId) {
-        var map = statAggregateService.calculateAllStats(characterId);
-        var response = CalculatedStatsResponse.fromMap(characterId, map);
+        Map<String, Double> map = statAggregateService.calculateAllStats(characterId);
+        CalculatedStatsResponse response = CalculatedStatsResponse.fromMap(characterId, map);
         return RsData.of("200", "스탯 계산 완료", response);
     }
 }
