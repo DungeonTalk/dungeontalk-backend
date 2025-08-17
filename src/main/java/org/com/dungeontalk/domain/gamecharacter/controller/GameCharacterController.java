@@ -12,7 +12,6 @@ import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterReque
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
 import org.com.dungeontalk.domain.gamecharacter.service.GameCharacterService;
-import org.com.dungeontalk.domain.stat.repository.RaceStatsRepository;
 import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +25,6 @@ import java.util.List;
 public class GameCharacterController {
 
     private final GameCharacterService gameCharacterService;
-    private final RaceStatsRepository raceStatsRepository;
 
     // 새로운 캐릭터 생성 (캐릭터 생성 화면에서 사용)
     @Operation(summary = "캐릭터 생성", description = "새로운 캐릭터를 생성합니다. 레벨 1, 모든 스탯 10으로 초기화됩니다.")
@@ -37,7 +35,7 @@ public class GameCharacterController {
     })
     @PostMapping
     public RsData<GameCharacterResponse> createCharacter(@RequestBody CreateCharacterRequest request) {
-        var response = gameCharacterService.createCharacter(request);
+        GameCharacterResponse response = gameCharacterService.createCharacter(request);
         return RsData.of("201", "캐릭터 생성 완료", response);
     }
 
@@ -50,7 +48,7 @@ public class GameCharacterController {
     })
     @GetMapping("/basic/{id}")
     public RsData<GameCharacterResponse> getCharacterBasic(@PathVariable String id) {
-        var response = gameCharacterService.findById(id);
+        GameCharacterResponse response = gameCharacterService.findById(id);
         return RsData.of("200", "캐릭터 조회 완료", response);
     }
 
@@ -63,7 +61,7 @@ public class GameCharacterController {
     })
     @GetMapping("/{id}")
     public RsData<GameCharacterDetailResponse> getCharacterDetail(@PathVariable String id) {
-        var response = gameCharacterService.findDetailById(id);
+        GameCharacterDetailResponse response = gameCharacterService.findDetailById(id);
         return RsData.of("200", "캐릭터 상세 조회 완료", response);
     }
 
@@ -76,7 +74,7 @@ public class GameCharacterController {
     })
     @GetMapping
     public RsData<GameCharacterResponse> getCharacterByMember(@RequestParam String memberId) {
-        var response = gameCharacterService.findByMemberId(memberId);
+        GameCharacterResponse response = gameCharacterService.findByMemberId(memberId);
         return RsData.of("200", "멤버 캐릭터 조회 완료", response);
     }
 
@@ -88,7 +86,7 @@ public class GameCharacterController {
     })
     @GetMapping("/races")
     public RsData<List<String>> getRaces() {
-        var races = raceStatsRepository.findAllRaceNames();
+        List<String> races = gameCharacterService.getRaces();
         return RsData.of("200", "종족 목록 조회 완료", races);
     }
 }

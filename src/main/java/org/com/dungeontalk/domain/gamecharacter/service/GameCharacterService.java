@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import org.com.dungeontalk.domain.stat.entity.RaceStats;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +28,7 @@ public class GameCharacterService {
     @Transactional
     public GameCharacterResponse createCharacter(CreateCharacterRequest request) {
         // 종족명으로 RaceStats 조회하여 UUID 가져오기
-        var raceStats = raceStatsRepository.findByRace(request.raceTypeId())
+        RaceStats raceStats = raceStatsRepository.findByRace(request.raceTypeId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceTypeId()));
 
         GameCharacter character = new GameCharacter();
@@ -78,8 +80,13 @@ public class GameCharacterService {
         String raceName = character.getRaceStats().getRace();
 
         // 모든 스탯 계산
-        var calculatedStats = statAggregateService.calculateAllStats(id);
+        Map<String, Double> calculatedStats = statAggregateService.calculateAllStats(id);
 
         return GameCharacterDetailResponse.from(character, raceName, calculatedStats);
+    }
+
+    // 사용 가능한 모든 종족 목록 조회
+    public List<String> getRaces() {
+        return raceStatsRepository.findAllRaceNames();
     }
 }
