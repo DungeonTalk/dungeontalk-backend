@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-      RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}  # prj_... (순수값)
+      RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}        # 원하는 서비스명(대략)
       RAILWAY_ENV: production
 
     steps:
@@ -19,15 +19,33 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
 
-      - name: Install Railway CLI
-        run: npm i -g @railway/cli && railway --version
-
-      # 선택: 상태 확인 (RAILWAY_TOKEN/PROJECT_ID가 적용되는지 확인)
-      - name: Whoami / Status
+      - name: Install Railway CLI & jq
         run: |
-          railway whoami || true
-          railway status --environment "$RAILWAY_ENV" || true
+          npm i -g @railway/cli
+          sudo apt-get update && sudo apt-get install -y jq
+          railway --version
 
-      # 🚀 배포 (프로젝트 ID는 env에서 자동 인식)
-      - name: Deploy
-        run: railway up --ci --environment "$RAILWAY_ENV" --service "$RAILWAY_SERVICE"
+      # 서비스 목록에서 이름을 찾아내기 (대소문자 무시)
+      - name: Resolve service name in environment
+        run: |
+          railway status --environment "$RAILWAY_ENV" --json > status.json
+          echo "Available services in '$RAILWAY_ENV':"
+          jq -r '.services[].name' status.json
+
+          WANT="${RAILWAY_SERVICE}"
+          # 대소문자 무시 매칭 → 첫 번째 일치 항목 선택
+          FOUND=$(jq -r --arg n "$WANT" '
+            .services[] | select((.name==$n) or (ascii_downcase(.name)==ascii_downcase($n))) | .name
+          ' status.json | head -n1)
+
+          if [ -z "$FOUND" ]; then
+            echo "❌ Service '$WANT' not found in environment '$RAILWAY_ENV'."
+            echo "👉 위 목록 중 정확한 이름을 GitHub Secrets의 RAILWAY_SERVICE로 저장하세요."
+            exit 1
+          fi
+
+          echo "✅ Resolved service: $FOUND"
+          echo "RESOLVED_SERVICE=$FOUND" >> $GITHUB_ENV
+
+      - name: Deploy to Railway
+        run: railway up --ci --environment "$RAILWAY_ENV" --service "$RESOLVED_SERVICE"
