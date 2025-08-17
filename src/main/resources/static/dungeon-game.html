@@ -538,6 +538,13 @@
                     <p>🎮 AI와 함께 RPG 모험을 즐겨보세요!</p>
                     <p>💬 플레이어 채팅으로 전략을 공유하세요.</p>
                 </div>
+
+                <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+                    <h4>🎲 게임 액션</h4>
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-warning" id="rollD20Btn" onclick="rollDice('d20')" disabled>d20 굴리기</button>
+                    </div>
+                </div>
             </div>
             
         </div>
@@ -606,6 +613,9 @@
             if (matchingStompClient && matchingStompClient.connected) {
                 matchingStompClient.disconnect();
                 matchingStompClient = null;
+            }
+            if (document.getElementById('rollD20Btn')) {
+                document.getElementById('rollD20Btn').disabled = true;
             }
             
             console.log('🗑️ 모든 캐시 데이터 삭제 완료');
@@ -1189,7 +1199,7 @@
             
             console.log('AI 응답 요청 시작:', requestData);
             
-            fetch(`/v1/rooms/ai/${aiGameRoomId}/ai/generate`, {
+            fetch(`/v1/aichat/rooms/${aiGameRoomId}/ai/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1238,6 +1248,39 @@
             input.value = '';
         }
         
+        // 주사위 굴림 함수 추가
+        async function rollDice(diceType) {
+            if (!aiGameRoomId || !currentUser) {
+                addAiMessage('system', '⚠️ 주사위를 굴리려면 먼저 게임에 참여해야 합니다.');
+                return;
+            }
+
+            addAiMessage('system', `🎲 ${diceType} 주사위를 굴립니다...`);
+
+            try {
+                const response = await fetch(`/v1/aichat/rooms/${aiGameRoomId}/action/roll-d20`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ memberId: currentUser.id })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API 요청 실패: ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('주사위 굴림 결과:', result);
+                // 결과 메시지는 WebSocket을 통해 자동으로 수신되므로 여기서 별도로 표시하지 않습니다.
+
+            } catch (error) {
+                console.error('주사위 굴림 오류:', error);
+                addAiMessage('system', `❌ 주사위 굴림 중 오류 발생: ${error.message}`);
+            }
+        }
         
         // 탭 전환
         function switchTab(tab) {
@@ -1262,6 +1305,7 @@
             document.getElementById('aiRequestBtn').disabled = false;
             document.getElementById('userMessageInput').disabled = false;
             document.getElementById('userSendBtn').disabled = false;
+            document.getElementById('rollD20Btn').disabled = false; // 주사위 버튼 활성화
         }
         
         // 메시지 추가 함수들
