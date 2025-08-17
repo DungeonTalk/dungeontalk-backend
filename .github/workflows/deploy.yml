@@ -2,62 +2,45 @@ name: Deploy to Railway
 
 on:
   push:
-    branches: [ "dev" ]   # 필요 시 변경
-
-concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [ "dev" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # ✅ GitHub Secrets에 "순수 값"으로 저장돼 있어야 함 (공백/주석/따옴표/개행 X)
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}          # Project Token
-      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}# prj_... 형태
-      RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}      # 예: dungeontalk-backend
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
       RAILWAY_ENV: production
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # (선택) 앱 사전 빌드가 필요하면 유지, Docker 빌드만 쓸거면 삭제해도 됨
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*','gradle.properties','**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
-
-      - name: Build (skip tests)
-        run: ./gradlew --no-daemon clean bootJar -x test
-
-      # ── Railway CLI v3 설치 ────────────────────────────────────────────
-      - name: Setup Node (for Railway CLI)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
 
       - name: Install Railway CLI
         run: npm i -g @railway/cli && railway --version
 
-      # ✅ 프로젝트 링크 (v3: --project 플래그 없음)
-      - name: Link Project
-        run: railway link "$RAILWAY_PROJECT_ID"
+      # 🔧 시크릿 값 정규화(주석/개행/공백 제거)
+      - name: Normalize secrets
+        run: |
+          CLEAN_PROJECT_ID="$(printf %s "$RAILWAY_PROJECT_ID" | tr -d '\r' | sed -E 's/#.*$//; s/[[:space:]]+$//; s/^[[:space:]]+//')"
+          CLEAN_SERVICE="$(printf %s "$RAILWAY_SERVICE" | tr -d '\r' | sed -E 's/#.*$//; s/[[:space:]]+$//; s/^[[:space:]]+//')"
+          echo "CLEAN_PROJECT_ID=$CLEAN_PROJECT_ID" >> $GITHUB_ENV
+          echo "CLEAN_SERVICE=$CLEAN_SERVICE" >> $GITHUB_ENV
 
-      # (선택) 프로젝트/서비스/환경 상태 체크 — 실패해도 파이프라인 중단 안 함
+          echo "PID length: $(printf %s "$CLEAN_PROJECT_ID" | wc -c)"
+          echo "SERVICE   : $(printf %s "$CLEAN_SERVICE"    | wc -c)"
+
+      # v3: link는 인자로 projectId만 줍니다(옵션 없음)
+      - name: Link Project
+        run: railway link "$CLEAN_PROJECT_ID"
+
+      # 선택: 상태 확인(실패해도 파이프라인 계속)
       - name: Status (non-blocking)
         run: railway status --environment "$RAILWAY_ENV" || true
 
-      # 🚀 배포
-      - name: Deploy to Railway
-        run: railway up --ci --environment "$RAILWAY_ENV" --service "$RAILWAY_SERVICE"
+      # 배포
+      - name: Deploy
+        run: railway up --ci --environment "$RAILWAY_ENV" --service "$CLEAN_SERVICE"
