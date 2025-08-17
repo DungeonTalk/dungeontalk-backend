@@ -11,45 +11,33 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     env:
-      # ↙ GitHub Secrets에 넣어둔 값 사용
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
       RAILWAY_ENV: production
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*','gradle.properties','**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
-
-      - name: Build (skip tests)
+      # (선택) 사전 빌드: 실패 시 원인 파악이 쉬움
+      - name: Build locally (skip tests)
         run: ./gradlew --no-daemon clean bootJar -x test
 
-      # === Railway CLI 설치 (설치 디렉터리 고정 + PATH 등록) ===
-      - name: Install Railway CLI
-        run: |
-          curl -fsSL https://railway.app/install.sh | sh -s -- --install-dir "$HOME/.railway/bin"
-          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+      # Railway CLI (npm)
+      - name: Setup Node (for Railway CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      # PATH는 위 스텝 이후부터 반영됨
-      - name: Check Railway
-        run: railway --version
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli && railway --version
 
       - name: Link Railway Project
         run: railway link --project "$RAILWAY_PROJECT_ID"
