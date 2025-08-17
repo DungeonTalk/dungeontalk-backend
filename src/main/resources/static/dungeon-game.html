@@ -405,6 +405,32 @@
         .participant.current-user {
             background: #28a745;
         }
+        
+        /* 스탯 버튼 스타일 */
+        .stat-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 8px;
+            background: #e9ecef;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-btn:hover:not(:disabled) {
+            background: #f8f9fa;
+            transform: translateY(-1px);
+        }
+        
+        .stat-btn.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .stat-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -541,8 +567,44 @@
 
                 <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
                     <h4>🎲 게임 액션</h4>
-                    <div style="margin-top: 10px;">
+                    
+                    <!-- 기본 주사위 굴리기 -->
+                    <div style="margin-top: 15px;">
+                        <h5>📦 기본 주사위</h5>
                         <button class="btn btn-warning" id="rollD20Btn" onclick="rollDice('d20')" disabled>d20 굴리기</button>
+                    </div>
+                    
+                    <!-- 스탯 기반 주사위 굴리기 -->
+                    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                        <h5>⚔️ 스탯 기반 주사위</h5>
+                        
+                        <!-- 스탯 선택 -->
+                        <div style="margin: 10px 0;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">스탯 선택:</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+                                <button class="btn stat-btn" data-stat="str" onclick="selectStat('str')" disabled>💪 힘</button>
+                                <button class="btn stat-btn" data-stat="dex" onclick="selectStat('dex')" disabled>🏃 민첩</button>
+                                <button class="btn stat-btn" data-stat="int" onclick="selectStat('int')" disabled>🧠 지능</button>
+                                <button class="btn stat-btn" data-stat="wis" onclick="selectStat('wis')" disabled>👁️ 지혜</button>
+                                <button class="btn stat-btn" data-stat="wil" onclick="selectStat('wil')" disabled>💎 의지</button>
+                                <button class="btn stat-btn" data-stat="luk" onclick="selectStat('luk')" disabled>🍀 운</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 행동 설명 입력 -->
+                        <div style="margin: 10px 0;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">행동 설명 (선택사항):</label>
+                            <input type="text" id="actionInput" placeholder="예: 자물쇠 따기, 벽 부수기, 마법 해석..." 
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;" disabled>
+                        </div>
+                        
+                        <!-- 스탯 주사위 굴리기 버튼 -->
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-primary" id="rollStatBtn" onclick="rollStatDice()" disabled>
+                                🎯 스탯 주사위 굴리기
+                            </button>
+                            <div id="selectedStatInfo" style="margin-top: 5px; font-size: 12px; color: #666;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -565,6 +627,7 @@
         let currentTurnNumber = 1;
         let aiGameRoomId = null;
         let partyRoomId = null;
+        let selectedStat = null;
         
         // 초기화
         window.addEventListener('load', function() {
@@ -1248,6 +1311,106 @@
             input.value = '';
         }
         
+        // 스탯 선택 함수
+        function selectStat(statType) {
+            // 이전 선택 해제
+            document.querySelectorAll('.stat-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // 새로운 선택
+            document.querySelector(`[data-stat="${statType}"]`).classList.add('selected');
+            selectedStat = statType;
+            
+            // 선택된 스탯 정보 표시
+            const statNames = {
+                'str': '💪 힘',
+                'dex': '🏃 민첩', 
+                'int': '🧠 지능',
+                'wis': '👁️ 지혜',
+                'wil': '💎 의지',
+                'luk': '🍀 운'
+            };
+            
+            document.getElementById('selectedStatInfo').textContent = 
+                `선택된 스탯: ${statNames[statType]}`;
+                
+            // 스탯 주사위 굴리기 버튼 활성화 상태 확인
+            updateStatRollButton();
+        }
+        
+        // 스탯 주사위 굴리기 버튼 상태 업데이트
+        function updateStatRollButton() {
+            const rollStatBtn = document.getElementById('rollStatBtn');
+            const isGameActive = !rollStatBtn.disabled && aiGameRoomId && currentUser;
+            const hasStatSelected = selectedStat !== null;
+            
+            // 게임이 활성화되고 스탯이 선택된 경우에만 버튼 활성화
+            if (isGameActive && hasStatSelected) {
+                rollStatBtn.style.opacity = '1';
+                rollStatBtn.style.cursor = 'pointer';
+            } else {
+                rollStatBtn.style.opacity = '0.6';
+                rollStatBtn.style.cursor = 'not-allowed';
+            }
+        }
+        
+        // 스탯 기반 주사위 굴림 함수
+        async function rollStatDice() {
+            if (!selectedStat) {
+                addAiMessage('system', '⚠️ 먼저 스탯을 선택해주세요.');
+                return;
+            }
+            
+            if (!aiGameRoomId || !currentUser) {
+                addAiMessage('system', '⚠️ 주사위를 굴리려면 먼저 게임에 참여해야 합니다.');
+                return;
+            }
+            
+            const action = document.getElementById('actionInput').value.trim();
+            const statNames = {
+                'str': '💪 힘',
+                'dex': '🏃 민첩', 
+                'int': '🧠 지능',
+                'wis': '👁️ 지혜',
+                'wil': '💎 의지',
+                'luk': '🍀 운'
+            };
+            
+            const actionText = action ? `"${action}" 행동으로 ` : '';
+            addAiMessage('system', `🎯 ${statNames[selectedStat]} ${actionText}스탯 주사위를 굴립니다...`);
+            
+            try {
+                const response = await fetch(`/v1/aichat/rooms/${aiGameRoomId}/action/roll-stat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ 
+                        memberId: currentUser.id,
+                        statType: selectedStat,
+                        action: action || null
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API 요청 실패: ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('스탯 기반 주사위 굴림 결과:', result);
+                
+                // 행동 입력 필드 초기화
+                document.getElementById('actionInput').value = '';
+                
+            } catch (error) {
+                console.error('스탯 기반 주사위 굴림 오류:', error);
+                addAiMessage('system', `❌ 스탯 주사위 굴림 중 오류 발생: ${error.message}`);
+            }
+        }
+        
         // 주사위 굴림 함수 추가
         async function rollDice(diceType) {
             if (!aiGameRoomId || !currentUser) {
@@ -1306,6 +1469,16 @@
             document.getElementById('userMessageInput').disabled = false;
             document.getElementById('userSendBtn').disabled = false;
             document.getElementById('rollD20Btn').disabled = false; // 주사위 버튼 활성화
+            
+            // 스탯 관련 버튼들 활성화
+            document.querySelectorAll('.stat-btn').forEach(btn => {
+                btn.disabled = false;
+            });
+            document.getElementById('actionInput').disabled = false;
+            document.getElementById('rollStatBtn').disabled = false;
+            
+            // 스탯 주사위 버튼 상태 업데이트
+            updateStatRollButton();
         }
         
         // 메시지 추가 함수들
