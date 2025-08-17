@@ -4,9 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.aichat.dto.AiGameMessageDto;
-import org.com.dungeontalk.domain.aichat.dto.request.AiServiceRequest;
-import org.com.dungeontalk.domain.aichat.dto.request.ContextMessage;
-import org.com.dungeontalk.domain.aichat.dto.response.AiServiceResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -36,7 +33,7 @@ public class AiApiService {
     /**
      * Python AI 서비스에서 응답 생성
      */
-    public AiServiceResponse generateAiResponse(String gameId, String aiGameRoomId, 
+    public AiResponseResult generateAiResponse(String gameId, String aiGameRoomId, 
                                              String currentUser, String currentMessage,
                                              List<AiGameMessageDto> contextMessages, int turnNumber) {
         
@@ -47,7 +44,7 @@ public class AiApiService {
                      aiGameRoomId, currentUser, turnNumber);
 
             // 요청 데이터 구성
-            AiServiceRequest request = AiServiceRequest.builder()
+            AiResponseRequest request = AiResponseRequest.builder()
                     .gameId(gameId)
                     .aiGameRoomId(aiGameRoomId)
                     .currentUser(currentUser)
@@ -62,7 +59,7 @@ public class AiApiService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<AiServiceRequest> httpEntity = new HttpEntity<>(request, headers);
+            HttpEntity<AiResponseRequest> httpEntity = new HttpEntity<>(request, headers);
 
             // Python AI 서비스 호출
             ResponseEntity<Map> response = restTemplate.exchange(
@@ -87,7 +84,7 @@ public class AiApiService {
                     responseTime = ((Number) responseBody.get("response_time")).longValue();
                 }
                 
-                AiServiceResponse result = AiServiceResponse.builder()
+                AiResponseResult result = AiResponseResult.builder()
                         .content(content)
                         .responseTime(responseTime)
                         .sources((List<String>) responseBody.get("sources"))
@@ -153,4 +150,44 @@ public class AiApiService {
                 .build();
     }
 
+    // Inner classes for request/response DTOs
+    @lombok.Builder
+    @lombok.Data
+    public static class AiResponseRequest {
+        @com.fasterxml.jackson.annotation.JsonProperty("game_id")
+        private String gameId;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("ai_game_room_id")
+        private String aiGameRoomId;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("current_user")
+        private String currentUser;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("current_message")
+        private String currentMessage;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("context_messages")
+        private List<ContextMessage> contextMessages;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("turn_number")
+        private int turnNumber;
+    }
+
+    @lombok.Builder
+    @lombok.Data
+    public static class ContextMessage {
+        private String messageType;
+        private String senderNickname;
+        private String content;
+        private int turnNumber;
+        private int messageOrder;
+    }
+
+    @lombok.Builder
+    @lombok.Data
+    public static class AiResponseResult {
+        private String content;
+        private Long responseTime;
+        private List<String> sources;
+    }
 }
