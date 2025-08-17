@@ -33,13 +33,11 @@ jobs:
           echo "PID length: $(printf %s "$CLEAN_PROJECT_ID" | wc -c)"
           echo "SERVICE   : $(printf %s "$CLEAN_SERVICE"    | wc -c)"
 
-      # v3: link는 인자로 projectId만 줍니다(옵션 없음)
-      - name: Link Project
-        run: railway link "$CLEAN_PROJECT_ID"
-
       # 선택: 상태 확인(실패해도 파이프라인 계속)
-      - name: Status (non-blocking)
-        run: railway status --environment "$RAILWAY_ENV" || true
+      - name: Whoami / Status
+        run: |
+          railway whoami || true
+          railway status --environment "$RAILWAY_ENV" || true
 
       # 배포
       - name: Deploy
