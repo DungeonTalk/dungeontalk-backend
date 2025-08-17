@@ -10,11 +10,16 @@ import org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest;
 import org.com.dungeontalk.domain.aichat.dto.request.AiMessageSaveRequest;
 import org.com.dungeontalk.domain.aichat.dto.request.AiResponseRequest;
 import org.com.dungeontalk.domain.aichat.dto.response.AiGameMessageResponse;
+import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
+import org.com.dungeontalk.domain.member.entity.Member;
+import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.stereotype.Service;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.com.dungeontalk.domain.aichat.event.AiTurnProcessEvent;
+import org.springframework.transaction.annotation.Transactional;
+
 import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
 import java.util.List;
@@ -31,6 +36,50 @@ public class AiGameFlowService {
     private final AiGameMessageService aiGameMessageService;
     private final AiGameStateService aiGameStateService;
     private final AiApiService aiApiService;
+    private final DiceService diceService;
+    private final MemberRepository memberRepository;
+    private final AiGameRoomService aiGameRoomService;
+
+    /**
+     * 주사위 굴림 요청을 처리합니다 (MVP)
+     */
+    @Transactional
+    public void processDiceRoll(String roomId, String memberId, String diceType) {
+        // 1. 주사위 타입 파싱 (예: "d20" -> 20)
+        int sides = Integer.parseInt(diceType.substring(1));
+
+        // 2. 주사위 굴림
+        int rollResult = diceService.roll(sides);
+
+        // 3. 메시지 생성을 위해 필요한 정보 조회
+        AiGameRoom room = aiGameRoomService.getGameRoomEntity(roomId);
+        String nickname = memberRepository.findById(memberId)
+                .map(Member::getNickName)
+                .orElse("알 수 없는 플레이어");
+
+        // 4. 시스템 메시지 생성
+        String content = String.format("🎲 %s님이 %s를 굴려 %d이(가) 나왔습니다!",
+                nickname, diceType, rollResult);
+
+        AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                .aiGameRoomId(roomId)
+                .gameId(room.getGameId())
+                .senderId(SYSTEM_SENDER_ID)
+                .senderNickname(SYSTEM_SENDER_NICKNAME)
+                .content(content)
+                .messageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM)
+                .turnNumber(room.getCurrentTurn())
+                .messageOrder(999) // 중간 순서로 임의 지정
+                .build();
+
+        // 5. 메시지 저장 및 브로드캐스트
+        try {
+            aiGameMessageService.processMessage(systemMessage);
+        } catch (Exception e) {
+            log.error("주사위 결과 메시지 처리 실패: roomId={}, error={}", roomId, e.getMessage(), e);
+            // 실패하더라도 롤백하지 않고 로그만 남길 수 있음.
+        }
+    }
 
     /**
      * AI 턴을 처리합니다 (기존 generateAndProcessAiResponse 로직)
