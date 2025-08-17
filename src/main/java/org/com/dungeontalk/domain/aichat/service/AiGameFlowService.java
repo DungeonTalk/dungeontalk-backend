@@ -3,6 +3,7 @@ package org.com.dungeontalk.domain.aichat.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.aichat.dto.AiGameMessageDto;
+import org.com.dungeontalk.domain.aichat.dto.response.AiServiceResponse;
 import org.com.dungeontalk.domain.aichat.dto.request.AiErrorRequest;
 import org.com.dungeontalk.domain.aichat.dto.request.AiGenerateRequest;
 import org.com.dungeontalk.domain.aichat.dto.request.AiGameMessageSendRequest;
@@ -51,7 +52,7 @@ public class AiGameFlowService {
                     .getContextMessages(roomId, DEFAULT_CONTEXT_MESSAGE_COUNT, request.getTurnNumber());
 
             // Python AI 서비스에서 응답 생성
-            AiApiService.AiResponseResult aiResult = aiApiService.generateAiResponse(
+            AiServiceResponse aiResult = aiApiService.generateAiResponse(
                     request.getGameId(),
                     roomId,
                     request.getCurrentUser(),
