@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.persistence.EntityListeners;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +40,7 @@ public class AiGameRoom {
     private List<String> participants = new ArrayList<>();
     private String gameSettings; // 게임 설정 (TRPG 세계관, 난이도 등 - JSON 형태 저장 가능)
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     // 마지막 활동 시간 (플레이어 입력 또는 AI 응답 시간)
     public boolean isActive() {

@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import org.com.dungeontalk.domain.aichat.common.AiMessageType;
 import org.com.dungeontalk.domain.aichat.entity.AiGameMessage;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Builder
@@ -24,7 +24,7 @@ public class AiGameMessageDto {
     private AiMessageType messageType;
     private int turnNumber;
     private int messageOrder;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /**
      * Entity를 DTO로 변환

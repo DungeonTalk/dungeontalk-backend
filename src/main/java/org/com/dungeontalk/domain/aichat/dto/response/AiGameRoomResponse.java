@@ -9,7 +9,7 @@ import org.com.dungeontalk.domain.aichat.common.AiGamePhase;
 import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
 import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +52,7 @@ public class AiGameRoomResponse {
     private List<String> participants;
     
     @Schema(description = "생성 시간")
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /**
      * 입장 가능 여부
