@@ -22,23 +22,12 @@ jobs:
       - name: Install Railway CLI
         run: npm i -g @railway/cli && railway --version
 
-      # 🔧 시크릿 값 정규화(주석/개행/공백 제거)
-      - name: Normalize secrets
-        run: |
-          CLEAN_PROJECT_ID="$(printf %s "$RAILWAY_PROJECT_ID" | tr -d '\r' | sed -E 's/#.*$//; s/[[:space:]]+$//; s/^[[:space:]]+//')"
-          CLEAN_SERVICE="$(printf %s "$RAILWAY_SERVICE" | tr -d '\r' | sed -E 's/#.*$//; s/[[:space:]]+$//; s/^[[:space:]]+//')"
-          echo "CLEAN_PROJECT_ID=$CLEAN_PROJECT_ID" >> $GITHUB_ENV
-          echo "CLEAN_SERVICE=$CLEAN_SERVICE" >> $GITHUB_ENV
-
-          echo "PID length: $(printf %s "$CLEAN_PROJECT_ID" | wc -c)"
-          echo "SERVICE   : $(printf %s "$CLEAN_SERVICE"    | wc -c)"
-
-      # 선택: 상태 확인(실패해도 파이프라인 계속)
+      # 선택: 상태 확인 (RAILWAY_TOKEN/PROJECT_ID가 적용되는지 확인)
       - name: Whoami / Status
         run: |
           railway whoami || true
           railway status --environment "$RAILWAY_ENV" || true
 
-      # 배포
+      # 🚀 배포 (프로젝트 ID는 env에서 자동 인식)
       - name: Deploy
-        run: railway up --ci --environment "$RAILWAY_ENV" --service "$CLEAN_SERVICE"
+        run: railway up --ci --environment "$RAILWAY_ENV" --service "$RAILWAY_SERVICE"
