@@ -76,4 +76,36 @@ public class GameCharacter extends BaseEntity {
         map.put("luk", this.luk);
         return map;
     }
+
+    /**
+     * 스탯 타입에 따른 스탯값 반환
+     * @param statType "str", "dex", "int", "wis", "wil", "luk" 중 하나
+     * @return 해당 스탯값
+     */
+    public int getStatValue(String statType) {
+        return switch (statType.toLowerCase()) {
+            case "str" -> this.str != null ? this.str : 10;
+            case "dex" -> this.dex != null ? this.dex : 10;
+            case "int" -> this.int_ != null ? this.int_ : 10;
+            case "wis" -> this.wis != null ? this.wis : 10;
+            case "wil" -> this.wil != null ? this.wil : 10;
+            case "luk" -> this.luk != null ? this.luk : 10;
+            default -> throw new IllegalArgumentException("Unknown stat type: " + statType);
+        };
+    }
+
+    /**
+     * 스탯 타입의 한글명 반환
+     */
+    public String getStatDisplayName(String statType) {
+        return switch (statType.toLowerCase()) {
+            case "str" -> "힘";
+            case "dex" -> "민첩";
+            case "int" -> "지능";
+            case "wis" -> "지혜";
+            case "wil" -> "의지";
+            case "luk" -> "운";
+            default -> statType;
+        };
+    }
 }
