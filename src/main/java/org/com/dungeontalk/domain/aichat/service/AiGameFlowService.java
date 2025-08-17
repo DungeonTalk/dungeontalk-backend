@@ -13,6 +13,8 @@ import org.com.dungeontalk.domain.aichat.dto.response.AiGameMessageResponse;
 import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
+import org.com.dungeontalk.domain.gamecharacter.entity.GameCharacter;
+import org.com.dungeontalk.domain.gamecharacter.service.GameCharacterService;
 import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.stereotype.Service;
 import org.springframework.context.event.EventListener;
@@ -39,6 +41,7 @@ public class AiGameFlowService {
     private final DiceService diceService;
     private final MemberRepository memberRepository;
     private final AiGameRoomService aiGameRoomService;
+    private final GameCharacterService gameCharacterService;
 
     /**
      * 주사위 굴림 요청을 처리합니다 (MVP)
@@ -79,6 +82,101 @@ public class AiGameFlowService {
             log.error("주사위 결과 메시지 처리 실패: roomId={}, error={}", roomId, e.getMessage(), e);
             // 실패하더라도 롤백하지 않고 로그만 남길 수 있음.
         }
+    }
+
+    /**
+     * 스탯 보정치가 적용된 주사위 굴림을 처리합니다.
+     */
+    @Transactional
+    public void processDiceRollWithStat(String roomId, String memberId, String statType, String action) {
+        try {
+            // 1. 캐릭터 정보 조회 (없으면 기본값 사용)
+            int statValue;
+            String statDisplayName;
+            try {
+                GameCharacter character = gameCharacterService.findOrCreateByMemberId(memberId);
+                statValue = character.getStatValue(statType);
+                statDisplayName = character.getStatDisplayName(statType);
+            } catch (Exception e) {
+                // 캐릭터 생성/조회 실패 시 기본 스탯값 10 사용
+                log.warn("캐릭터 생성/조회 실패로 기본 스탯값 사용: memberId={}, statType={}, error={}", 
+                        memberId, statType, e.getMessage());
+                statValue = 10; // 기본 스탯값
+                statDisplayName = getDefaultStatDisplayName(statType);
+            }
+
+            // 2. 닉네임 조회
+            String nickname = memberRepository.findById(memberId)
+                    .map(Member::getNickName)
+                    .orElse("알 수 없는 플레이어");
+
+            // 3. 스탯 보정치가 적용된 주사위 굴림
+            DiceService.DiceResult diceResult = diceService.rollWithModifier(20, statValue);
+
+            // 4. 게임룸 정보 조회
+            AiGameRoom room = aiGameRoomService.getGameRoomEntity(roomId);
+
+            // 5. 시스템 메시지 생성
+            String content = buildDiceResultMessage(nickname, action, statDisplayName, diceResult);
+
+            AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(roomId)
+                    .gameId(room.getGameId())
+                    .senderId(SYSTEM_SENDER_ID)
+                    .senderNickname(SYSTEM_SENDER_NICKNAME)
+                    .content(content)
+                    .messageType(org.com.dungeontalk.domain.aichat.common.AiMessageType.SYSTEM)
+                    .turnNumber(room.getCurrentTurn())
+                    .messageOrder(999)
+                    .build();
+
+            // 6. 메시지 저장 및 브로드캐스트
+            aiGameMessageService.processMessage(systemMessage);
+            
+            log.info("스탯 기반 주사위 굴림 완료: roomId={}, memberId={}, stat={}({}), result={}", 
+                    roomId, memberId, statType, statValue, diceResult.getFinalResult());
+
+        } catch (Exception e) {
+            log.error("스탯 기반 주사위 굴림 실패: roomId={}, memberId={}, statType={}, error={}", 
+                     roomId, memberId, statType, e.getMessage(), e);
+            throw new RuntimeException("스탯 기반 주사위 굴림 처리 실패", e);
+        }
+    }
+
+    /**
+     * 주사위 결과 메시지를 생성합니다.
+     */
+    private String buildDiceResultMessage(String nickname, String action, String statDisplayName, DiceService.DiceResult diceResult) {
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("🎲 ").append(nickname).append("님이 ");
+        
+        if (action != null && !action.isBlank()) {
+            sb.append(action).append("을(를) 시도... ");
+        } else {
+            sb.append(statDisplayName).append(" 판정... ");
+        }
+        
+        sb.append("d20 결과: ").append(diceResult.getBaseRoll());
+        sb.append(" (").append(statDisplayName).append(" 보정: ").append(diceResult.getModifierString()).append(")");
+        sb.append(" -> 최종 ").append(diceResult.getFinalResult()).append("!");
+
+        return sb.toString();
+    }
+    
+    /**
+     * 기본 스탯 한글명을 반환합니다.
+     */
+    private String getDefaultStatDisplayName(String statType) {
+        return switch (statType.toLowerCase()) {
+            case "str" -> "힘";
+            case "dex" -> "민첩";
+            case "int" -> "지능";
+            case "wis" -> "지혜";
+            case "wil" -> "의지";
+            case "luk" -> "운";
+            default -> statType;
+        };
     }
 
     /**
