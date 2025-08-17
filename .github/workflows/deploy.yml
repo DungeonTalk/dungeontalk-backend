@@ -1,0 +1,52 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [ "main" ]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}   # ex) "prj_xxx..."
+      RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}         # ex) "web" 또는 서비스명
+      RAILWAY_ENV: production                                 # 필요 시 변경
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # JDK 세팅 + Gradle 캐시 빌드(선택: 배포 전 테스트/빌드 검증)
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*','gradle.properties','**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Build (optional pre-check)
+        run: ./gradlew -v && ./gradlew --no-daemon clean test bootJar
+
+      # Railway CLI 설치
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.app/install.sh | sh
+
+      # 리포 ↔ 프로젝트 연결(비대화식)
+      - name: Link Railway Project
+        run: ~/.railway/bin/railway link $RAILWAY_PROJECT_ID
+
+      # 배포(로그만 스트림 후 종료: --ci, 서비스/환경 명시)
+      - name: Deploy
+        run: ~/.railway/bin/railway up --ci -s "$RAILWAY_SERVICE" -e "$RAILWAY_ENV"
