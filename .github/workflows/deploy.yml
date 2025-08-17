@@ -11,14 +11,17 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     env:
+      # ↙ GitHub Secrets에 넣어둔 값 사용
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
       RAILWAY_ENV: production
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -35,18 +38,21 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*','gradle.properties','**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Build (no tests)
+      - name: Build (skip tests)
         run: ./gradlew --no-daemon clean bootJar -x test
 
-      # ✅ 설치 경로 고정 + PATH 등록
+      # === Railway CLI 설치 (설치 디렉터리 고정 + PATH 등록) ===
       - name: Install Railway CLI
         run: |
           curl -fsSL https://railway.app/install.sh | sh -s -- --install-dir "$HOME/.railway/bin"
           echo "$HOME/.railway/bin" >> $GITHUB_PATH
-          railway --version
+
+      # PATH는 위 스텝 이후부터 반영됨
+      - name: Check Railway
+        run: railway --version
 
       - name: Link Railway Project
         run: railway link --project "$RAILWAY_PROJECT_ID"
 
-      - name: Deploy
+      - name: Deploy to Railway
         run: railway up --ci -s "$RAILWAY_SERVICE" -e "$RAILWAY_ENV"
