@@ -38,11 +38,9 @@ jobs:
 
       - name: Install Railway CLI
         run: npm i -g @railway/cli && railway --version
-
-      # 링크
-      - name: Link Railway Project
-        run: railway link --project "$RAILWAY_PROJECT_ID"
-
-      # 배포
-      - name: Deploy to Railway
-        run: railway up --ci --project "$RAILWAY_PROJECT_ID" --environment "$RAILWAY_ENV" --service "$RAILWAY_SERVICE"
+      
+      - name: Link Project
+        run: railway --token "$RAILWAY_TOKEN" link --project "$RAILWAY_PROJECT_ID"
+      
+      - name: Deploy
+        run: railway --token "$RAILWAY_TOKEN" up --ci --project "$RAILWAY_PROJECT_ID" --environment "$RAILWAY_ENV" --service "$RAILWAY_SERVICE"
