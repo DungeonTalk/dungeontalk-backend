@@ -39,8 +39,5 @@ jobs:
       - name: Install Railway CLI
         run: npm i -g @railway/cli && railway --version
       
-      - name: Link Project
-        run: railway --token "$RAILWAY_TOKEN" link --project "$RAILWAY_PROJECT_ID"
-      
       - name: Deploy
         run: railway --token "$RAILWAY_TOKEN" up --ci --project "$RAILWAY_PROJECT_ID" --environment "$RAILWAY_ENV" --service "$RAILWAY_SERVICE"
