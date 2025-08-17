@@ -63,6 +63,30 @@ public class GameCharacterService {
         return gameCharacterRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("Character not found for member: " + memberId));
     }
+    
+    // 멤버 ID로 캐릭터 조회, 없으면 자동으로 기본 캐릭터 생성
+    @Transactional
+    public GameCharacter findOrCreateByMemberId(String memberId) {
+        return gameCharacterRepository.findByMemberId(memberId)
+                .orElseGet(() -> {
+                    // 캐릭터가 없으면 기본 캐릭터 생성
+                    String defaultRace = getDefaultRaceName();
+                    CreateCharacterRequest defaultCharacter = new CreateCharacterRequest(
+                        memberId,
+                        defaultRace
+                    );
+                    return createCharacter(defaultCharacter);
+                });
+    }
+    
+    // 데이터베이스에서 사용 가능한 첫 번째 종족을 가져오는 헬퍼 메서드
+    private String getDefaultRaceName() {
+        List<String> availableRaces = raceStatsRepository.findAllRaceNames();
+        if (availableRaces.isEmpty()) {
+            throw new IllegalStateException("데이터베이스에 등록된 종족이 없습니다.");
+        }
+        return availableRaces.get(0); // 첫 번째 종족 사용
+    }
 
     // 캐릭터 상세 정보 조회 (기본 정보 + 종족명 + 계산된 스탯)
     public GameCharacterDetailResponse findDetailById(String id) {
