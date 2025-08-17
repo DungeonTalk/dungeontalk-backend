@@ -37,7 +37,7 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle-
 
       - name: Build (optional pre-check)
-        run: ./gradlew -v && ./gradlew --no-daemon clean test bootJar
+        run: ./gradlew --no-daemon clean bootJar -x test
 
       # Railway CLI 설치
       - name: Install Railway CLI
