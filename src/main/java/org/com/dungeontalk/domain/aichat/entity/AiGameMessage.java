@@ -6,7 +6,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * AI 게임 메시지를 저장하는 MongoDB 문서 엔티티
@@ -32,7 +32,7 @@ public class AiGameMessage {
     private int messageOrder; //메시지 순서 (같은 턴 내에서의 순서)
 
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /**
      * AI 메시지인지 확인

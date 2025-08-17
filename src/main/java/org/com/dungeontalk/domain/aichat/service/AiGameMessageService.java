@@ -36,7 +36,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -352,7 +352,7 @@ public class AiGameMessageService {
                 .messageType(AiMessageType.USER)
                 .turnNumber(request.getTurnNumber())
                 .messageOrder(nextMessageOrder)
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .build();
 
         AiGameMessage saved = aiGameMessageRepository.save(message);
@@ -396,7 +396,7 @@ public class AiGameMessageService {
                 .messageType(AiMessageType.AI)
                 .turnNumber(request.getTurnNumber())
                 .messageOrder(nextMessageOrder)
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .build();
 
         AiGameMessage saved = aiGameMessageRepository.save(message);
@@ -455,7 +455,7 @@ public class AiGameMessageService {
                 .messageType(AiMessageType.SYSTEM)
                 .turnNumber(request.getTurnNumber())
                 .messageOrder(request.getMessageOrder())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .build();
 
         AiGameMessage saved = aiGameMessageRepository.save(message);
@@ -484,7 +484,7 @@ public class AiGameMessageService {
                 .messageType(AiMessageType.TURN_START)
                 .turnNumber(request.getTurnNumber())
                 .messageOrder(AiChatConfigHelper.getTurnStartMessageOrder())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .build();
 
         AiGameMessage saved = aiGameMessageRepository.save(message);
@@ -513,7 +513,7 @@ public class AiGameMessageService {
                 .messageType(AiMessageType.TURN_END)
                 .turnNumber(request.getTurnNumber())
                 .messageOrder(AiChatConfigHelper.getTurnEndMessageOrder())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .build();
 
         AiGameMessage saved = aiGameMessageRepository.save(message);

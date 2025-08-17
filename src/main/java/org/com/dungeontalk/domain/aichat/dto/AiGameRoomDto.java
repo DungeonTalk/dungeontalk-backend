@@ -8,7 +8,7 @@ import org.com.dungeontalk.domain.aichat.common.AiGamePhase;
 import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
 import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -26,7 +26,7 @@ public class AiGameRoomDto {
     private int maxParticipants;
     private List<String> participants;
     private String gameSettings;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /**
      * Entity를 DTO로 변환
