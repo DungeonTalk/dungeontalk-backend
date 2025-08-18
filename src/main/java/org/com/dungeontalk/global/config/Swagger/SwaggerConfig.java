@@ -24,7 +24,8 @@ public class SwaggerConfig {
                 .description("F6 팀 API 명세서");
 
         return new OpenAPI()
-                .components(new Components())
+                .components(components())
+                .addSecurityItem(securityRequirement())
                 .info(info);
     }
     /**
