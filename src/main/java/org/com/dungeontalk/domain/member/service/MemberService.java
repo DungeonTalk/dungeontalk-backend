@@ -4,8 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.member.dto.request.RegisterRequest;
 import org.com.dungeontalk.domain.member.dto.response.RegisterResponse;
+import org.com.dungeontalk.domain.member.dto.response.UserWithCharacterInfoResponse;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
+import org.com.dungeontalk.domain.gamecharacter.repository.GameCharacterRepository;
 import org.com.dungeontalk.global.security.JwtService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ public class MemberService {
 
     private final BCryptPasswordEncoder passwordEncoder;
     private final MemberRepository memberRepository;
+    private final GameCharacterRepository gameCharacterRepository;
     private final JwtService jwtService;
 
     // 회원가입 메서드
@@ -39,7 +42,15 @@ public class MemberService {
         return new RegisterResponse(member.getId(), member.getName(), member.getNickName());
     }
 
-
-
+    // 멤버 ID로 사용자 정보 및 캐릭터 존재 여부 조회
+    @Transactional(readOnly = true)
+    public UserWithCharacterInfoResponse getUserWithCharacterInfo(String memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 멤버입니다: " + memberId));
+        
+        boolean hasCharacter = gameCharacterRepository.existsByMemberId(memberId);
+        
+        return UserWithCharacterInfoResponse.of(member.getNickName(), hasCharacter);
+    }
 
 }

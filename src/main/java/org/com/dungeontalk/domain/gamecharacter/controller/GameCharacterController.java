@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
-import org.com.dungeontalk.domain.gamecharacter.dto.response.CharacterExistenceResponse;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
 import org.com.dungeontalk.domain.gamecharacter.service.GameCharacterService;
@@ -90,16 +89,4 @@ public class GameCharacterController {
         return RsData.of("200", "종족 목록 조회 완료", races);
     }
 
-    // 멤버가 캐릭터를 가지고 있는지 확인
-    @Operation(summary = "캐릭터 존재 여부 확인", description = "멤버 ID로 해당 멤버가 생성한 캐릭터가 있는지 확인합니다.")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "확인 완료",
-            content = @Content(schema = @Schema(implementation = CharacterExistenceResponse.class)))
-    })
-    @GetMapping("/exists")
-    public RsData<CharacterExistenceResponse> hasCharacter(@RequestParam String memberId) {
-        boolean hasCharacter = gameCharacterService.hasCharacter(memberId);
-        CharacterExistenceResponse response = CharacterExistenceResponse.of(hasCharacter);
-        return RsData.of("200", "캐릭터 존재 여부 확인 완료", response);
-    }
 }
