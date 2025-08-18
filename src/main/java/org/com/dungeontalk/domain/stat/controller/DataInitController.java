@@ -65,14 +65,14 @@ public class DataInitController {
         dwarf.setDiceOdds("luk * 0.10");
 
         List<RaceStats> raceStatsList = List.of(elf, human, dwarf);
-        var savedRaceStats = raceStatsRepository.saveAll(raceStatsList);
+        List<RaceStats> savedRaceStats = raceStatsRepository.saveAll(raceStatsList);
         return RsData.of("201", "RaceStats 생성 완료", savedRaceStats);
     }
 
     // 현재 등록된 모든 종족 스탯 데이터 조회
     @GetMapping("/race-stats")
     public RsData<List<RaceStats>> getAllRaceStats() {
-        var raceStats = raceStatsRepository.findAll();
+        List<RaceStats> raceStats = raceStatsRepository.findAll();
         return RsData.of("200", "RaceStats 조회 완료", raceStats);
     }
 

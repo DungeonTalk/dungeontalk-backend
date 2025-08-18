@@ -37,21 +37,12 @@ public class StatAggregateService {
         Map<String, Object> variables = gameCharacter.toVariableMap();   // 필요 변수 준비(검증 추가는 이후 단계에서)
         Map<String, String> formulas  = extractFormulas(raceStats);  // 동적 추출(키=@Column name)
 
-        // 디버깅 로그 추가
-        System.out.println("[DEBUG] 캐릭터 ID: " + characterId);
-        System.out.println("[DEBUG] 종족: " + raceStats.getRace());
-        System.out.println("[DEBUG] 변수들: " + variables);
-        System.out.println("[DEBUG] 공식들: " + formulas);
-
         Map<String, Double> result = new LinkedHashMap<>();
         for (Map.Entry<String, String> e : formulas.entrySet()) {
-            System.out.println("[DEBUG] 계산 중: " + e.getKey() + " = " + e.getValue());
             double value = calculator.calculate(e.getValue(), variables);
-            System.out.println("[DEBUG] 계산 결과: " + e.getKey() + " = " + value);
 
             // 스네이크케이스를 카멜케이스로 변환
             String camelCaseKey = toCamelCase(e.getKey());
-            System.out.println("[DEBUG] 키 변환: " + e.getKey() + " → " + camelCaseKey);
             result.put(camelCaseKey, value);
         }
         return result;
@@ -89,7 +80,7 @@ public class StatAggregateService {
         // 첫 번째 단어는 그대로, 나머지는 첫 글자만 대문자
         result.append(words[0]);
         for (int i = 1; i < words.length; i++) {
-            if (words[i].length() > 0) {
+            if (!words[i].isEmpty()) {
                 result.append(Character.toUpperCase(words[i].charAt(0)));
                 if (words[i].length() > 1) {
                     result.append(words[i].substring(1));
@@ -98,11 +89,5 @@ public class StatAggregateService {
         }
 
         return result.toString();
-    }
-
-    /** (옵션) 디버그용 */
-    public void debugPrintAllStats(String characterId) {
-        calculateAllStats(characterId)
-                .forEach((k, v) -> System.out.println("[DEBUG] " + k + " = " + v));
     }
 }
