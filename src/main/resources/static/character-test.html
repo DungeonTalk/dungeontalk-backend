@@ -104,12 +104,37 @@
         <div id="racesResult" class="result"></div>
     </div>
 
-    <!-- 캐릭터 생성 -->
+    <!-- 회원가입 + 캐릭터 생성 -->
     <div class="section">
-        <h2>2. 캐릭터 생성</h2>
+        <h2>2. 회원가입 + 캐릭터 생성</h2>
+        <div class="form-group">
+            <label>사용자 이름:</label>
+            <input type="text" id="registerName" placeholder="testUser123">
+        </div>
+        <div class="form-group">
+            <label>닉네임:</label>
+            <input type="text" id="registerNickName" placeholder="테스트유저">
+        </div>
+        <div class="form-group">
+            <label>비밀번호:</label>
+            <input type="password" id="registerPassword" placeholder="password123">
+        </div>
+        <div class="form-group">
+            <label>종족:</label>
+            <select id="registerRaceTypeId">
+                <option value="">종족을 선택하세요</option>
+            </select>
+        </div>
+        <button onclick="registerWithCharacter()">회원가입 + 캐릭터 생성</button>
+        <div id="registerResult" class="result"></div>
+    </div>
+
+    <!-- 기존 캐릭터 생성 (테스트용) -->
+    <div class="section">
+        <h2>2-1. 별도 캐릭터 생성 (테스트용)</h2>
         <div class="form-group">
             <label>멤버 ID:</label>
-            <input type="text" id="createMemberId" placeholder="user123" value="testUser001">
+            <input type="text" id="createMemberId" placeholder="실제 Member ID를 입력하세요">
         </div>
         <div class="form-group">
             <label>종족:</label>
@@ -185,17 +210,70 @@
             // RsData에서 실제 데이터 추출
             const races = rsData.data;
             
-            // 종족 선택박스에 옵션 추가
-            const select = document.getElementById('createRaceTypeId');
-            select.innerHTML = '<option value="">종족을 선택하세요</option>';
+            // 종족 선택박스에 옵션 추가 (회원가입용, 캐릭터생성용 둘 다)
+            const registerSelect = document.getElementById('registerRaceTypeId');
+            const createSelect = document.getElementById('createRaceTypeId');
+            
+            registerSelect.innerHTML = '<option value="">종족을 선택하세요</option>';
+            createSelect.innerHTML = '<option value="">종족을 선택하세요</option>';
+            
             races.forEach(race => {
-                const option = document.createElement('option');
-                option.value = race;
-                option.textContent = race;
-                select.appendChild(option);
+                const registerOption = document.createElement('option');
+                registerOption.value = race;
+                registerOption.textContent = race;
+                registerSelect.appendChild(registerOption);
+                
+                const createOption = document.createElement('option');
+                createOption.value = race;
+                createOption.textContent = race;
+                createSelect.appendChild(createOption);
             });
         } catch (error) {
             showResult('racesResult', { error: error.message }, true);
+        }
+    }
+
+    // 회원가입 + 캐릭터 생성
+    async function registerWithCharacter() {
+        const name = document.getElementById('registerName').value.trim();
+        const nickName = document.getElementById('registerNickName').value.trim();
+        const password = document.getElementById('registerPassword').value.trim();
+        const raceTypeId = document.getElementById('registerRaceTypeId').value;
+
+        if (!name || !nickName || !password || !raceTypeId) {
+            showResult('registerResult', { error: '모든 필드를 입력해주세요.' }, true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/v1/member/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    name: name, 
+                    nickName: nickName, 
+                    password: password,
+                    raceTypeId: raceTypeId 
+                })
+            });
+
+            const rsData = await response.json();
+            showResult('registerResult', rsData);
+
+            if (response.ok && rsData.resultCode === '200') {
+                // 성공 시 생성된 멤버 정보 표시
+                const memberData = rsData.data;
+                console.log('회원가입 + 캐릭터 생성 성공:', memberData);
+                
+                // 생성된 멤버 ID를 다른 입력폼에 자동 입력 (테스트용)
+                if (memberData && memberData.id) {
+                    document.getElementById('createMemberId').value = memberData.id;
+                }
+            }
+        } catch (error) {
+            showResult('registerResult', { error: error.message }, true);
         }
     }
 

@@ -13,7 +13,6 @@ import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetail
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
 import org.com.dungeontalk.domain.gamecharacter.service.GameCharacterService;
 import org.com.dungeontalk.global.rsData.RsData;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

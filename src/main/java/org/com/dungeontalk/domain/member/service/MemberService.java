@@ -6,6 +6,9 @@ import org.com.dungeontalk.domain.member.dto.request.RegisterRequest;
 import org.com.dungeontalk.domain.member.dto.response.RegisterResponse;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
+import org.com.dungeontalk.domain.gamecharacter.service.GameCharacterService;
+import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
+import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
 import org.com.dungeontalk.global.security.JwtService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,6 +22,7 @@ public class MemberService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final MemberRepository memberRepository;
     private final JwtService jwtService;
+    private final GameCharacterService gameCharacterService;
 
     // 회원가입 메서드
     @Transactional
@@ -36,7 +40,19 @@ public class MemberService {
         Member member = registerRequest.toEntity(encodedPassword);
         memberRepository.save(member);
 
-        return new RegisterResponse(member.getId(), member.getName(), member.getNickName());
+        // 회원가입 시 캐릭터도 함께 생성
+        CreateCharacterRequest characterRequest = new CreateCharacterRequest(
+            member.getId(),
+            registerRequest.raceTypeId()
+        );
+        GameCharacterResponse characterResponse = gameCharacterService.createCharacter(characterRequest);
+
+        return new RegisterResponse(
+            member.getId(), 
+            member.getName(), 
+            member.getNickName(),
+            characterResponse
+        );
     }
 
 

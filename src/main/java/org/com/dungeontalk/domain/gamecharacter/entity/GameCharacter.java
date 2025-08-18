@@ -7,6 +7,7 @@ import lombok.experimental.SuperBuilder;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.com.dungeontalk.domain.stat.entity.RaceStats;
+import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.global.common.entity.BaseEntity;
 
 import java.util.HashMap;
@@ -25,6 +26,15 @@ public class GameCharacter extends BaseEntity {
 
     @Column(name = "member_id")
     private String memberId;
+
+    /**
+     * 멤버와의 일대일 관계 (읽기 전용)
+     * - member_id(FK)는 기존 필드 사용
+     * - 실제 갱신은 member_id 컬럼으로만 하고, 본 연관은 읽기 전용
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", referencedColumnName = "id", insertable = false, updatable = false)
+    private Member member;
 
     @Column(name = "race_type_id")
     private String raceTypeId;
