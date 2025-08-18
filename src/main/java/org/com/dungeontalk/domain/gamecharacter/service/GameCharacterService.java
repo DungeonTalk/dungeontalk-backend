@@ -89,4 +89,9 @@ public class GameCharacterService {
     public List<String> getRaces() {
         return raceStatsRepository.findAllRaceNames();
     }
+
+    // 멤버가 캐릭터를 가지고 있는지 확인
+    public boolean hasCharacter(String memberId) {
+        return gameCharacterRepository.existsByMemberId(memberId);
+    }
 }

@@ -20,4 +20,7 @@ public interface GameCharacterRepository extends JpaRepository<GameCharacter, St
 
     // character 테이블에서 member_id로 캐릭터 조회 (MVP: 1개 멤버당 1개 캐릭터)
     Optional<GameCharacter> findByMemberId(String memberId);
+    
+    // member_id로 캐릭터 존재 여부 확인
+    boolean existsByMemberId(String memberId);
 }
