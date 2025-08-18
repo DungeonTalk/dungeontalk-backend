@@ -1,4 +1,4 @@
-package org.com.dungeontalk.global.aop;
+package org.com.dungeontalk.global.aop.cacheAop;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

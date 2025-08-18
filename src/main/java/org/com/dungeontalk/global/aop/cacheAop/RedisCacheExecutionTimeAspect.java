@@ -1,4 +1,4 @@
-package org.com.dungeontalk.global.aop;
+package org.com.dungeontalk.global.aop.cacheAop;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -13,17 +13,13 @@ public class RedisCacheExecutionTimeAspect {
 
     private static final Logger log = LoggerFactory.getLogger(RedisCacheExecutionTimeAspect.class);
 
-    @Around("@annotation(org.com.dungeontalk.global.aop.RedisCacheMonitored)")
+    @Around("@annotation(org.com.dungeontalk.global.aop.cacheAop.RedisCacheMonitored)")
     public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
 
-        // long start = System.currentTimeMillis();
-        // 세밀한 측정
         long start = System.nanoTime();
 
         Object proceed = joinPoint.proceed();
 
-        // long executionTime = System.currentTimeMillis() - start;
-        // 세밀한 측정
         long executionTime = (System.nanoTime() - start) / 1_000_000;
 
         log.info("{} executed in {} ms", joinPoint.getSignature(), executionTime);
