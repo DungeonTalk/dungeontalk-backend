@@ -19,7 +19,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "character")
+@Table(name = "game_character")
 public class GameCharacter extends BaseEntity {
 //    @Id
 //    private String id;
@@ -36,7 +36,7 @@ public class GameCharacter extends BaseEntity {
     @JoinColumn(name = "member_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Member member;
 
-    @Column(name = "race_type_id")
+    @Column(name = "race_id")
     private String raceTypeId;
 
     @Column(name = "player_level")
@@ -74,11 +74,11 @@ public class GameCharacter extends BaseEntity {
 
     /**
      * 종족 스탯(연산식) 읽기 전용 매핑
-     * - race_type_id(FK)는 기존 필드 사용
-     * - 실제 갱신은 race_type_id 컬럼으로만 하고, 본 연관은 읽기 전용
+     * - race_id(FK)는 기존 필드 사용
+     * - 실제 갱신은 race_id 컬럼으로만 하고, 본 연관은 읽기 전용
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "race_type_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JoinColumn(name = "race_id", referencedColumnName = "id", insertable = false, updatable = false)
     private RaceStats raceStats;
 
     // 공식 계산시 변수 Map 변환

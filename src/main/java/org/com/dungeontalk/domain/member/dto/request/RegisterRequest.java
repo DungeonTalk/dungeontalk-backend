@@ -14,10 +14,7 @@ public record RegisterRequest(
 
         @NotBlank(message = "비밀번호는 필수입니다.")
         // @Size(min = 2, max = 128, message = "비밀번호는 최소 2자 이상이어야 합니다.")
-        String password,
-
-        @NotBlank(message = "종족을 선택해주세요.")
-        String raceTypeId
+        String password
 ) {
     public Member toEntity(String encodedPassword) {
         return Member.builder()
