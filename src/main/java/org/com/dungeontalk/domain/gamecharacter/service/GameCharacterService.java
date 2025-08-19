@@ -5,7 +5,9 @@ import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterReque
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
 import org.com.dungeontalk.domain.gamecharacter.entity.GameCharacter;
+import org.com.dungeontalk.domain.gamecharacter.entity.RequestExp;
 import org.com.dungeontalk.domain.gamecharacter.repository.GameCharacterRepository;
+import org.com.dungeontalk.domain.gamecharacter.repository.RequestExpRepository;
 import org.com.dungeontalk.domain.stat.repository.RaceStatsRepository;
 import org.com.dungeontalk.domain.stat.service.StatAggregateService;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class GameCharacterService {
     private final GameCharacterRepository gameCharacterRepository;
     private final RaceStatsRepository raceStatsRepository;
     private final StatAggregateService statAggregateService;
+    private final RequestExpRepository requestExpRepository;
 
     // 새로운 캐릭터 생성 (레벨 1, 모든 스탯 10으로 초기화)
     @Transactional
@@ -94,4 +97,45 @@ public class GameCharacterService {
     public boolean hasCharacter(String memberId) {
         return gameCharacterRepository.existsByMemberId(memberId);
     }
+
+    @Transactional
+    public GameCharacterResponse addExperience(String characterId, int expToAdd) {
+        // 캐릭터 정보 조회
+        GameCharacter character = gameCharacterRepository.findById(characterId)
+                .orElseThrow(() -> new IllegalArgumentException("캐릭터 정보를 찾을 수 없습니다: " + characterId));
+
+        // 총 경험치 업데이트
+        character.setTotalExp(character.getTotalExp() + expToAdd);
+
+        // 레벨업 처리 (반복문을 사용해 여러 레벨업도 한번에 처리)
+        while (true) {
+            int currentLevel = character.getPlayerLevel();
+
+            // 현재 레벨의 필요 경험치 정보 조회
+            RequestExp currentLevelInfo = requestExpRepository.findByLevel(currentLevel)
+                    .orElseThrow(() -> new IllegalStateException("레벨 정보를 찾을 수 없습니다: " + currentLevel));
+
+            // 만렙인지 확인
+            if (currentLevelInfo.getRequestNextLevelExp() == 0) {
+                break; // 만렙이면 더 이상 레벨업하지 않음
+            }
+
+            // 다음 레벨업에 필요한 총 경험치량 (=현재 레벨의 총 요구 경험치 + 다음 레벨 필요 경험치)
+            long requiredTotalExpForNextLevel = currentLevelInfo.getRequestTotalExp() + currentLevelInfo.getRequestNextLevelExp();
+
+            // 레벨업 조건 확인
+            if (character.getTotalExp() >= requiredTotalExpForNextLevel) {
+                // 레벨업!
+                character.setPlayerLevel(currentLevel + 1);
+            } else {
+                // 경험치가 부족하면 레벨업 중단
+                break;
+            }
+        }
+
+        // 변경된 캐릭터 정보 저장 및 반환
+        GameCharacter updatedCharacter = gameCharacterRepository.save(character);
+        return GameCharacterResponse.from(updatedCharacter);
+    }
+
 }
