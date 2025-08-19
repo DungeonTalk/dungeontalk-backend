@@ -8,7 +8,7 @@ import java.util.Map;
 public record GameCharacterDetailResponse(
         String id,
         String memberId,
-        String raceTypeId,
+        String raceId,
         String raceName,
         Integer playerLevel,
         Long totalExp,
@@ -33,7 +33,7 @@ public record GameCharacterDetailResponse(
         return new GameCharacterDetailResponse(
                 character.getId(),
                 character.getMemberId(),
-                character.getRaceTypeId(),
+                character.getRaceId(),
                 raceName,
                 character.getPlayerLevel(),
                 character.getTotalExp(),

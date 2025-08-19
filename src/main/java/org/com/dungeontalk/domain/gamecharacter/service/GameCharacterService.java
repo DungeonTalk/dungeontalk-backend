@@ -28,12 +28,12 @@ public class GameCharacterService {
     @Transactional
     public GameCharacterResponse createCharacter(CreateCharacterRequest request) {
         // 종족명으로 RaceStats 조회하여 UUID 가져오기
-        RaceStats raceStats = raceStatsRepository.findByRace(request.raceTypeId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceTypeId()));
+        RaceStats raceStats = raceStatsRepository.findByRace(request.raceId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceId()));
 
         GameCharacter character = new GameCharacter();
         character.setMemberId(request.memberId());
-        character.setRaceTypeId(raceStats.getId()); // UUID 저장
+        character.setRaceId(raceStats.getId()); // UUID 저장
         character.setPlayerLevel(1);
         character.setTotalExp(0L);
         character.setUnspentPoints(0);

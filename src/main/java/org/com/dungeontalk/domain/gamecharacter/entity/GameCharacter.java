@@ -37,7 +37,7 @@ public class GameCharacter extends BaseEntity {
     private Member member;
 
     @Column(name = "race_id")
-    private String raceTypeId;
+    private String raceId;
 
     @Column(name = "player_level")
     private Integer playerLevel;
