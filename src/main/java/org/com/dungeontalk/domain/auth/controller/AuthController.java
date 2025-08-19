@@ -8,6 +8,7 @@ import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
 import org.com.dungeontalk.domain.auth.dto.request.RefreshTokenRequest;
 import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
+import org.com.dungeontalk.domain.auth.dto.response.TokenResponse;
 import org.com.dungeontalk.domain.auth.service.AuthService;
 import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.web.bind.annotation.*;
@@ -28,12 +29,12 @@ public class AuthController {
             HttpServletResponse httpServletResponse) throws InterruptedException {
 
         // 로그인 서비스 레이어 호출
-        AuthLoginResponse jwtTokenResponse = authService.login(request,httpServletRequest);
+        TokenResponse tokenResponse = authService.login(request,httpServletRequest);
 
         // 쿠키에 리프레시 토큰 저장
-        authService.saveRefreshTokenToCookie(httpServletResponse, jwtTokenResponse.refreshToken());
+        authService.saveRefreshTokenToCookie(httpServletResponse, tokenResponse.getRefreshToken());
 
-        return RsData.of("200", "로그인 성공", jwtTokenResponse);
+        return RsData.of("200", "로그인 성공", new AuthLoginResponse(tokenResponse.getAccessToken()));
     }
 
     // JWT 토큰 재발급

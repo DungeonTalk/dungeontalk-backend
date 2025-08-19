@@ -1,6 +1,7 @@
 package org.com.dungeontalk.global.security;
 
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final JwtExtractor jwtExtractor;
     private final SecurityConfig securityConfig;
+    private final JwtProvider jwtProvider;
 
 //    @Override
 //    protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -86,30 +88,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 //                return;
 //            }
 
-            // System.out.println("공개 API 통과");
             String accessToken = jwtExtractor.extractAccessToken(request);
-
-            System.out.println("엑세스 토큰" + accessToken);
             if (accessToken == null || accessToken.isEmpty()) {
-                // 토큰 없으면 401 Unauthorized
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Access Token is missing");
                 return;
             }
 
-            System.out.println("엑세스 토큰 검증 완료");
-            // 토큰 유효성 검사 및 멤버 조회
-            Member member = jwtService.getMemberFromToken(accessToken);
-            System.out.println("토큰으로 부터 멤버 추출" + member);
+            // 토큰으로부터 CustomUserDetails 추출
+            CustomUserDetails userDetails = jwtService.getUserDetailsFromToken(accessToken);
 
-            // 인증 정보 생성 및 SecurityContext에 저장
-            CustomUserDetails userDetails = new CustomUserDetails(member);
             JwtAuthenticationToken authentication = new JwtAuthenticationToken(userDetails);
             authentication.setAuthenticated(true);
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            System.out.println("authentication : "+ authentication);
-
-            // 다음 필터로 이동
             filterChain.doFilter(request, response);
 
         } catch (Exception ex) {
