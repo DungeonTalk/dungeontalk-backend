@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.member.entity.Member;
+import org.com.dungeontalk.global.config.SecurityConfig;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,33 +23,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final JwtExtractor jwtExtractor;
+    private final SecurityConfig securityConfig;
 
-    private boolean isPublicApi(HttpServletRequest request) {
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        List<String> publicApis = List.of(
-                "/v1/member/register",
-                "/v1/auth/login",
-                "/v1/valkey/session/keys",
-                "/v1/valkey/session/all",
-                "/v1/auth/refresh",
-                "/v1/valkey/session/test/save",
-                "/v1/stat/",
-                "/v1/characters",
-                "/init/",
-                "/stat-calculator.html",
-                "/character-test.html",
-                "/dungeon-game.html",
-                "/ws-chat",
-                // Swagger UI 관련 경로들
-                "/swagger-ui",
-                "/v3/api-docs",
-                "/webjars",
-                "/swagger-resources"
-        );
-
-        // 요청 경로가 publicApis 목록 중 하나로 시작하면 true 반환
-        return publicApis.stream().anyMatch(path::startsWith);
+        return securityConfig.getPublicUrls().stream().anyMatch(path::startsWith);
     }
+
+    // ======================= DEPRECATED CODE - 3일간 관찰 한 후 문제 없으면 삭제 예정 =========================
+
+//    private boolean isPublicApi(HttpServletRequest request) {
+//        String path = request.getRequestURI();
+//        List<String> publicApis = List.of(
+//                "/v1/member/register",
+//                "/v1/auth/login",
+//                "/v1/valkey/session/keys",
+//                "/v1/valkey/session/all",
+//                "/v1/auth/refresh",
+//                "/v1/valkey/session/test/save",
+//                "/v1/stat/",
+//                "/v1/characters",
+//                "/init/",
+//                "/stat-calculator.html",
+//                "/character-test.html",
+//                "/dungeon-game.html",
+//                "/ws-chat",
+//                // Swagger UI 관련 경로들
+//                "/swagger-ui",
+//                "/v3/api-docs",
+//                "/webjars",
+//                "/swagger-resources"
+//        );
+//
+//        // 요청 경로가 publicApis 목록 중 하나로 시작하면 true 반환
+//        return publicApis.stream().anyMatch(path::startsWith);
+//    }
 
     // 필터 체인
     @Override
@@ -57,13 +67,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         try {
-            if (isPublicApi(request)) {
-                // 공개 API는 인증 없이 통과
-                filterChain.doFilter(request, response);
-                return;
-            }
 
-            System.out.println("공개 API 통과");
+            // ======================= DEPRECATED CODE - 3일간 관찰 한 후 문제 없으면 삭제 예정 =========================
+
+//            if (isPublicApi(request)) {
+//                // 공개 API는 인증 없이 통과
+//                filterChain.doFilter(request, response);
+//                return;
+//            }
+
+            // System.out.println("공개 API 통과");
             String accessToken = jwtExtractor.extractAccessToken(request);
 
             System.out.println("엑세스 토큰" + accessToken);
@@ -79,9 +92,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             System.out.println("토큰으로 부터 멤버 추출" + member);
 
             // 인증 정보 생성 및 SecurityContext에 저장
-//            JwtAuthenticationToken authentication = new JwtAuthenticationToken(member);
-//            authentication.setAuthenticated(true);
-//            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
             CustomUserDetails userDetails = new CustomUserDetails(member);
             JwtAuthenticationToken authentication = new JwtAuthenticationToken(userDetails);
             authentication.setAuthenticated(true);
