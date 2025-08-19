@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>🏰 던전톡 - 랜덤 매칭 RPG (STOMP Heartbeat Enabled)</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        /* 헤더 */
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 3rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-bottom: 10px; }
+        .header p { font-size: 1.2rem; opacity: 0.9; }
+        /* 카드 공통 */
+        .card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        /* 게임 상태 */
+        .game-status .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .status-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #007bff;
+        }
+        /* 로그인 섹션 / 매칭 섹션 / 채팅 패널 기존 스타일 유지 */
+        .login-section, .matching-section, .chat-panel { background: rgba(255,255,255,0.95); border-radius: 15px; padding: 30px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+        .form-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; }
+        .form-group input:focus { outline: none; border-color: #007bff; }
+        .world-selection { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+        .world-card { background: linear-gradient(135deg, #f8f9fa, #e9ecef); border: 3px solid #ddd; border-radius: 15px; padding: 25px; text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .world-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .world-card.selected { background: linear-gradient(135deg, #007bff, #0056b3); color: white; border-color: #007bff; }
+        .world-card h3 { font-size: 1.5rem; margin-bottom: 10px; }
+        .world-card p { opacity: 0.8; line-height: 1.5; }
+        .game-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .chat-panel { height: 600px; display: flex; flex-direction: column; }
+        .chat-header { display: flex; gap: 5px; margin-bottom: 15px; }
+        .chat-tab { flex: 1; padding: 15px 20px; text-align: center; cursor: pointer; background: #e9ecef; border: 2px solid #dee2e6; border-bottom: none; font-weight: bold; font-size: 16px; transition: all 0.3s ease; border-radius: 12px 12px 0 0; position: relative; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
+        .chat-tab:hover { background: #f8f9fa; transform: translateY(-2px); box-shadow: 0 -4px 8px rgba(0,0,0,0.15); }
+        .chat-tab.active { background: #007bff; color: white; border-color: #007bff; transform: translateY(-3px); box-shadow: 0 -5px 15px rgba(0,123,255,0.3); z-index: 10; }
+        .chat-messages { flex: 1; background: #f8f9fa; border-radius: 10px; padding: 15px; overflow-y: auto; margin-bottom: 15px; min-height: 300px; }
+        .message { margin-bottom: 12px; padding: 10px 15px; border-radius: 15px; max-width: 80%; word-wrap: break-word; animation: slideIn 0.3s ease; line-height: 1.4; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message.user { background: #007bff; color: white; margin-left: auto; }
+        .message.ai { background: #28a745; color: white; }
+        .message.system { background: #ffc107; color: #333; text-align: center; margin: 0 auto; font-style: italic; }
+        .message.other { background: #6c757d; color: white; }
+        .chat-input { display: flex; gap: 10px; }
+        .chat-input input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 25px; font-size: 16px; }
+        .chat-input input:focus { outline: none; border-color: #007bff; }
+        .btn { padding: 12px 25px; border: none; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-primary { background: linear-gradient(135deg, #007bff, #0056b3); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,123,255,0.4); }
+        .btn-success { background: linear-gradient(135deg, #28a745, #1e7e34); color: white; }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40,167,69,0.4); }
+        .btn-danger { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #ffc107, #e0a800); color: #333; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+        .hidden { display: none !important; }
+        /* Heartbeat Monitor */
+        .hb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+        .hb-card { background: #f8f9fa; border-radius: 10px; padding: 12px; border-left: 4px solid #17a2b8; }
+        .hb-title { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dot.ok { background: #28a745; box-shadow: 0 0 6px rgba(40,167,69,0.8); }
+        .dot.stale { background: #ffc107; box-shadow: 0 0 6px rgba(255,193,7,0.8); }
+        .dot.down { background: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.8); }
+        .hb-row { display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px; }
+        .hb-small { font-size: 12px; color: #666; }
+        /* 반응형 */
+        @media (max-width: 768px) { .game-section { grid-template-columns: 1fr; } .header h1 { font-size: 2rem; } .world-selection { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1>🏰 던전톡</h1>
+            <p>AI와 함께하는 랜덤 매칭 RPG 어드벤처</p>
+        </div>
+
+        <!-- 게임 상태 -->
+        <div class="card game-status">
+            <h3>🎮 게임 상태</h3>
+            <div class="status-grid">
+                <div class="status-card">
+                    <strong>현재 상태</strong>
+                    <div id="currentStatus">로그인 필요</div>
+                </div>
+                <div class="status-card">
+                    <strong>사용자</strong>
+                    <div id="currentUser">-</div>
+                </div>
+                <div class="status-card">
+                    <strong>매칭 정보</strong>
+                    <div id="matchingInfo">대기 중</div>
+                </div>
+                <div class="status-card">
+                    <strong>게임방</strong>
+                    <div id="roomInfo">미연결</div>
+                </div>
+            </div>
+
+            <!-- 📡 STOMP Heartbeat 모니터 -->
+            <div style="margin-top:18px;">
+                <h3>📡 STOMP Heartbeat 모니터 (Client ⇄ Server / 10s)</h3>
+                <div class="hb-grid">
+                    <div class="hb-card">
+                        <div class="hb-title">매칭 <span id="hb-dot-matching" class="dot down"></span></div>
+                        <div class="hb-row"><span>상태</span><span id="hb-state-matching" class="hb-small">DISCONNECTED</span></div>
+                        <div class="hb-row"><span>보낸 PING</span><span id="hb-ping-matching">0</span></div>
+                        <div class="hb-row"><span>받은 PONG</span><span id="hb-pong-matching">0</span></div>
+                        <div class="hb-row"><span>최근 PING</span><span id="hb-lastping-matching" class="hb-small">-</span></div>
+                        <div class="hb-row"><span>최근 PONG</span><span id="hb-lastpong-matching" class="hb-small">-</span></div>
+                    </div>
+                    <div class="hb-card">
+                        <div class="hb-title">AI <span id="hb-dot-ai" class="dot down"></span></div>
+                        <div class="hb-row"><span>상태</span><span id="hb-state-ai" class="hb-small">DISCONNECTED</span></div>
+                        <div class="hb-row"><span>보낸 PING</span><span id="hb-ping-ai">0</span></div>
+                        <div class="hb-row"><span>받은 PONG</span><span id="hb-pong-ai">0</span></div>
+                        <div class="hb-row"><span>최근 PING</span><span id="hb-lastping-ai" class="hb-small">-</span></div>
+                        <div class="hb-row"><span>최근 PONG</span><span id="hb-lastpong-ai" class="hb-small">-</span></div>
+                    </div>
+                    <div class="hb-card">
+                        <div class="hb-title">파티 <span id="hb-dot-party" class="dot down"></span></div>
+                        <div class="hb-row"><span>상태</span><span id="hb-state-party" class="hb-small">DISCONNECTED</span></div>
+                        <div class="hb-row"><span>보낸 PING</span><span id="hb-ping-party">0</span></div>
+                        <div class="hb-row"><span>받은 PONG</span><span id="hb-pong-party">0</span></div>
+                        <div class="hb-row"><span>최근 PING</span><span id="hb-lastping-party" class="hb-small">-</span></div>
+                        <div class="hb-row"><span>최근 PONG</span><span id="hb-lastpong-party" class="hb-small">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 로그인 섹션 -->
+        <div class="login-section" id="loginSection">
+            <h3>🔐 로그인</h3>
+            <div class="form-group">
+                <label for="userId">사용자 ID</label>
+                <input type="text" id="userId" placeholder="사용자 ID를 입력하세요" value="player1">
+            </div>
+            <div class="form-group">
+                <label for="password">비밀번호</label>
+                <input type="password" id="password" placeholder="비밀번호를 입력하세요" value="password123">
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <button class="btn btn-primary" onclick="register()">회원가입</button>
+                <button class="btn btn-success" onclick="login()">로그인</button>
+            </div>
+        </div>
+
+        <!-- 매칭 섹션 -->
+        <div class="matching-section hidden" id="matchingSection">
+            <h3>🌍 세계관 선택 & 매칭</h3>
+            <div class="world-selection">
+                <div class="world-card" onclick="selectWorld('FANTASY')" data-world="FANTASY">
+                    <h3>🏰 판타지</h3>
+                    <p>마법과 검이 지배하는 중세 판타지 세계에서 모험을 떠나보세요. 드래곤, 마법사, 기사들과 함께하는 대서사시가 펼쳐집니다.</p>
+                </div>
+                <div class="world-card" onclick="selectWorld('SCIFI')" data-world="SCIFI">
+                    <h3>🚀 SF</h3>
+                    <p>미래 우주 시대의 첨단 기술과 외계 문명을 탐험하세요. 로봇, AI, 우주선으로 가득한 사이버네틱 어드벤처가 기다립니다.</p>
+                </div>
+                <div class="world-card" onclick="selectWorld('MODERN')" data-world="MODERN">
+                    <h3>🏙️ 현대</h3>
+                    <p>현대 도시 세계관에서 펼쳐지는 일상과 미스터리의 이야기. 도시의 숨겨진 비밀들을 탐험해보세요.</p>
+                </div>
+            </div>
+
+            <div id="matchingControls" style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-primary" id="startMatchingBtn" onclick="startMatching()" disabled>매칭 시작</button>
+                <button class="btn btn-danger hidden" id="cancelMatchingBtn" onclick="cancelMatching()">매칭 취소</button>
+            </div>
+
+            <div id="matchingStatus" class="hidden" style="text-align: center; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                <div class="matching-spinner"></div>
+                <div id="matchingText">매칭을 찾는 중...</div>
+                <div id="queueInfo" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+            </div>
+        </div>
+
+        <!-- 게임 플레이 섹션 -->
+        <div class="game-section hidden" id="gameSection">
+            <!-- 채팅 패널 -->
+            <div class="chat-panel">
+                <div class="chat-header">
+                    <button class="chat-tab active" onclick="switchTab('ai')" id="aiTab">🤖 AI 게임 마스터</button>
+                    <button class="chat-tab" onclick="switchTab('user')" id="userTab">👥 플레이어 채팅</button>
+                </div>
+
+                <!-- AI 채팅 -->
+                <div id="aiChat" class="chat-content">
+                    <div class="chat-info" style="padding: 10px; background: #e8f5e8; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
+                        🎲 AI 게임 마스터와 RPG를 진행하세요. 행동을 입력하면 AI가 결과를 알려줍니다.
+                    </div>
+                    <div class="chat-messages" id="aiMessages" style="scroll-behavior: smooth;"></div>
+                    <div class="chat-input">
+                        <input type="text" id="aiMessageInput" placeholder="AI에게 행동이나 질문을 입력하세요... (예: 주변을 둘러본다, 문을 연다)" onkeypress="if(event.key==='Enter') sendAiMessage()" disabled>
+                        <button class="btn btn-success" id="aiSendBtn" onclick="sendAiMessage()" disabled>🎮 행동</button>
+                        <button class="btn btn-warning" id="aiRequestBtn" onclick="requestAiResponse()" disabled style="margin-left: 10px;">🤖 AI 응답 요청</button>
+                    </div>
+                </div>
+
+                <!-- 플레이어 채팅 -->
+                <div id="userChat" class="chat-content hidden">
+                    <div class="chat-info" style="padding: 10px; background: #e3f2fd; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
+                        💬 다른 플레이어들과 자유롭게 대화하세요. 전략을 논의하거나 잡담을 나눠보세요!
+                    </div>
+                    <div class="chat-messages" id="userMessages" style="scroll-behavior: smooth;"></div>
+                    <div class="chat-input">
+                        <input type="text" id="userMessageInput" placeholder="다른 플레이어들과 채팅하세요..." onkeypress="if(event.key==='Enter') sendUserMessage()" disabled>
+                        <button class="btn btn-primary" id="userSendBtn" onclick="sendUserMessage()" disabled>💬 채팅</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 게임 정보 패널 -->
+            <div class="chat-panel">
+                <h3>🎯 게임 정보</h3>
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <p>🎮 AI와 함께 RPG 모험을 즐겨보세요!</p>
+                    <p>💬 플레이어 채팅으로 전략을 공유하세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====== 전역 상태 ======
+        let authToken = null;
+        let currentUser = null;
+        let selectedWorld = null;
+        let gameSessionStarted = false;
+        let matchingStompClient = null;
+        let aiStompClient = null;
+        let partyStompClient = null;
+        let isMatching = false;
+        let currentGameSession = null;
+        let currentTurnNumber = 1;
+        let aiGameRoomId = null;
+        let partyRoomId = null;
+
+        // Heartbeat 모니터 상태
+        const HB_INTERVAL_MS = 10000; // 10s (서버 설정과 일치)
+        const STALE_GRACE_MS = 5000;  // 5s 여유
+        const heartbeatState = {
+            matching: { label:'매칭', ping:0, pong:0, lastPing:0, lastPong:0, dot:null, stateEl:null, pingEl:null, pongEl:null, lastPingEl:null, lastPongEl:null, connected:false, timer:null },
+            ai:       { label:'AI',   ping:0, pong:0, lastPing:0, lastPong:0, dot:null, stateEl:null, pingEl:null, pongEl:null, lastPingEl:null, lastPongEl:null, connected:false, timer:null },
+            party:    { label:'파티', ping:0, pong:0, lastPing:0, lastPong:0, dot:null, stateEl:null, pingEl:null, pongEl:null, lastPingEl:null, lastPongEl:null, connected:false, timer:null }
+        };
+
+        function bindHeartbeatDom() {
+            const map = { matching:'matching', ai:'ai', party:'party' };
+            Object.keys(map).forEach(k => {
+                const id = map[k];
+                const s = heartbeatState[k];
+                s.dot = document.getElementById(`hb-dot-${id}`);
+                s.stateEl = document.getElementById(`hb-state-${id}`);
+                s.pingEl = document.getElementById(`hb-ping-${id}`);
+                s.pongEl = document.getElementById(`hb-pong-${id}`);
+                s.lastPingEl = document.getElementById(`hb-lastping-${id}`);
+                s.lastPongEl = document.getElementById(`hb-lastpong-${id}`);
+            });
+        }
+
+        function fmt(ts) {
+            if (!ts) return '-';
+            const d = new Date(ts);
+            const pad = (n)=> String(n).padStart(2,'0');
+            return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
+        function setDot(stateObj, cls) {
+            if (!stateObj.dot) return;
+            stateObj.dot.classList.remove('ok','stale','down');
+            stateObj.dot.classList.add(cls);
+        }
+
+        function tickHeartbeat(stateObj) {
+            const now = Date.now();
+            if (!stateObj.connected) { setDot(stateObj,'down'); stateObj.stateEl && (stateObj.stateEl.textContent='DISCONNECTED'); return; }
+            // 최근 PONG 기준으로 stale 판단
+            const age = now - (stateObj.lastPong || 0);
+            if (stateObj.lastPong && age <= HB_INTERVAL_MS + STALE_GRACE_MS) {
+                setDot(stateObj,'ok'); stateObj.stateEl && (stateObj.stateEl.textContent='OK');
+            } else {
+                setDot(stateObj,'stale'); stateObj.stateEl && (stateObj.stateEl.textContent='STALE');
+            }
+            stateObj.pingEl && (stateObj.pingEl.textContent = stateObj.ping);
+            stateObj.pongEl && (stateObj.pongEl.textContent = stateObj.pong);
+            stateObj.lastPingEl && (stateObj.lastPingEl.textContent = fmt(stateObj.lastPing));
+            stateObj.lastPongEl && (stateObj.lastPongEl.textContent = fmt(stateObj.lastPong));
+        }
+
+        function startHeartbeatTicker(key) {
+            const s = heartbeatState[key];
+            if (s.timer) clearInterval(s.timer);
+            s.timer = setInterval(()=> tickHeartbeat(s), 1000);
+        }
+
+        function wireStompHeartbeat(client, key) {
+            // STOMP heart-beat 협상 (ms 단위)
+            client.heartbeat.outgoing = HB_INTERVAL_MS;
+            client.heartbeat.incoming = HB_INTERVAL_MS;
+            // 구 stomp.js 자동 재연결 딜레이(ms)
+            client.reconnect_delay = 5000;
+
+            const s = heartbeatState[key];
+            s.connected = false;
+            startHeartbeatTicker(key);
+
+            // stomp.js의 debug 출력을 후킹해서 PING/PONG 탐지
+            client.debug = function(str) {
+                // console.log('[STOMP DEBUG]', key, str);
+                if (str.indexOf('PING') !== -1) {
+                    s.ping++; s.lastPing = Date.now();
+                } else if (str.indexOf('PONG') !== -1) {
+                    s.pong++; s.lastPong = Date.now();
+                }
+            };
+        }
+
+        // ====== 초기화 ======
+        window.addEventListener('load', function() {
+            bindHeartbeatDom();
+            clearAuthData();
+            console.log('🔄 새로고침 감지 - 로컬스토리지 초기화');
+        });
+
+        // 기존 로그인 확인 (필요 시 사용)
+        function checkExistingLogin() {
+            authToken = localStorage.getItem('authToken');
+            const userInfo = localStorage.getItem('currentUser');
+            if (authToken && authToken.trim() && userInfo) {
+                try {
+                    currentUser = JSON.parse(userInfo);
+                    showLoggedInState();
+                } catch (e) { clearAuthData(); }
+            } else { clearAuthData(); }
+        }
+
+        function clearAuthData() {
+            authToken = null; currentUser = null; selectedWorld = null;
+            gameSessionStarted = false; isMatching = false;
+            currentGameSession = null; aiGameRoomId = null; partyRoomId = null;
+            localStorage.clear();
+            try { if (matchingStompClient && matchingStompClient.connected) matchingStompClient.disconnect(()=>{}); } catch(e){}
+            try { if (aiStompClient && aiStompClient.connected) aiStompClient.disconnect(()=>{}); } catch(e){}
+            try { if (partyStompClient && partyStompClient.connected) partyStompClient.disconnect(()=>{}); } catch(e){}
+            // 하트비트 표시 초기화
+            ['matching','ai','party'].forEach(k => {
+                const s = heartbeatState[k];
+                s.ping = s.pong = s.lastPing = s.lastPong = 0;
+                s.connected = false;
+                tickHeartbeat(s);
+            });
+        }
+
+        function showLoggedInState() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('matchingSection').classList.remove('hidden');
+            updateStatus('currentStatus', '매칭 대기');
+            updateStatus('currentUser', currentUser.name);
+            if (authToken) setTimeout(() => connectMatchingWebSocket(), 300);
+        }
+
+        // ====== 인증/매칭 기존 로직 유지 ======
+        async function register() {
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (!userId || !password) return alert('ID와 비밀번호를 입력하세요.');
+            try {
+                const response = await fetch('/v1/member/register', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: userId, nickName: userId + '님', password })
+                });
+                if (response.ok) alert('회원가입 성공! 이제 로그인하세요.');
+                else alert('회원가입 실패: ' + await response.text());
+            } catch (e) { alert('회원가입 오류: ' + e.message); }
+        }
+
+        async function login() {
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (!userId || !password) return alert('ID와 비밀번호를 입력하세요.');
+            try {
+                const response = await fetch('/v1/auth/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: userId, password })
+                });
+                if (response.ok) {
+                    const responseData = await response.json();
+                    const loginData = responseData.data;
+                    authToken = loginData.accessToken;
+                    currentUser = { id: loginData.memberId, name: userId, nickname: userId };
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    showLoggedInState();
+                } else { alert('로그인 실패: ' + await response.text()); }
+            } catch (e) { alert('로그인 오류: ' + e.message); }
+        }
+
+        function selectWorld(worldType) {
+            document.querySelectorAll('.world-card').forEach(card => card.classList.remove('selected'));
+            const card = document.querySelector(`[data-world="${worldType}"]`);
+            if (card) card.classList.add('selected');
+            selectedWorld = worldType;
+            document.getElementById('startMatchingBtn').disabled = false;
+        }
+        function getWorldName(worldType) {
+            const names = { 'FANTASY': '🏰 판타지', 'SCIFI': '🚀 SF', 'MODERN': '🏙️ 현대' };
+            return names[worldType] || worldType;
+        }
+
+        // ====== 매칭 WebSocket (Heartbeat 적용) ======
+        function connectMatchingWebSocket() {
+            if (matchingStompClient && matchingStompClient.connected) return;
+            if (!authToken) return;
+            try {
+                const url = '/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=matching';
+                const socket = new SockJS(url);
+                matchingStompClient = Stomp.over(socket);
+                wireStompHeartbeat(matchingStompClient, 'matching');
+                matchingStompClient.connect({}, function(frame) {
+                    console.log('✅ 매칭 WebSocket 연결 성공:', frame);
+                    heartbeatState.matching.connected = true;
+                    const subscriptionPath = `/sub/matching/user/${currentUser.id}`;
+                    matchingStompClient.subscribe(subscriptionPath, function(message) {
+                        try { handleMatchingMessage(JSON.parse(message.body)); } catch(e){ console.error(e); }
+                    });
+                }, function(error) {
+                    console.error('❌ 매칭 WebSocket 연결 실패:', error);
+                    heartbeatState.matching.connected = false;
+                });
+            } catch (e) { console.error('매칭 WebSocket 오류:', e); }
+        }
+
+        async function startMatching() {
+            if (!selectedWorld) return alert('세계관을 선택해주세요.');
+            if (!authToken) return alert('로그인이 필요합니다.');
+            if (!currentUser || !currentUser.id) return alert('로그인 정보가 유효하지 않습니다.');
+            try {
+                const response = await fetch('/v1/match/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken, 'Cache-Control': 'no-cache' },
+                    body: JSON.stringify({ memberId: currentUser.id, worldType: selectedWorld })
+                });
+                const result = await response.json();
+                if (response.ok && result.resultCode === '200') {
+                    isMatching = true;
+                    document.getElementById('startMatchingBtn').classList.add('hidden');
+                    document.getElementById('cancelMatchingBtn').classList.remove('hidden');
+                    document.getElementById('matchingStatus').classList.remove('hidden');
+                    updateStatus('matchingInfo', `${getWorldName(selectedWorld)} 매칭 중`);
+                } else { alert('매칭 시작 실패: ' + (result.msg || '알 수 없는 오류')); }
+            } catch (e) { alert('매칭 오류: ' + e.message); }
+        }
+
+        async function cancelMatching() {
+            try {
+                const response = await fetch('/v1/match/cancel', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken, 'Cache-Control': 'no-cache' },
+                    body: JSON.stringify({ memberId: currentUser.id })
+                });
+                const result = await response.json();
+                if (response.ok && result.resultCode === '200') {
+                    isMatching = false;
+                    document.getElementById('startMatchingBtn').classList.remove('hidden');
+                    document.getElementById('cancelMatchingBtn').classList.add('hidden');
+                    document.getElementById('matchingStatus').classList.add('hidden');
+                    updateStatus('matchingInfo', '대기 중');
+                } else { alert('매칭 취소 실패: ' + (result.msg || '알 수 없는 오류')); }
+            } catch (e) { alert('매칭 취소 오류: ' + e.message); }
+        }
+
+        function handleMatchingMessage(message) {
+            switch (message.type) {
+                case 'QUEUE_STATUS_UPDATE': updateQueueStatus(message.data); break;
+                case 'MATCHING_COMPLETE': handleMatchingComplete(message.data); break;
+                case 'MATCHING_CANCELLED': handleMatchingCancelled(); break;
+                case 'ERROR': alert('매칭 오류: ' + message.data); break;
+            }
+        }
+        function updateQueueStatus(data) {
+            document.getElementById('queueInfo').innerHTML = `대기 순서: ${data.currentPosition}번째 | 총 대기자: ${data.totalInQueue}명 | 예상 시간: ${data.estimatedMessage}`;
+        }
+        function handleMatchingComplete(data) {
+            isMatching = false; currentGameSession = data; aiGameRoomId = data.aiGameRoomId; partyRoomId = data.chatRoomId;
+            document.getElementById('matchingSection').classList.add('hidden');
+            document.getElementById('gameSection').classList.remove('hidden');
+            updateStatus('currentStatus', '게임 중');
+            updateStatus('matchingInfo', '매칭 완료');
+            updateStatus('roomInfo', `AI: ${aiGameRoomId.substring(0,8)}... | 파티: ${partyRoomId.substring(0,8)}...`);
+            startGameSession(data);
+        }
+        function handleMatchingCancelled() {
+            isMatching = false;
+            document.getElementById('startMatchingBtn').classList.remove('hidden');
+            document.getElementById('cancelMatchingBtn').classList.add('hidden');
+            document.getElementById('matchingStatus').classList.add('hidden');
+            updateStatus('matchingInfo', '대기 중');
+        }
+
+        // ====== 게임 세션 시작 / AI & 파티 WS (Heartbeat 적용) ======
+        async function startGameSession(matchData) {
+            try {
+                if (gameSessionStarted) return;
+                if (!authToken || !authToken.trim()) throw new Error('인증 토큰이 필요합니다. 다시 로그인해주세요.');
+                gameSessionStarted = true;
+                const sessionResponse = await fetch(`/v1/rooms/ai/${aiGameRoomId}/start`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }
+                });
+                const sessionResult = await sessionResponse.json();
+                if (sessionResponse.ok && sessionResult.resultCode === '200') {
+                    connectAiWebSocket();
+                    connectPartyWebSocket();
+                    enableChatInputs();
+                    addAiMessage('system', `🌟 ${getWorldName(selectedWorld)} 세계에 오신 것을 환영합니다!`);
+                    addAiMessage('system', '🤖 AI 마스터가 여러분의 모험을 안내할 것입니다.');
+                    addAiMessage('ai', `안녕하세요 모험가들! 저는 여러분의 게임 마스터 AI입니다. ${getWorldName(selectedWorld)} 세계에서 펼쳐진 모험을 함께 만들어갑시다. 먼저 자기소개를 해주세요!`);
+                    addUserMessage('system', '💬 플레이어들과의 채팅이 시작되었습니다!');
+                    addUserMessage('system', `참여자: ${matchData.participants.join(', ')}`);
+                } else {
+                    if (sessionResponse.status === 401) { alert('인증이 만료되었습니다. 다시 로그인해주세요.'); clearAuthData(); }
+                    else { alert('AI 게임 세션 시작 실패: ' + (sessionResult.msg || '알 수 없는 오류')); }
+                    gameSessionStarted = false;
+                }
+            } catch (e) { gameSessionStarted = false; alert('게임 세션 시작 오류: ' + e.message); }
+        }
+
+        function connectAiWebSocket() {
+            if (!authToken) return console.error('AI WebSocket 연결 실패: 인증 토큰 없음');
+            if (!aiGameRoomId) return console.error('AI WebSocket 연결 실패: aiGameRoomId 없음');
+            try {
+                const url = '/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=' + encodeURIComponent(aiGameRoomId);
+                const socket = new SockJS(url);
+                aiStompClient = Stomp.over(socket);
+                wireStompHeartbeat(aiStompClient, 'ai');
+                aiStompClient.connect({}, function(frame) {
+                    console.log('🤖 AI 채팅 WebSocket 연결 성공');
+                    heartbeatState.ai.connected = true;
+                    aiStompClient.subscribe(`/sub/aichat/room/${aiGameRoomId}`, function(message) {
+                        try { handleAiMessage(JSON.parse(message.body)); } catch(e){ console.error(e); }
+                    });
+                }, function(error) {
+                    console.error('❌ AI 채팅 WebSocket 연결 실패:', error);
+                    heartbeatState.ai.connected = false;
+                });
+            } catch (e) { console.error('❌ AI WebSocket 오류:', e); }
+        }
+
+        function connectPartyWebSocket() {
+            if (!authToken) return console.error('파티 WebSocket 연결 실패: 인증 토큰 없음');
+            if (!partyRoomId) return console.error('파티 WebSocket 연결 실패: partyRoomId 없음');
+            try {
+                const url = '/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=' + encodeURIComponent(partyRoomId);
+                const socket = new SockJS(url);
+                partyStompClient = Stomp.over(socket);
+                wireStompHeartbeat(partyStompClient, 'party');
+                partyStompClient.connect({}, function(frame) {
+                    console.log('👥 파티 채팅 WebSocket 연결 성공');
+                    heartbeatState.party.connected = true;
+                    partyStompClient.subscribe(`/sub/chat/room/${partyRoomId}`, function(message) {
+                        try { handleUserMessage(JSON.parse(message.body)); } catch(e){ console.error(e); }
+                    });
+                }, function(error) {
+                    console.error('❌ 파티 채팅 WebSocket 연결 실패:', error);
+                    heartbeatState.party.connected = false;
+                });
+            } catch (e) { console.error('❌ 파티 WebSocket 오류:', e); }
+        }
+
+        // ====== 메시지 처리 (기존 로직 유지) ======
+        function handleAiMessage(message) {
+            const isMyMessage = message.messageType === 'USER' && message.senderId === currentUser.id;
+            if (isMyMessage) return;
+            if (message.messageType === 'AI') addAiMessage('ai', message.content);
+            else if (message.messageType === 'USER') addAiMessage('other', `${message.senderNickname}: ${message.content}`);
+            else if (message.messageType === 'SYSTEM') addAiMessage('system', message.content);
+        }
+        function handleUserMessage(message) {
+            if (message.senderId === currentUser.id) return;
+            if (message.type === 'TALK') {
+                const nickname = message.senderNickname || message.senderId || 'Unknown';
+                addUserMessage('other', `${nickname}: ${message.content}`);
+            } else if (message.type === 'ENTER' || message.type === 'LEAVE') {
+                addUserMessage('system', message.content);
+            }
+        }
+        function sendAiMessage() {
+            const input = document.getElementById('aiMessageInput');
+            const message = input.value.trim();
+            if (!message) return;
+            addAiMessage('user', message);
+            if (aiStompClient && aiStompClient.connected) {
+                aiStompClient.send('/pub/room/ai/send', {}, JSON.stringify({
+                    roomId: aiGameRoomId, roomType: 'AI_GAME', senderId: currentUser.id,
+                    messageType: 'USER', content: message, aiGameRoomId: aiGameRoomId,
+                    gameActionType: 'CHAT', turnNumber: getCurrentTurnNumber()
+                }));
+            }
+            input.value = '';
+        }
+        function requestAiResponse() {
+            if (!aiGameRoomId || !currentUser || !currentGameSession) return alert('게임 세션이 유효하지 않습니다.');
+            const requestData = { gameId: currentGameSession.gameSessionId, currentUser: currentUser.name, currentMessage: "사용자 행동 완료", turnNumber: getCurrentTurnNumber() };
+            fetch(`/v1/rooms/ai/${aiGameRoomId}/ai/generate`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                body: JSON.stringify(requestData)
+            }).then(r=>r.json()).then(data=>{
+                if (data.resultCode !== '200-1') alert('AI 응답 요청 실패: ' + data.msg);
+            }).catch(()=> alert('AI 응답 요청 중 오류가 발생했습니다.'));
+        }
+        function sendUserMessage() {
+            const input = document.getElementById('userMessageInput');
+            const message = input.value.trim();
+            if (!message) return;
+            addUserMessage('user', message);
+            if (partyStompClient && partyStompClient.connected) {
+                partyStompClient.send('/pub/room/chat/send', {}, JSON.stringify({
+                    roomId: partyRoomId, roomType: 'PLAYER_CHAT', senderId: currentUser.id,
+                    messageType: 'USER', content: message, chatRoomId: partyRoomId, senderNickname: currentUser.name
+                }));
+            }
+            input.value = '';
+        }
+
+        // ====== 탭/유틸 ======
+        function switchTab(tab) {
+            document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+            if (tab === 'ai') { document.getElementById('aiTab').classList.add('active'); document.getElementById('aiChat').classList.remove('hidden'); document.getElementById('userChat').classList.add('hidden'); }
+            else { document.getElementById('userTab').classList.add('active'); document.getElementById('aiChat').classList.add('hidden'); document.getElementById('userChat').classList.remove('hidden'); }
+        }
+        function enableChatInputs() {
+            ['aiMessageInput','aiSendBtn','aiRequestBtn','userMessageInput','userSendBtn'].forEach(id => document.getElementById(id).disabled = false);
+        }
+        function addAiMessage(type, content) {
+            const messagesDiv = document.getElementById('aiMessages');
+            const div = document.createElement('div'); div.className = `message ${type}`;
+            const escaped = content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+            const formatted = escaped.replace(/\r\n/g,'<br>').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/`(.*?)`/g,'<code>$1</code>');
+            div.innerHTML = formatted; messagesDiv.appendChild(div); messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        function addUserMessage(type, content) {
+            const messagesDiv = document.getElementById('userMessages');
+            const div = document.createElement('div'); div.className = `message ${type}`;
+            const escaped = content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+            const formatted = escaped.replace(/\r\n/g,'<br>').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/`(.*?)`/g,'<code>$1</code>');
+            div.innerHTML = formatted; messagesDiv.appendChild(div); messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        function updateStatus(id, value) { document.getElementById(id).textContent = value; }
+        function getCurrentTurnNumber() { return currentTurnNumber; }
+        function incrementTurnNumber() { currentTurnNumber++; }
+    </script>
+</body>
+</html>
