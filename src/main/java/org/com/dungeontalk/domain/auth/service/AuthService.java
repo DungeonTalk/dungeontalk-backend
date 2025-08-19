@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
 import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
+import org.com.dungeontalk.domain.auth.dto.response.TokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
 import org.com.dungeontalk.domain.auth.manager.ActualLoginManager;
 import org.com.dungeontalk.domain.auth.manager.AuthRedisManager;
@@ -38,13 +39,13 @@ public class AuthService {
     private final ActualLoginManager actualLoginManager;
 
     // 보안 기능이 추가 된 로그인 메서드
-    public AuthLoginResponse login(AuthLoginRequest request, HttpServletRequest httpServletRequest) throws InterruptedException {
+    public TokenResponse login(AuthLoginRequest request, HttpServletRequest httpServletRequest) throws InterruptedException {
 
         bruteForceManager.preCheck(request.name(), httpServletRequest); // 로그인 시도 전 이상 행동 존재 유무 체크
         try {
-            AuthLoginResponse authLoginResponse = actualLogin(request); // 실질적인 로그인 메서드 호출
+            TokenResponse tokenResponse = actualLogin(request); // 실질적인 로그인 메서드 호출
             bruteForceManager.loginSucceeded(request.name()); // 로그인 성공시 기존 실패/정지 기록 삭제
-            return authLoginResponse;
+            return tokenResponse;
         } catch (MemberException ex) {
             bruteForceManager.loginFailed(request.name()); // Delay, Cool Down 방어
             throw ex;
@@ -52,13 +53,13 @@ public class AuthService {
     }
 
     // 실질적인 로그인 메서드
-    public AuthLoginResponse actualLogin(AuthLoginRequest request) {
+    public TokenResponse actualLogin(AuthLoginRequest request) {
 
         Member member = actualLoginManager.validateMember(request); // 유저 검증
         JwtTokenResponse jwtTokenResponse = actualLoginManager.generateToken(member); // JWT 토큰 생성
         actualLoginManager.updateMemberRefreshToken(member, jwtTokenResponse); // RefreshToken 갱신
 
-        return new AuthLoginResponse(member.getId(),
+        return new TokenResponse(
                 jwtTokenResponse.getAccessToken(),
                 jwtTokenResponse.getRefreshToken()
         );
