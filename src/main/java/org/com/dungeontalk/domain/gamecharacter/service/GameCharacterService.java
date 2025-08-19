@@ -27,8 +27,8 @@ public class GameCharacterService {
     // 새로운 캐릭터 생성 (레벨 1, 모든 스탯 10으로 초기화)
     @Transactional
     public GameCharacterResponse createCharacter(CreateCharacterRequest request) {
-        // 종족명으로 RaceStats 조회하여 UUID 가져오기
-        RaceStats raceStats = raceStatsRepository.findByRace(request.raceId())
+        // UUID로 RaceStats 조회
+        RaceStats raceStats = raceStatsRepository.findById(request.raceId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceId()));
 
         GameCharacter character = new GameCharacter();
