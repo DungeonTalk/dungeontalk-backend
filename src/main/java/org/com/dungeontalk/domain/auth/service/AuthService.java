@@ -5,21 +5,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
-import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.dto.response.TokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
 import org.com.dungeontalk.domain.auth.manager.*;
-import org.com.dungeontalk.domain.auth.repository.AuthRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
-import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.MemberException;
-import org.com.dungeontalk.global.security.JwtProvider;
-import org.com.dungeontalk.global.security.JwtRedisService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -27,14 +20,11 @@ import java.util.Optional;
 @Transactional
 public class AuthService {
 
-    private final AuthRepository authRepository;
-    private final JwtProvider jwtProvider;
-    private final JwtRedisService jwtRedisService;
-    private final AuthRedisManager authRedisManager;
     private final CookieManager cookieManager;
     private final BruteForceManager bruteForceManager;
     private final ActualLoginManager actualLoginManager;
     private final RtrManager rtrManager;
+    private final LogoutManager logoutManager;
 
     // 보안 기능이 추가 된 로그인 메서드
     public TokenResponse login(AuthLoginRequest request, HttpServletRequest httpServletRequest) throws InterruptedException {
@@ -66,13 +56,11 @@ public class AuthService {
     // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
     public JwtTokenResponse refreshAccessToken(String refreshToken) {
 
-        rtrManager.validateRefreshToken(refreshToken); // 유효성 검사
+        rtrManager.validateRefreshToken(refreshToken);
         Auth auth = rtrManager.findAuthByRefreshToken(refreshToken);
         String newAccessToken = rtrManager.generateNewAccessToken(auth);
         String newRefreshToken = rtrManager.generateNewRefreshToken(auth);
-
-        // 새로운 JWT 적용 (Redis + DB 업데이트)
-        rtrManager.applyNewRefreshToken(auth, newRefreshToken);
+        rtrManager.applyNewRefreshToken(auth, newRefreshToken);  // 새로운 JWT 적용 (Redis + DB 업데이트)
 
         return new JwtTokenResponse(newAccessToken, newRefreshToken);
     }
@@ -80,25 +68,10 @@ public class AuthService {
     // 로그 아웃 메서드
     public void logout(String authorizationHeader, String refreshToken){
 
-        // 엑세스 토큰 추출
-        String accessToken = null;
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            accessToken = authorizationHeader.substring(7);
-        }
-
-        // 엑세스 토큰 블랙리스트 추가
-        String accessKey = "blacklist:access_token:" + accessToken;
-        long remainExpiration = authRedisManager.calculateRemainingExpiration(accessToken);
-        authRedisManager.uploadAccessTokenToRedis(accessKey, remainExpiration);
-
-        //  RDB에서 RT 제거
-        Auth auth = authRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
-        auth.setRefreshToken(null);
-
-        // Valkey에서 RT 제거
-        authRedisManager.deleteRefreshToken(refreshToken);
-
+        String accessToken = logoutManager.parseAccessToken(authorizationHeader); // Access Token 추출
+        logoutManager.blacklistAccessToken(accessToken);
+        logoutManager.removeRefreshTokenFromDB(refreshToken);
+        logoutManager.removeRefreshTokenFromRedis(refreshToken);
     }
 
     // 리프레시 토큰을 쿠키에 세팅
