@@ -9,10 +9,7 @@ import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
 import org.com.dungeontalk.domain.auth.dto.response.TokenResponse;
 import org.com.dungeontalk.domain.auth.entity.Auth;
-import org.com.dungeontalk.domain.auth.manager.ActualLoginManager;
-import org.com.dungeontalk.domain.auth.manager.AuthRedisManager;
-import org.com.dungeontalk.domain.auth.manager.BruteForceManager;
-import org.com.dungeontalk.domain.auth.manager.CookieManager;
+import org.com.dungeontalk.domain.auth.manager.*;
 import org.com.dungeontalk.domain.auth.repository.AuthRepository;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.global.exception.ErrorCode;
@@ -37,6 +34,7 @@ public class AuthService {
     private final CookieManager cookieManager;
     private final BruteForceManager bruteForceManager;
     private final ActualLoginManager actualLoginManager;
+    private final RtrManager rtrManager;
 
     // 보안 기능이 추가 된 로그인 메서드
     public TokenResponse login(AuthLoginRequest request, HttpServletRequest httpServletRequest) throws InterruptedException {
@@ -55,8 +53,8 @@ public class AuthService {
     // 실질적인 로그인 메서드
     public TokenResponse actualLogin(AuthLoginRequest request) {
 
-        Member member = actualLoginManager.validateMember(request); // 유저 검증
-        JwtTokenResponse jwtTokenResponse = actualLoginManager.generateToken(member); // JWT 토큰 생성
+        Member member = actualLoginManager.validateMember(request);
+        JwtTokenResponse jwtTokenResponse = actualLoginManager.generateToken(member);
         actualLoginManager.updateMemberRefreshToken(member, jwtTokenResponse); // RefreshToken 갱신
 
         return new TokenResponse(
@@ -68,40 +66,14 @@ public class AuthService {
     // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
     public JwtTokenResponse refreshAccessToken(String refreshToken) {
 
-        // REFACTOR GUIDE
-        /* 유효성 검사 */
-        /* 새로운 JWT 생성 */
-        /* 새로운 JWT 적용 */
+        rtrManager.validateRefreshToken(refreshToken); // 유효성 검사
+        Auth auth = rtrManager.findAuthByRefreshToken(refreshToken);
+        String newAccessToken = rtrManager.generateNewAccessToken(auth);
+        String newRefreshToken = rtrManager.generateNewRefreshToken(auth);
 
-        // 토큰 서명/포맷 검사
-        if (!jwtProvider.validateToken(refreshToken)) {
-            throw new MemberException(ErrorCode.INVALID_JWT_TOKEN);
-        }
+        // 새로운 JWT 적용 (Redis + DB 업데이트)
+        rtrManager.applyNewRefreshToken(auth, newRefreshToken);
 
-        // 토큰 만료 검사
-        if (jwtProvider.isTokenExpired(refreshToken)) {
-            throw new MemberException(ErrorCode.EXPIRED_JWT_TOKEN);
-        }
-
-        // 사용자 조회
-        Auth auth = authRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new MemberException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
-
-        // 새로운 Access Token과 Refresh Token을 반환
-        String newAccessToken = jwtProvider.generateAccessToken(
-                auth.getMember().getId(),
-                auth.getMember().getName(),
-                auth.getMember().getNickName()
-        );
-        String newRefreshToken = jwtProvider.generateRefreshToken(auth.getMember().getId());
-
-        // Session에 RT 최신화
-        jwtRedisService.saveRefreshTokenToSessionRedis(auth.getId(), newRefreshToken);
-
-        // RDB에 RT 최신화
-        auth.setRefreshToken(newRefreshToken);
-
-        // 클라이언트에게 JWT 전달
         return new JwtTokenResponse(newAccessToken, newRefreshToken);
     }
 
