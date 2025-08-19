@@ -25,10 +25,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtExtractor jwtExtractor;
     private final SecurityConfig securityConfig;
 
+//    @Override
+//    protected boolean shouldNotFilter(HttpServletRequest request) {
+//        String path = request.getRequestURI();
+//        return securityConfig.getPublicUrls().stream().anyMatch(path::startsWith);
+//    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return securityConfig.getPublicUrls().stream().anyMatch(path::startsWith);
+
+        return securityConfig.getPublicUrls().stream()
+                .anyMatch(p -> p.endsWith("/**")
+                        ? path.startsWith(p.replace("/**",""))
+                        : path.equals(p) || path.startsWith(p));
     }
 
     // ======================= DEPRECATED CODE - 3일간 관찰 한 후 문제 없으면 삭제 예정 =========================
