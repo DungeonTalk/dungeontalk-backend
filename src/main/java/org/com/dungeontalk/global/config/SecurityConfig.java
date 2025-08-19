@@ -95,6 +95,7 @@ public class SecurityConfig {
 //                        anyRequest().authenticated())
 //                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // 필터 추가
 
+
         return http.build();
 
     }

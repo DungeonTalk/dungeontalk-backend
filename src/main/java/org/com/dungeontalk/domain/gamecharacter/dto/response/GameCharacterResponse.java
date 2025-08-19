@@ -7,7 +7,7 @@ import java.time.Instant;
 public record GameCharacterResponse(
         String id,
         String memberId,
-        String raceTypeId,
+        String raceId,
         Integer playerLevel,
         Long totalExp,
         Integer unspentPoints,
@@ -24,7 +24,7 @@ public record GameCharacterResponse(
         return new GameCharacterResponse(
                 character.getId(),
                 character.getMemberId(),
-                character.getRaceTypeId(),
+                character.getRaceId(),
                 character.getPlayerLevel(),
                 character.getTotalExp(),
                 character.getUnspentPoints(),

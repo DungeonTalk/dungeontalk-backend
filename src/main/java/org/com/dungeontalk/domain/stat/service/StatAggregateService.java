@@ -31,7 +31,7 @@ public class StatAggregateService {
 
         RaceStats raceStats = gameCharacter.getRaceStats();
         if (raceStats == null) {
-            throw new IllegalArgumentException("종족 스탯 공식 없음: " + gameCharacter.getRaceTypeId());
+            throw new IllegalArgumentException("종족 스탯 공식 없음: " + gameCharacter.getRaceId());
         }
 
         Map<String, Object> variables = gameCharacter.toVariableMap();   // 필요 변수 준비(검증 추가는 이후 단계에서)

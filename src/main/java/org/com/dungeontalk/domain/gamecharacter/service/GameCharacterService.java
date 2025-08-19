@@ -27,13 +27,13 @@ public class GameCharacterService {
     // 새로운 캐릭터 생성 (레벨 1, 모든 스탯 10으로 초기화)
     @Transactional
     public GameCharacterResponse createCharacter(CreateCharacterRequest request) {
-        // 종족명으로 RaceStats 조회하여 UUID 가져오기
-        RaceStats raceStats = raceStatsRepository.findByRace(request.raceTypeId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceTypeId()));
+        // UUID로 RaceStats 조회
+        RaceStats raceStats = raceStatsRepository.findById(request.raceId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceId()));
 
         GameCharacter character = new GameCharacter();
         character.setMemberId(request.memberId());
-        character.setRaceTypeId(raceStats.getId()); // UUID 저장
+        character.setRaceId(raceStats.getId()); // UUID 저장
         character.setPlayerLevel(1);
         character.setTotalExp(0L);
         character.setUnspentPoints(0);
@@ -82,11 +82,16 @@ public class GameCharacterService {
         // 모든 스탯 계산
         Map<String, Double> calculatedStats = statAggregateService.calculateAllStats(id);
 
-        return GameCharacterDetailResponse.from(character, raceName, calculatedStats);
+        return GameCharacterDetailResponse.from(character.getMember().getNickName(), character, raceName, calculatedStats); // (수정) 닉네임 추가
     }
 
     // 사용 가능한 모든 종족 목록 조회
     public List<String> getRaces() {
         return raceStatsRepository.findAllRaceNames();
+    }
+
+    // 멤버가 캐릭터를 가지고 있는지 확인
+    public boolean hasCharacter(String memberId) {
+        return gameCharacterRepository.existsByMemberId(memberId);
     }
 }
