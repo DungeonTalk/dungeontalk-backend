@@ -8,6 +8,7 @@ import java.util.Map;
 public record GameCharacterDetailResponse(
         String id,
         String memberId,
+        String nickname, // (추가) 닉네임을 위한 필드
         String raceId,
         String raceName,
         Integer playerLevel,
@@ -29,11 +30,12 @@ public record GameCharacterDetailResponse(
         Instant createdAt,
         Instant updatedAt
 ) {
-    public static GameCharacterDetailResponse from(GameCharacter character, String raceName, Map<String, Double> calculatedStats) {
+    public static GameCharacterDetailResponse from(String nickname, GameCharacter character, String raceName, Map<String, Double> calculatedStats) {
         return new GameCharacterDetailResponse(
                 character.getId(),
                 character.getMemberId(),
                 character.getRaceId(),
+                nickname, // (수정) Member 엔티티의 닉네임 사용
                 raceName,
                 character.getPlayerLevel(),
                 character.getTotalExp(),
