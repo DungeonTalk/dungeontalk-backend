@@ -7,9 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.global.security.JwtProvider;
 import org.com.dungeontalk.global.security.JwtRedisService;
 import org.com.dungeontalk.global.security.JwtService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
@@ -54,19 +56,22 @@ public class JwtHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
 
         // 2) 필수 파라미터 확인
         if (token == null || token.isBlank() || roomId == null || roomId.isBlank()) {
+            ((ServletServerHttpResponse) response).getServletResponse().setStatus(HttpStatus.BAD_REQUEST.value());
             log.warn("❌ WS 인증 실패: token/roomId 누락");
             return false;
         }
 
         // 3) 서명/만료 검증
         if (!jwtProvider.validateToken(token)) {
+            ((ServletServerHttpResponse) response).getServletResponse().setStatus(HttpStatus.UNAUTHORIZED.value());
             log.warn("❌ WS 인증 실패: 토큰 검증 실패");
             return false;
         }
 
         // 4) 블랙리스트(로그아웃/취소) 확인 — ✅ 버그 수정: 블랙리스트에 **있으면** 차단
         if (jwtRedisService.isTokenBlacklisted(token)) {
-            log.warn("❌ WS 인증 실패: 블랙리스트 토큰(로그아웃/취소됨)");
+            ((ServletServerHttpResponse) response).getServletResponse().setStatus(HttpStatus.UNAUTHORIZED.value());
+            log.warn("❌ WS 인증 실패: 블랙리스트 토큰");
             return false;
         }
 
