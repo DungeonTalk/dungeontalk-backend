@@ -30,8 +30,8 @@ public class SecurityConfig {
             "/v1/auth/refresh",
             "/v1/valkey/session/test/save",
             "/v1/stat",
-            "v1/match",
-            "v1/rooms",
+            "/v1/match",
+            "/v1/rooms",
             "/v1/characters",
             "/init/",
             "/stat-calculator.html",
@@ -43,7 +43,7 @@ public class SecurityConfig {
             "/v3/api-docs",
             "/webjars",
             "/swagger-resources",
-            "dungeontalk-heartbeat.html"
+            "/dungeontalk-heartbeat.html"
     };
 
     public List<String> getPublicUrls() {
