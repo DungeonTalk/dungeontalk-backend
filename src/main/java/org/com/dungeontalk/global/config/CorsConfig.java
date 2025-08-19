@@ -22,6 +22,7 @@ public class CorsConfig {
         allowedOriginPatterns.add("https://api.dt.com");
         allowedOriginPatterns.add("http://localhost:8080");
         allowedOriginPatterns.add("http://localhost:5173");
+        allowedOriginPatterns.add("http://localhost:3000");
         configuration.setAllowedOrigins(allowedOriginPatterns);
 
         // 허용하는 HTTP METHOD 지정
@@ -36,6 +37,20 @@ public class CorsConfig {
 
         // 인증, 인가를 위한 credentials 를 TRUE로 설정
         configuration.setAllowCredentials(true);
+        
+        // 허용할 헤더 설정
+        ArrayList<String> allowedHeaders = new ArrayList<>();
+        allowedHeaders.add("*");
+        configuration.setAllowedHeaders(allowedHeaders);
+        
+        // 클라이언트에 노출할 헤더 설정
+        ArrayList<String> exposedHeaders = new ArrayList<>();
+        exposedHeaders.add("Authorization");
+        exposedHeaders.add("Content-Type");
+        configuration.setExposedHeaders(exposedHeaders);
+        
+        // Preflight 요청 캐시 시간 (1시간)
+        configuration.setMaxAge(3600L);
 
         //  URL 패턴별 CORS 등록
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

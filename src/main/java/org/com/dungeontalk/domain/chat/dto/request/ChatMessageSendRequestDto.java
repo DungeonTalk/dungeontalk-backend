@@ -14,6 +14,7 @@ import org.com.dungeontalk.domain.chat.common.MessageType;
 import org.com.dungeontalk.domain.chat.validation.message.ValidChatMessage;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -28,9 +29,10 @@ public class ChatMessageSendRequestDto {
     @Schema(description = "채팅방 ID", example = "018f9b17-c0a3-7a02-a5a4-4f3c1adf5b89")
     private String roomId;
 
-    @NotBlank
     @Size(max = 80)
-    @Schema(description = "발신자 ID", example = "018f9b17-c0a3-7a02-a5a4-4f3c1adf5b89")
+    @Schema(description = "발신자 ID (서버에서 WebSocket 세션에서 자동 설정, 클라이언트는 전송하지 않음)", 
+            example = "018f9b17-c0a3-7a02-a5a4-4f3c1adf5b89", 
+            hidden = true)
     private String senderId;
 
     @Size(max = 40)

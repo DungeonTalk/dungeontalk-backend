@@ -9,6 +9,7 @@ import org.com.dungeontalk.domain.chat.dto.request.ChatMessageSendRequestDto;
 import org.com.dungeontalk.domain.chat.service.ChatMessageService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 @Slf4j
@@ -26,11 +27,19 @@ public class ChatStompController {
      * 해당 메시지는 @MessageMapping("/chat/send")으로 매핑된다.
      * 이후 ChatMessageService가 메시지의 타입에 따라 처리(JOIN, LEAVE, TALK)
      */
-    @MessageMapping("/chat/send") // /pub/chat/send
-    public void sendMessage(@Valid @Payload ChatMessageSendRequestDto dto) throws JsonProcessingException {
-        if (log.isDebugEnabled()) {
-            log.debug("STOMP 수신: {}", objectMapper.writeValueAsString(dto));
+    @MessageMapping("/chat/send")
+    public void sendMessage(@Valid @Payload ChatMessageSendRequestDto dto, SimpMessageHeaderAccessor headerAccessor) throws JsonProcessingException {
+        // WebSocket 세션에서 memberId 가져와서 자동 설정
+        String memberId = (String) headerAccessor.getSessionAttributes().get("memberId");
+        
+        if (memberId != null && !memberId.isBlank()) {
+            dto.setSenderId(memberId);
         }
+        
+        if (log.isDebugEnabled()) {
+            log.debug("STOMP 메시지 수신 - memberId: {}, type: {}", memberId, dto.getType());
+        }
+        
         chatMessageService.processMessage(dto);
     }
 

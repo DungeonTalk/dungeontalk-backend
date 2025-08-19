@@ -13,12 +13,10 @@ public class ChatMessageValidator implements ConstraintValidator<ValidChatMessag
 
         if (v.getType() == MessageType.TALK) {
             return v.getContent() != null && !v.getContent().isBlank()
-                && v.getRoomId() != null && !v.getRoomId().isBlank()
-                && v.getSenderId() != null && !v.getSenderId().isBlank();
+                && v.getRoomId() != null && !v.getRoomId().isBlank();
         }
 
-        // JOIN / LEAVE / PRESENCE: roomId, senderId만 확인
-        return v.getRoomId() != null && !v.getRoomId().isBlank()
-            && v.getSenderId() != null && !v.getSenderId().isBlank();
+        // JOIN / LEAVE / PRESENCE: roomId만 확인
+        return v.getRoomId() != null && !v.getRoomId().isBlank();
     }
 }
