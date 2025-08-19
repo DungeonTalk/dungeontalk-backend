@@ -82,7 +82,7 @@ public class GameCharacterService {
         // 모든 스탯 계산
         Map<String, Double> calculatedStats = statAggregateService.calculateAllStats(id);
 
-        return GameCharacterDetailResponse.from(character, raceName, calculatedStats);
+        return GameCharacterDetailResponse.from(character.getMember().getNickName(), character, raceName, calculatedStats); // (수정) 닉네임 추가
     }
 
     // 사용 가능한 모든 종족 목록 조회
