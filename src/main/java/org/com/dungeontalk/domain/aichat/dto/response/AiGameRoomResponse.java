@@ -51,6 +51,9 @@ public class AiGameRoomResponse {
     @Schema(description = "참가자 목록")
     private List<String> participants;
     
+    @Schema(description = "게임 설정 (세계관)", example = "중세 판타지 세계관에서 펼쳐지는 마법과 모험의 이야기")
+    private String gameSettings;
+    
     @Schema(description = "생성 시간")
     private Instant createdAt;
 
@@ -86,6 +89,7 @@ public class AiGameRoomResponse {
                 .participants(Optional.ofNullable(room.getParticipants())
                         .map(ArrayList::new)
                         .orElseGet(ArrayList::new))
+                .gameSettings(room.getGameSettings())
                 .createdAt(room.getCreatedAt())
                 .build();
     }

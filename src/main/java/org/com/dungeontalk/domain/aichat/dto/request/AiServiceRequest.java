@@ -32,4 +32,7 @@ public class AiServiceRequest {
     
     @JsonProperty("turn_number")
     private int turnNumber;
+    
+    @JsonProperty("game_settings")
+    private String gameSettings;
 }

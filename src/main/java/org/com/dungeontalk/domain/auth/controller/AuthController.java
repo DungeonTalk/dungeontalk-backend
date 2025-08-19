@@ -40,7 +40,7 @@ public class AuthController {
     // JWT 토큰 재발급
     @PostMapping("/refresh")
 
-    public RsData<JwtTokenResponse> refreshToken(
+    public RsData<AuthLoginResponse> refreshToken(
             @RequestBody RefreshTokenRequest request,
             HttpServletResponse httpServletResponse) {
 
@@ -50,7 +50,7 @@ public class AuthController {
         // 쿠키에 리프레시 토큰 저장
         authService.saveRefreshTokenToCookie(httpServletResponse, jwtTokenResponse.getRefreshToken());
 
-        return RsData.of("200", "토큰 재발급 성공", jwtTokenResponse);
+        return RsData.of("200", "토큰 재발급 성공", new AuthLoginResponse(jwtTokenResponse.getAccessToken()));
     }
 
     //  로그 아웃

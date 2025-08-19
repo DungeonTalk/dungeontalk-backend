@@ -42,12 +42,12 @@ public class GameCharacterService {
         character.setUnspentPoints(0);
 
         // 모든 스탯을 10으로 고정
-        character.setStr(10);
-        character.setWil(10);
-        character.setInt_(10);
-        character.setWis(10);
-        character.setDex(10);
-        character.setLuk(10);
+        character.setStrength(10);
+        character.setWillpower(10);
+        character.setIntelligence(10);
+        character.setWisdom(10);
+        character.setDexterity(10);
+        character.setLuck(10);
 
         GameCharacter savedCharacter = gameCharacterRepository.save(character);
         return GameCharacterResponse.from(savedCharacter);

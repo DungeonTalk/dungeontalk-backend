@@ -7,6 +7,7 @@ import org.com.dungeontalk.domain.aichat.dto.AiGameMessageDto;
 import org.com.dungeontalk.domain.aichat.dto.request.AiServiceRequest;
 import org.com.dungeontalk.domain.aichat.dto.request.ContextMessage;
 import org.com.dungeontalk.domain.aichat.dto.response.AiServiceResponse;
+import org.com.dungeontalk.domain.aichat.dto.response.AiGameRoomResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class AiApiService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final AiGameRoomService aiGameRoomService;
 
     @Value("${ai.service.url:http://localhost:8001}")
     private String aiServiceUrl;
@@ -46,6 +48,12 @@ public class AiApiService {
             log.info("Python AI 서비스 호출 시작: roomId={}, user={}, turn={}", 
                      aiGameRoomId, currentUser, turnNumber);
 
+            // 게임방 정보 조회하여 gameSettings 가져오기
+            AiGameRoomResponse roomResponse = aiGameRoomService.getAiGameRoom(aiGameRoomId);
+            String gameSettings = roomResponse.getGameSettings();
+            
+            log.debug("게임 세계관 설정: {}", gameSettings);
+
             // 요청 데이터 구성
             AiServiceRequest request = AiServiceRequest.builder()
                     .gameId(gameId)
@@ -56,6 +64,7 @@ public class AiApiService {
                             .map(this::convertToContextMessage)
                             .toList())
                     .turnNumber(turnNumber)
+                    .gameSettings(gameSettings)
                     .build();
 
             // HTTP 헤더 설정
