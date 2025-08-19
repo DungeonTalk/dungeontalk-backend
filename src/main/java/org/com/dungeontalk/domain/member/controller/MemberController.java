@@ -56,7 +56,7 @@ public class MemberController {
         @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
         @ApiResponse(responseCode = "404", description = "존재하지 않는 멤버")
     })
-    @SecurityRequirement(name = "bearerAuth")
+    @SecurityRequirement(name = "JWT")
     @GetMapping("/status/me")
     public RsData<UserWithCharacterInfoResponse> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails) {
         String memberId = userDetails.getId();
