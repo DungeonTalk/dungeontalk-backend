@@ -48,23 +48,23 @@ public class GameCharacter extends BaseEntity {
     @Column(name = "unspent_points", nullable = false)
     private Integer unspentPoints = 0; // 추가로 스텟을 찍을 수 있는 남은 증가치
 
-    @Column(name = "str")
-    private Integer str;
+    @Column(name = "strength")
+    private Integer strength;
 
-    @Column(name = "wil")
-    private Integer wil;
+    @Column(name = "willpower")
+    private Integer willpower;
 
-    @Column(name = "int")
-    private Integer int_; // Java 예약어 int 피해서 int_로
+    @Column(name = "intelligence")
+    private Integer intelligence;
 
-    @Column(name = "wis")
-    private Integer wis;
+    @Column(name = "wisdom")
+    private Integer wisdom;
 
-    @Column(name = "dex")
-    private Integer dex;
+    @Column(name = "dexterity")
+    private Integer dexterity;
 
-    @Column(name = "luk")
-    private Integer luk;
+    @Column(name = "luck")
+    private Integer luck;
 
 //    @Column(name = "created_at")
 //    private LocalDateTime createdAt;
@@ -84,12 +84,12 @@ public class GameCharacter extends BaseEntity {
     // 공식 계산시 변수 Map 변환
     public Map<String, Object> toVariableMap() {
         Map<String, Object> map = new HashMap<>();
-        map.put("str", this.str);
-        map.put("wil", this.wil);
-        map.put("int", this.int_);
-        map.put("wis", this.wis);
-        map.put("dex", this.dex);
-        map.put("luk", this.luk);
+        map.put("strength", this.strength);
+        map.put("willpower", this.willpower);
+        map.put("intelligence", this.intelligence);
+        map.put("wisdom", this.wisdom);
+        map.put("dexterity", this.dexterity);
+        map.put("luck", this.luck);
         return map;
     }
 }
