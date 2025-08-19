@@ -29,21 +29,22 @@ public class SecurityConfig {
             "/v1/valkey/session/all",
             "/v1/auth/refresh",
             "/v1/valkey/session/test/save",
-            "/v1/stat",
-            "/v1/match",
-            "/v1/rooms",
-            "/v1/characters",
-            "/init/",
+            "/v1/stat/**",
+            "/v1/characters/**",
+            "/init/**",
             "/stat-calculator.html",
             "/character-test.html",
             "/dungeon-game.html",
-            "/ws-chat",
+            "/ws-chat/**",
             // Swagger UI 관련 경로들
-            "/swagger-ui",
-            "/v3/api-docs",
-            "/webjars",
-            "/swagger-resources",
-            "/dungeontalk-heartbeat.html"
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/webjars/**",
+            "/swagger-resources/**",
+            "/dungeontalk-heartbeat.html",
+            // 게임 관련 조회 API만 공개
+            "/v1/match/queue-stats",
+            "/v1/aichat/rooms/available"
     };
 
     public List<String> getPublicUrls() {
