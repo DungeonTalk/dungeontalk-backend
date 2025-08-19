@@ -21,7 +21,13 @@ public class CustomUserDetails implements UserDetails {
         this.Id = member.getId();
         this.name = member.getName();
         this.nickname = member.getNickName();
+    }
 
+    // JWT Claims 기반 생성자
+    public CustomUserDetails(String Id, String name, String nickname) {
+        this.Id = Id;
+        this.name = name;
+        this.nickname = nickname;
     }
 
     // role이 없지만 우선 오류 방지를 위해
