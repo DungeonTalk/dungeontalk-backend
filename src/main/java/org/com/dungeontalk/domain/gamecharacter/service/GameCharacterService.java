@@ -84,7 +84,8 @@ public class GameCharacterService {
         return GameCharacterResponse.from(character);
     }
 
-    // 멤버 ID로 해당 멤버의 캐릭터 조회 (MVP: 1개 멤버당 1개 캐릭터)
+    // 멤버 ID로 해당 멤버의 캐릭터 조회 (MVP: 1개 멤버당 1개 캐릭터) - 캐싱 적용
+    @org.springframework.cache.annotation.Cacheable(value = "characters", key = "#memberId")
     public GameCharacterResponse findByMemberId(String memberId) {
         GameCharacter character = gameCharacterRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("Character not found for member: " + memberId));

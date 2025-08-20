@@ -13,6 +13,7 @@ import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 import org.com.dungeontalk.domain.aichat.event.AiTurnProcessEvent;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.GameResultRequest;
 import org.com.dungeontalk.domain.gamecharacter.service.GameCharacterService;
+import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -21,6 +22,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
+
+/**
+ * 게임 관련 상수들
+ */
+class AiGameFlowConstants {
+    static final int GAME_TARGET_MINUTES = 15;
+}
 
 /**
  * AI 게임 플로우 관리 서비스
@@ -40,6 +48,8 @@ public class AiGameFlowService {
     private final AiGameRoomService aiGameRoomService;
     // JSON 파싱을 위한 ObjectMapper
     private final ObjectMapper objectMapper;
+    // 회원 정보 조회를 위한 리포지토리
+    private final MemberRepository memberRepository;
 
     /**
      * AI 턴을 처리합니다 (기존 generateAndProcessAiResponse 로직)
@@ -72,7 +82,7 @@ public class AiGameFlowService {
                     contextMessages,
                     request.getTurnNumber(),
                     gameStartTime,
-                    15,  // 15분 목표 시간
+                    AiGameFlowConstants.GAME_TARGET_MINUTES,
                     request.getCharacterStats()  // 캐릭터 스탯 추가
             );
 
@@ -229,46 +239,113 @@ public class AiGameFlowService {
      * 특히 게임 결과에 따른 경험치 지급 로직을 처리.
      *
      * @param roomId      현재 게임방 ID
-     * @param characterId 현재 턴을 진행한 캐릭터 ID
+     * @param userId      현재 턴을 진행한 사용자 ID
      * @param aiResult    게임 종료 여부 및 결과가 포함된 AI의 응답 객체
      */
-    private void handleGameEnd(String roomId, String characterId, AiServiceResponse aiResult) {
+    private void handleGameEnd(String roomId, String userId, AiServiceResponse aiResult) {
         try {
-            log.info("🎯 TRPG 게임 종료 처리 시작: roomId={}, characterId={}", roomId, characterId);
+            log.info("🎯 TRPG 게임 종료 처리 시작: roomId={}, userId={}", roomId, userId);
 
-            // 1. roomId로 AiGameRoom 엔티티를 조회.
+            // 1. roomId로 AiGameRoom 엔티티를 조회하고 worldId 추출
             AiGameRoom room = aiGameRoomService.getGameRoomEntity(roomId);
             String settings = room.getGameSettings();
-            Long worldId = null;
+            Long worldId = extractWorldIdFromSettings(settings);
+            log.info("🌍 GameSettings 분석 완료: worldId={}, settings: {}", worldId, settings);
 
-            // 2. GameSettings(JSON)에서 worldId를 파싱.
-            //    (가정: gameSettings에 {"worldId": 1} 와 같이 worldId가 저장되어 있음)
-            try {
-                JsonNode rootNode = objectMapper.readTree(settings);
-                if (rootNode.has("worldId")) {
-                    worldId = rootNode.get("worldId").asLong();
-                }
-            } catch (JsonProcessingException e) {
-                log.error("JSON 파싱 실패: {}", settings, e);
+            // 2. 사용자 정보 및 캐릭터 정보 조회
+            String characterId = resolveCharacterIdFromUsername(userId);
+            if (characterId == null) {
+                return; // 조회 실패 시 중단
             }
 
-            // 3. worldId를 찾지 못하면 경험치 지급 로직을 중단.
-            if (worldId == null) {
-                log.error("worldId를 찾을 수 없어 경험치 지급을 중단합니다. gameSettings: {}", settings);
-                return;
-            }
+            // 3. AI 응답의 게임 결과를 보고 클리어 여부(1 또는 0)를 결정.
+            String gameResult = aiResult.getGameResult();
+            int isCleared = "SUCCESS".equalsIgnoreCase(gameResult) ? 1 : 0;
+            
+            log.info("🎮 게임 결과 판정: gameResult={}, isCleared={}", gameResult, isCleared);
 
-            // 4. AI 응답의 게임 단계를 보고 클리어 여부(1 또는 0)를 결정.
-            int isCleared = "SUCCESS".equalsIgnoreCase(aiResult.getGamePhase()) ? 1 : 0;
-
-            // 5. 경험치 처리를 위해 GameCharacterService에 요청을 보냄.
+            // 4. 경험치 처리를 위해 GameCharacterService에 요청을 보냄.
             GameResultRequest request = new GameResultRequest(characterId, worldId, isCleared);
             gameCharacterService.processGameResult(request);
 
-            log.info("✅ TRPG 게임 종료 및 경험치 처리 완료: characterId={}, worldId={}, isCleared={}", characterId, worldId, isCleared);
+            log.info("✅ TRPG 게임 종료 및 경험치 처리 완료: userId={}, characterId={}, worldId={}, isCleared={}", userId, characterId, worldId, isCleared);
         } catch (Exception e) {
-            log.error("❌ TRPG 게임 종료 처리 실패: roomId={}, characterId={}, error={}",
-                    roomId, characterId, e.getMessage(), e);
+            log.error("❌ TRPG 게임 종료 처리 실패: roomId={}, userId={}, error={}",
+                    roomId, userId, e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * gameSettings에서 worldId를 추출합니다.
+     * JSON 형태이면 JSON에서 추출하고, 아니면 텍스트 분석으로 월드 판별
+     */
+    private Long extractWorldIdFromSettings(String settings) {
+        if (settings == null || settings.trim().isEmpty()) {
+            return 1L; // 기본값: 판타지 월드
+        }
+        
+        try {
+            // 1. JSON 형태인지 먼저 확인
+            if (settings.trim().startsWith("{")) {
+                JsonNode rootNode = objectMapper.readTree(settings);
+                if (rootNode.has("worldId")) {
+                    return rootNode.get("worldId").asLong();
+                }
+            }
+        } catch (JsonProcessingException e) {
+            log.debug("JSON 파싱 실패, 텍스트 분석으로 전환: {}", settings);
+        }
+        
+        // 2. 텍스트 분석으로 월드 타입 판별
+        String upperSettings = settings.toUpperCase();
+        
+        // 좀비 아포칼립스 키워드 검색
+        if (upperSettings.contains("좀비") || upperSettings.contains("아포칼립스") || 
+            upperSettings.contains("ZOMBIE") || upperSettings.contains("APOCALYPSE") ||
+            upperSettings.contains("포스트") || upperSettings.contains("POST")) {
+            return 2L; // 좀비 아포칼립스
+        }
+        
+        // 판타지 키워드 검색 (기본값이므로 가장 관대하게)
+        if (upperSettings.contains("판타지") || upperSettings.contains("FANTASY") || 
+            upperSettings.contains("마법") || upperSettings.contains("MAGIC") || 
+            upperSettings.contains("중세") || upperSettings.contains("던전") ||
+            upperSettings.contains("별") || upperSettings.contains("노래")) {
+            return 1L; // 잊혀진 별의 마지막 노래
+        }
+        
+        // 기본값: 판타지 월드
+        return 1L;
+    }
+    
+    /**
+     * 사용자 이름으로부터 캐릭터 ID를 조회합니다. (N+1 최적화)
+     * 
+     * @param username 사용자 이름
+     * @return 캐릭터 ID, 실패 시 null
+     */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    private String resolveCharacterIdFromUsername(String username) {
+        try {
+            // 1. 단일 쿼리로 Member와 연관된 GameCharacter 정보를 한번에 조회
+            var memberOptional = memberRepository.findByName(username);
+            if (memberOptional.isEmpty()) {
+                log.error("❌ 사용자 정보 조회 실패: username={} - 존재하지 않는 사용자", username);
+                return null;
+            }
+            
+            String memberId = memberOptional.get().getId();
+            log.info("👤 사용자 정보 조회 성공: username={}, memberId={}", username, memberId);
+            
+            // 2. 최적화된 캐릭터 조회 (서비스 레이어에서 캐싱 활용)
+            var character = gameCharacterService.findByMemberId(memberId);
+            String characterId = character.id();
+            log.info("📋 사용자 캐릭터 조회 성공: memberId={}, characterId={}", memberId, characterId);
+            
+            return characterId;
+        } catch (Exception e) {
+            log.error("❌ 캐릭터 조회 실패: username={}, error={}", username, e.getMessage());
+            return null;
         }
     }
 }
