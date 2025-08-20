@@ -35,4 +35,17 @@ public class AiServiceRequest {
     
     @JsonProperty("game_settings")
     private String gameSettings;
+    
+    @JsonProperty("world_type")
+    private String worldType;
+    
+    @JsonProperty("game_start_time")
+    private Long gameStartTime;  // 게임 시작 시간 (Unix timestamp)
+    
+    @JsonProperty("target_duration")
+    @Builder.Default
+    private Integer targetDuration = 15;  // 목표 시간 (분)
+    
+    @JsonProperty("character_stats")
+    private Object characterStats;  // 캐릭터 스탯 정보 (JSON 객체)
 }

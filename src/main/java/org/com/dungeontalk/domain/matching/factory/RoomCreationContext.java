@@ -2,7 +2,7 @@ package org.com.dungeontalk.domain.matching.factory;
 
 import lombok.Builder;
 import lombok.Value;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 
 import java.util.List;
 

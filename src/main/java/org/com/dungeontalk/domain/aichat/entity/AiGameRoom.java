@@ -63,4 +63,22 @@ public class AiGameRoom {
         return this.participants != null ? this.participants.size() : 0;
     }
 
+    /**
+     * 게임 상태 변경 (불변성 유지)
+     */
+    public AiGameRoom updatePhase(AiGamePhase newPhase) {
+        return this.toBuilder()
+                .currentPhase(newPhase)
+                .build();
+    }
+
+    /**
+     * 게임 상태 변경 (불변성 유지)
+     */
+    public AiGameRoom updateStatus(AiGameStatus newStatus) {
+        return this.toBuilder()
+                .status(newStatus)
+                .build();
+    }
+
 }

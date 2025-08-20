@@ -16,7 +16,7 @@ import org.com.dungeontalk.domain.room.dto.UnifiedRoomResponse;
 import org.com.dungeontalk.domain.room.service.RoomServiceFactory;
 import org.com.dungeontalk.domain.matching.common.MatchingConstants;
 import org.com.dungeontalk.domain.matching.common.MatchingStatus;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 import org.com.dungeontalk.domain.matching.dto.response.MatchingCompleteResponse;
 import org.com.dungeontalk.domain.matching.dto.response.MatchingStatusResponse;
 import org.com.dungeontalk.domain.matching.dto.response.QueueStatsResponse;
@@ -50,6 +50,7 @@ public class MatchingService {
     private final StringRedisTemplate redisTemplate;
     private final MatchingWebSocketService webSocketService;
     private final RoomServiceFactory roomServiceFactory;
+    private final WorldTypeCompatService worldTypeCompatService;
 
     /**
      * WebSocket 매칭 참가 처리 (컨트롤러 단순화용)
@@ -134,7 +135,7 @@ public class MatchingService {
         Map<Object, Object> userInfo = queueManager.getUserMatchingInfo(memberId);
         WorldType worldType = null;
         if (!userInfo.isEmpty()) {
-            worldType = WorldType.valueOf((String) userInfo.get("worldType"));
+            worldType = worldTypeCompatService.valueOf((String) userInfo.get("worldType"));
         }
 
         boolean removed = queueManager.removeFromQueue(memberId);
@@ -176,7 +177,7 @@ public class MatchingService {
         String statusName = (String) userInfo.get("status");
         String joinedAtStr = (String) userInfo.get("joinedAt");
 
-        WorldType worldType = WorldType.valueOf(worldTypeName);
+        WorldType worldType = worldTypeCompatService.valueOf(worldTypeName);
         MatchingStatus status = MatchingStatus.valueOf(statusName);
         Instant joinedAt = Instant.parse(joinedAtStr);
 
@@ -193,7 +194,7 @@ public class MatchingService {
         Map<WorldType, WorldQueueInfo> queueInfo = new HashMap<>();
         int totalWaiting = 0;
 
-        for (WorldType worldType : WorldType.values()) {
+        for (WorldType worldType : worldTypeCompatService.values()) {
             int currentWaiting = queueManager.getQueueSize(worldType);
             Map<Object, Object> stats = queueManager.getQueueStats(worldType);
             
@@ -239,7 +240,7 @@ public class MatchingService {
     public MatchingCompleteResponse processMatching(WorldType worldType) {
         log.info("매칭 처리 시작: worldType={}", worldType);
         
-        String lockKey = MatchingConstants.LOCK_KEY_PREFIX + worldType.name();
+        String lockKey = MatchingConstants.LOCK_KEY_PREFIX + worldType.getCode();
         Boolean lockAcquired = false;
         
         try {
@@ -346,7 +347,7 @@ public class MatchingService {
 
         Map<String, String> sessionInfo = Map.of(
                 "participants", String.join(",", participants),
-                "worldType", worldType.name(),
+                "worldType", worldType.getCode(),
                 "aiGameRoomId", aiGameRoomId,
                 "chatRoomId", chatRoomId,
                 "createdAt", Instant.now().toString(),
@@ -391,7 +392,7 @@ public class MatchingService {
      */
     @Scheduled(fixedDelay = 5000)
     public void processAllQueueMatching() {
-        for (WorldType worldType : WorldType.values()) {
+        for (WorldType worldType : worldTypeCompatService.values()) {
             try {
                 if (queueManager.canProcessMatching(worldType)) {
                     log.info("정기 매칭 처리 시작: worldType={}, queueSize={}", 
@@ -459,7 +460,7 @@ public class MatchingService {
     public MatchingCompleteResponse processMatchingWithUnifiedRooms(WorldType worldType) {
         log.info("통합 룸 기반 매칭 처리 시작: worldType={}", worldType);
         
-        String lockKey = MatchingConstants.LOCK_KEY_PREFIX + worldType.name();
+        String lockKey = MatchingConstants.LOCK_KEY_PREFIX + worldType.getCode();
         Boolean lockAcquired = false;
         
         try {

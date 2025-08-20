@@ -14,7 +14,8 @@ import org.com.dungeontalk.domain.matching.dto.response.MatchingStatusResponse;
 import org.com.dungeontalk.domain.matching.dto.response.QueueStatsResponse;
 import org.com.dungeontalk.domain.matching.service.MatchingService;
 import org.com.dungeontalk.domain.matching.service.MatchingQueueManager;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
+import org.com.dungeontalk.domain.matching.service.WorldTypeCompatService;
 import org.com.dungeontalk.global.rsData.RsData;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +30,7 @@ public class MatchingController {
 
     private final MatchingService matchingService;
     private final MatchingQueueManager queueManager;
+    private final WorldTypeCompatService worldTypeCompatService;
 
     @Operation(summary = "매칭 큐 참가", description = "게임 매칭 큐에 참가합니다")
     @ApiResponses(value = {
@@ -38,9 +40,10 @@ public class MatchingController {
     })
     @PostMapping("/join")
     public RsData<MatchingStatusResponse> joinMatching(@Valid @RequestBody MatchingJoinRequest request) {
-        log.info("매칭 참가 API 호출: memberId={}, worldType={}", request.getMemberId(), request.getWorldType());
+        log.info("매칭 참가 API 호출: memberId={}, worldTypeCode={}", request.getMemberId(), request.getWorldTypeCode());
         
-        MatchingStatusResponse response = matchingService.joinMatching(request.getMemberId(), request.getWorldType());
+        WorldType worldType = worldTypeCompatService.valueOf(request.getWorldTypeCode());
+        MatchingStatusResponse response = matchingService.joinMatching(request.getMemberId(), worldType);
         return RsData.of("200", "매칭 큐 참가 완료", response);
     }
 
@@ -92,7 +95,7 @@ public class MatchingController {
         log.info("Redis 큐 초기화 API 호출");
         
         try {
-            for (WorldType worldType : WorldType.values()) {
+            for (WorldType worldType : worldTypeCompatService.values()) {
                 queueManager.clearQueue(worldType);
             }
             return RsData.of("200", "모든 큐가 초기화되었습니다", "SUCCESS");
@@ -113,7 +116,7 @@ public class MatchingController {
         log.info("수동 매칭 처리 API 호출: worldType={}", worldType);
         
         try {
-            WorldType world = WorldType.valueOf(worldType.toUpperCase());
+            WorldType world = worldTypeCompatService.valueOf(worldType.toUpperCase());
             
             MatchingCompleteResponse response = matchingService.processMatching(world);
             

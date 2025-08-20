@@ -1,7 +1,7 @@
 package org.com.dungeontalk.domain.matching.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 import org.com.dungeontalk.domain.matching.dto.websocket.MatchingWebSocketMessage;
 import org.springframework.stereotype.Component;
 

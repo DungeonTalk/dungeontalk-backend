@@ -92,6 +92,17 @@ public class GameCharacterController {
         return RsData.of("200", "종족 목록 조회 완료", races);
     }
 
+    // 멤버가 캐릭터를 가지고 있는지 확인
+    @Operation(summary = "캐릭터 존재 여부 확인", description = "멤버 ID로 해당 멤버가 캐릭터를 가지고 있는지 확인합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "확인 성공",
+                    content = @Content(schema = @Schema(implementation = Boolean.class)))
+    })
+    @GetMapping("/exists")
+    public RsData<Boolean> hasCharacter(@RequestParam String memberId) {
+        boolean hasCharacter = gameCharacterService.hasCharacter(memberId);
+        return RsData.of("200", "캐릭터 존재 여부 확인 완료", hasCharacter);
+    }
 
     // 특정 캐릭터에게 경험치 추가 및 레벨업 처리
     @Operation(summary = "캐릭터 경험치 추가", description = "캐릭터 ID로 특정 캐릭터에게 경험치를 추가하고, 조건 충족 시 레벨업을 처리합니다.")

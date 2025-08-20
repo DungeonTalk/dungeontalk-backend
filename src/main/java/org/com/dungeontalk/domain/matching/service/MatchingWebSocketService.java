@@ -3,7 +3,7 @@ package org.com.dungeontalk.domain.matching.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.matching.common.MatchingConstants;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 import org.com.dungeontalk.domain.matching.dto.websocket.MatchingWebSocketMessage;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -66,7 +66,7 @@ public class MatchingWebSocketService {
      */
     public void broadcastQueueStats(WorldType worldType, int currentWaiting) {
         // 세계관별 큐 통계를 구독한 모든 클라이언트에게 전송
-        String destination = MatchingConstants.WS_TOPIC_QUEUE_STATS + worldType.name().toLowerCase();
+        String destination = MatchingConstants.WS_TOPIC_QUEUE_STATS + worldType.getCode().toLowerCase();
         
         MatchingWebSocketMessage.QueueStatusData queueData = MatchingWebSocketMessage.QueueStatusData.builder()
                 .currentPosition(0)

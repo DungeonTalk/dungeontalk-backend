@@ -51,14 +51,20 @@ public class AiGameFlowService {
             List<AiGameMessageDto> contextMessages = aiGameMessageService
                     .getContextMessages(roomId, DEFAULT_CONTEXT_MESSAGE_COUNT, request.getTurnNumber());
 
-            // Python AI 서비스에서 응답 생성
+            // 게임 시작 시간 계산 (첫 번째 메시지 시간 또는 현재 시간)
+            Long gameStartTime = calculateGameStartTime(roomId);
+            
+            // Python AI 서비스에서 응답 생성 (시간 관리 및 캐릭터 스탯 포함)
             AiServiceResponse aiResult = aiApiService.generateAiResponse(
                     request.getGameId(),
                     roomId,
                     request.getCurrentUser(),
                     request.getCurrentMessage(),
                     contextMessages,
-                    request.getTurnNumber()
+                    request.getTurnNumber(),
+                    gameStartTime,
+                    15,  // 15분 목표 시간
+                    request.getCharacterStats()  // 캐릭터 스탯 추가
             );
 
             // AI 메시지 저장
@@ -70,10 +76,20 @@ public class AiGameFlowService {
                     .build();
             AiGameMessageDto savedMessage = aiGameMessageService.saveAiMessage(saveRequest);
 
+            // 게임 종료 확인 및 처리
+            if (aiResult.isGameEnded()) {
+                log.info("🎯 TRPG 게임 자동 종료: gameId={}, roomId={}, gamePhase={}", 
+                         request.getGameId(), roomId, aiResult.getGamePhase());
+                
+                // 게임 종료 처리 로직 (필요시 구현)
+                handleGameEnd(roomId, request.getGameId());
+            }
+
             // AI 응답 완료 후 락 해제 및 다음 턴으로 진행 (WebSocket은 saveAiMessage에서 처리됨)
             int nextTurn = completeAiResponseAndProgressToNextTurn(roomId);
 
-            log.info("AI 턴 처리 완료: roomId={}, nextTurn={}", roomId, nextTurn);
+            log.info("AI 턴 처리 완료: roomId={}, nextTurn={}, gamePhase={}, remainingTime={}분", 
+                     roomId, nextTurn, aiResult.getGamePhase(), aiResult.getRemainingTime());
 
             AiGameMessageResponse response = AiGameMessageResponse.fromDto(savedMessage);
             return RsData.of("200", "AI 응답 생성 및 처리 완료", response);
@@ -175,5 +191,46 @@ public class AiGameFlowService {
     @Async("matchingTaskExecutor")
     public void handleAiTurnProcessEvent(AiTurnProcessEvent event) {
         processAiTurn(event.getAiGameRoomId(), event.getAiRequest());
+    }
+
+    /**
+     * 게임 시작 시간 계산 (첫 번째 메시지 시간 기반)
+     */
+    private Long calculateGameStartTime(String roomId) {
+        try {
+            // 첫 번째 메시지 시간을 게임 시작 시간으로 사용
+            List<AiGameMessageDto> allMessages = aiGameMessageService
+                    .getContextMessages(roomId, 100, Integer.MAX_VALUE); // 모든 메시지 조회
+            
+            if (!allMessages.isEmpty()) {
+                // 첫 번째 메시지의 생성 시간을 Unix timestamp로 변환
+                return allMessages.get(allMessages.size() - 1).getCreatedAt()
+                        .atZone(java.time.ZoneId.systemDefault()).toEpochSecond();
+            }
+        } catch (Exception e) {
+            log.warn("게임 시작 시간 계산 실패: {}", e.getMessage());
+        }
+        
+        // 첫 메시지가 없으면 현재 시간 사용
+        return System.currentTimeMillis() / 1000;
+    }
+
+    /**
+     * 게임 종료 처리
+     */
+    private void handleGameEnd(String roomId, String gameId) {
+        try {
+            log.info("🎯 TRPG 게임 종료 처리 시작: gameId={}, roomId={}", gameId, roomId);
+            
+            // TODO: 게임 종료 관련 비즈니스 로직 구현
+            // - 게임 상태 업데이트
+            // - 플레이어들에게 종료 알림
+            // - 게임 결과 저장 등
+            
+            log.info("✅ TRPG 게임 종료 처리 완료: gameId={}, roomId={}", gameId, roomId);
+        } catch (Exception e) {
+            log.error("❌ TRPG 게임 종료 처리 실패: gameId={}, roomId={}, error={}", 
+                      gameId, roomId, e.getMessage(), e);
+        }
     }
 }

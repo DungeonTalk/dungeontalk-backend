@@ -11,7 +11,7 @@ import org.com.dungeontalk.domain.chat.dto.ChatRoomDto;
 import org.com.dungeontalk.domain.chat.dto.request.ChatRoomCreateRequestDto;
 import org.com.dungeontalk.domain.chat.service.ChatRoomService;
 import org.com.dungeontalk.domain.matching.common.MatchingConstants;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

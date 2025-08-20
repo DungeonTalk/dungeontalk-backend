@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>세계관 관리 API 테스트</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 60px;
+            resize: vertical;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        button.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        button.warning:hover {
+            background: #e0a800;
+        }
+        .response {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #28a745;
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .world-item {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background: white;
+        }
+        .world-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .world-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .world-code {
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .world-status {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .world-details {
+            color: #666;
+            margin-top: 10px;
+        }
+        .api-url {
+            font-family: monospace;
+            font-size: 12px;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 세계관 관리 API 테스트</h1>
+
+        <!-- 세계관 조회 섹션 -->
+        <div class="section">
+            <h2>📋 세계관 조회</h2>
+            <div class="api-url">GET /api/world-types</div>
+            <button onclick="getAllWorldTypes()">활성화된 세계관 조회</button>
+            <button onclick="getAllWorldTypesAdmin()" class="warning">모든 세계관 조회 (관리자)</button>
+            <div id="worldTypesList" class="response"></div>
+        </div>
+
+        <!-- 세계관 생성 섹션 -->
+        <div class="section">
+            <h2>➕ 세계관 생성 (관리자)</h2>
+            <div class="api-url">POST /api/world-types/admin</div>
+            <form onsubmit="createWorldType(event)">
+                <div class="form-group">
+                    <label for="createCode">코드 (영문, 대문자):</label>
+                    <input type="text" id="createCode" placeholder="CYBERPUNK" required>
+                </div>
+                <div class="form-group">
+                    <label for="createDisplayName">표시 이름:</label>
+                    <input type="text" id="createDisplayName" placeholder="사이버펑크" required>
+                </div>
+                <div class="form-group">
+                    <label for="createDescription">설명:</label>
+                    <textarea id="createDescription" placeholder="미래 사이버펑크 - 네온사인과 해킹의 세계" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="createGameSettings">게임 설정:</label>
+                    <textarea id="createGameSettings" placeholder="사이버펑크 2077 세계관에서 펼쳐지는 해킹과 사이버 범죄의 이야기" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="createSortOrder">정렬 순서:</label>
+                    <input type="number" id="createSortOrder" value="10" required>
+                </div>
+                <button type="submit">세계관 생성</button>
+            </form>
+            <div id="createResponse" class="response"></div>
+        </div>
+
+        <!-- 세계관 수정 섹션 -->
+        <div class="section">
+            <h2>✏️ 세계관 수정 (관리자)</h2>
+            <div class="api-url">PUT /api/world-types/admin/{id}</div>
+            <form onsubmit="updateWorldType(event)">
+                <div class="form-group">
+                    <label for="updateId">세계관 ID:</label>
+                    <input type="number" id="updateId" placeholder="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="updateDisplayName">표시 이름:</label>
+                    <input type="text" id="updateDisplayName" placeholder="수정된 판타지" required>
+                </div>
+                <div class="form-group">
+                    <label for="updateDescription">설명:</label>
+                    <textarea id="updateDescription" placeholder="수정된 설명" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="updateGameSettings">게임 설정:</label>
+                    <textarea id="updateGameSettings" placeholder="수정된 게임 설정" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="updateSortOrder">정렬 순서:</label>
+                    <input type="number" id="updateSortOrder" required>
+                </div>
+                <button type="submit" class="warning">세계관 수정</button>
+            </form>
+            <div id="updateResponse" class="response"></div>
+        </div>
+
+        <!-- 세계관 활성화/비활성화 섹션 -->
+        <div class="section">
+            <h2>🔄 세계관 상태 토글 (관리자)</h2>
+            <div class="api-url">PATCH /api/world-types/admin/{id}/toggle</div>
+            <div class="form-group">
+                <label for="toggleId">세계관 ID:</label>
+                <input type="number" id="toggleId" placeholder="1">
+            </div>
+            <button onclick="toggleWorldTypeStatus()" class="warning">상태 토글</button>
+            <div id="toggleResponse" class="response"></div>
+        </div>
+
+        <!-- 세계관 삭제 섹션 -->
+        <div class="section">
+            <h2>🗑️ 세계관 삭제 (관리자)</h2>
+            <div class="api-url">DELETE /api/world-types/admin/{id}</div>
+            <div class="form-group">
+                <label for="deleteId">세계관 ID:</label>
+                <input type="number" id="deleteId" placeholder="1">
+            </div>
+            <button onclick="deleteWorldType()" class="danger">세계관 삭제</button>
+            <div id="deleteResponse" class="response"></div>
+        </div>
+
+        <!-- 특정 세계관 조회 섹션 -->
+        <div class="section">
+            <h2>🔍 특정 세계관 조회</h2>
+            <div class="api-url">GET /api/world-types/{id} 또는 GET /api/world-types/code/{code}</div>
+            <div class="form-group">
+                <label for="getById">ID로 조회:</label>
+                <input type="number" id="getById" placeholder="1">
+                <button onclick="getWorldTypeById()">ID로 조회</button>
+            </div>
+            <div class="form-group">
+                <label for="getByCode">코드로 조회:</label>
+                <input type="text" id="getByCode" placeholder="FANTASY">
+                <button onclick="getWorldTypeByCode()">코드로 조회</button>
+            </div>
+            <div id="getResponse" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8080';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(BASE_URL + url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                
+                const data = await response.text();
+                return {
+                    status: response.status,
+                    data: data,
+                    ok: response.ok
+                };
+            } catch (error) {
+                return {
+                    status: 0,
+                    data: `Network Error: ${error.message}`,
+                    ok: false
+                };
+            }
+        }
+
+        function displayResponse(elementId, response) {
+            const element = document.getElementById(elementId);
+            element.textContent = `Status: ${response.status}\n\n${response.data}`;
+            element.className = `response ${response.ok ? 'success' : 'error'}`;
+        }
+
+        function displayWorldTypes(data, elementId) {
+            const element = document.getElementById(elementId);
+            try {
+                const worldTypes = JSON.parse(data);
+                if (Array.isArray(worldTypes)) {
+                    let html = '';
+                    worldTypes.forEach(worldType => {
+                        html += `
+                            <div class="world-item">
+                                <div class="world-header">
+                                    <div>
+                                        <span class="world-title">${worldType.displayName}</span>
+                                        <span class="world-code">${worldType.code}</span>
+                                    </div>
+                                    <div>
+                                        <span class="world-status ${worldType.isActive ? 'status-active' : 'status-inactive'}">
+                                            ${worldType.isActive ? '활성' : '비활성'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="world-details">
+                                    <div><strong>ID:</strong> ${worldType.id}</div>
+                                    <div><strong>설명:</strong> ${worldType.description}</div>
+                                    <div><strong>게임 설정:</strong> ${worldType.gameSettings}</div>
+                                    <div><strong>정렬 순서:</strong> ${worldType.sortOrder}</div>
+                                    <div><strong>생성일:</strong> ${new Date(worldType.createdAt).toLocaleString()}</div>
+                                    <div><strong>수정일:</strong> ${new Date(worldType.updatedAt).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    element.innerHTML = html;
+                    element.className = 'response success';
+                } else {
+                    element.textContent = data;
+                    element.className = 'response';
+                }
+            } catch (e) {
+                element.textContent = data;
+                element.className = 'response';
+            }
+        }
+
+        async function getAllWorldTypes() {
+            const response = await makeRequest('/api/world-types');
+            displayWorldTypes(response.data, 'worldTypesList');
+        }
+
+        async function getAllWorldTypesAdmin() {
+            const response = await makeRequest('/api/world-types/admin');
+            displayWorldTypes(response.data, 'worldTypesList');
+        }
+
+        async function createWorldType(event) {
+            event.preventDefault();
+            const data = {
+                code: document.getElementById('createCode').value,
+                displayName: document.getElementById('createDisplayName').value,
+                description: document.getElementById('createDescription').value,
+                gameSettings: document.getElementById('createGameSettings').value,
+                sortOrder: parseInt(document.getElementById('createSortOrder').value)
+            };
+
+            const response = await makeRequest('/api/world-types/admin', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            displayResponse('createResponse', response);
+            if (response.ok) {
+                document.querySelector('form').reset();
+                getAllWorldTypesAdmin(); // 목록 새로고침
+            }
+        }
+
+        async function updateWorldType(event) {
+            event.preventDefault();
+            const id = document.getElementById('updateId').value;
+            const data = {
+                displayName: document.getElementById('updateDisplayName').value,
+                description: document.getElementById('updateDescription').value,
+                gameSettings: document.getElementById('updateGameSettings').value,
+                sortOrder: parseInt(document.getElementById('updateSortOrder').value)
+            };
+
+            const response = await makeRequest(`/api/world-types/admin/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            });
+
+            displayResponse('updateResponse', response);
+            if (response.ok) {
+                getAllWorldTypesAdmin(); // 목록 새로고침
+            }
+        }
+
+        async function toggleWorldTypeStatus() {
+            const id = document.getElementById('toggleId').value;
+            if (!id) {
+                alert('세계관 ID를 입력해주세요.');
+                return;
+            }
+
+            const response = await makeRequest(`/api/world-types/admin/${id}/toggle`, {
+                method: 'PATCH'
+            });
+
+            displayResponse('toggleResponse', response);
+            if (response.ok) {
+                getAllWorldTypesAdmin(); // 목록 새로고침
+            }
+        }
+
+        async function deleteWorldType() {
+            const id = document.getElementById('deleteId').value;
+            if (!id) {
+                alert('세계관 ID를 입력해주세요.');
+                return;
+            }
+
+            if (!confirm(`정말로 ID ${id} 세계관을 삭제하시겠습니까?`)) {
+                return;
+            }
+
+            const response = await makeRequest(`/api/world-types/admin/${id}`, {
+                method: 'DELETE'
+            });
+
+            displayResponse('deleteResponse', response);
+            if (response.ok) {
+                getAllWorldTypesAdmin(); // 목록 새로고침
+            }
+        }
+
+        async function getWorldTypeById() {
+            const id = document.getElementById('getById').value;
+            if (!id) {
+                alert('ID를 입력해주세요.');
+                return;
+            }
+
+            const response = await makeRequest(`/api/world-types/${id}`);
+            displayResponse('getResponse', response);
+        }
+
+        async function getWorldTypeByCode() {
+            const code = document.getElementById('getByCode').value;
+            if (!code) {
+                alert('코드를 입력해주세요.');
+                return;
+            }
+
+            const response = await makeRequest(`/api/world-types/code/${code}`);
+            displayResponse('getResponse', response);
+        }
+
+        // 페이지 로드 시 세계관 목록 자동 로드
+        window.onload = function() {
+            getAllWorldTypes();
+        };
+    </script>
+</body>
+</html>
