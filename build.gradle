@@ -92,7 +92,11 @@ dependencies {
     /* ---------- TEST ---------- */
     // Mockito 인라인(mockStatic 등)
     testImplementation platform("org.mockito:mockito-bom:5.12.0")
-    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3" // 예시
+    testImplementation "org.mockito:mockito-core"                   // 코어
+
+    // ✅ 여기에 BOM 한 번 더
+    testRuntimeOnly platform("org.mockito:mockito-bom:5.12.0")
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.3"     // 예시
 
     // H2 (JPA Repository 테스트용, MODE=PostgreSQL로 동작)
     testRuntimeOnly 'com.h2database:h2'
