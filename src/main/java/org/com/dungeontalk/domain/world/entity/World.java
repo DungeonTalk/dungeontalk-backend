@@ -15,11 +15,12 @@ import lombok.Setter;
 public class World {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "world_id")
     private Long id;
 
-    @Column(nullable = false)
-    private String name;
+    @Column(name = "world_name", nullable = false)
+    private String worldName;
 
     @Column(name = "clear_exp")
-    private int clearExp;
+    private Integer clearExp;
 }
