@@ -2,8 +2,9 @@ package org.com.dungeontalk.domain.matching.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 import org.com.dungeontalk.domain.matching.service.MatchingQueueManager;
+import org.com.dungeontalk.domain.matching.service.WorldTypeCompatService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class MatchingStartupConfig implements ApplicationRunner {
 
     private final MatchingQueueManager queueManager;
+    private final WorldTypeCompatService worldTypeCompatService;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -25,7 +27,7 @@ public class MatchingStartupConfig implements ApplicationRunner {
         
         try {
             // 모든 세계관 큐 초기화
-            for (WorldType worldType : WorldType.values()) {
+            for (WorldType worldType : worldTypeCompatService.values()) {
                 queueManager.clearQueue(worldType);
                 log.info("✅ {} 큐 초기화 완료", worldType.getDisplayName());
             }

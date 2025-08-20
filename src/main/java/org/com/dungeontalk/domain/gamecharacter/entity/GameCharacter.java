@@ -84,12 +84,22 @@ public class GameCharacter extends BaseEntity {
     // 공식 계산시 변수 Map 변환
     public Map<String, Object> toVariableMap() {
         Map<String, Object> map = new HashMap<>();
+        // 전체 이름
         map.put("strength", this.strength);
         map.put("willpower", this.willpower);
         map.put("intelligence", this.intelligence);
         map.put("wisdom", this.wisdom);
         map.put("dexterity", this.dexterity);
         map.put("luck", this.luck);
+        
+        // 줄임말 (공식에서 사용)
+        map.put("str", this.strength);
+        map.put("wil", this.willpower);
+        map.put("int", this.intelligence);
+        map.put("wis", this.wisdom);
+        map.put("dex", this.dexterity);
+        map.put("luk", this.luck);
+        
         return map;
     }
 }

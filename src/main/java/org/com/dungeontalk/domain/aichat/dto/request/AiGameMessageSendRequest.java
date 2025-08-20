@@ -40,5 +40,7 @@ public class AiGameMessageSendRequest {
     private int turnNumber;
 
     private int messageOrder;
+    
+    private Object characterStats; // 캐릭터 스탯 정보
 
 }
