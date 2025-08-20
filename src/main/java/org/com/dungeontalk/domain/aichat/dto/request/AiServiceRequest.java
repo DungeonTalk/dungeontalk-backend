@@ -45,4 +45,7 @@ public class AiServiceRequest {
     @JsonProperty("target_duration")
     @Builder.Default
     private Integer targetDuration = 15;  // 목표 시간 (분)
+    
+    @JsonProperty("character_stats")
+    private Object characterStats;  // 캐릭터 스탯 정보 (JSON 객체)
 }

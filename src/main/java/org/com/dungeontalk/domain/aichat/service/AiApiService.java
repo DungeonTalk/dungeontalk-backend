@@ -41,7 +41,7 @@ public class AiApiService {
     public AiServiceResponse generateAiResponse(String gameId, String aiGameRoomId, 
                                              String currentUser, String currentMessage,
                                              List<AiGameMessageDto> contextMessages, int turnNumber,
-                                             Long gameStartTime, Integer targetDuration) {
+                                             Long gameStartTime, Integer targetDuration, Object characterStats) {
         
         String url = aiServiceUrl + "/ai-response-enhanced";
         
@@ -58,7 +58,7 @@ public class AiApiService {
             
             log.debug("게임 세계관 설정: {}, 추출된 세계관: {}", gameSettings, worldType);
 
-            // 요청 데이터 구성 (시간 관리 추가)
+            // 요청 데이터 구성 (시간 관리 및 캐릭터 스탯 추가)
             AiServiceRequest request = AiServiceRequest.builder()
                     .gameId(gameId)
                     .aiGameRoomId(aiGameRoomId)
@@ -72,6 +72,7 @@ public class AiApiService {
                     .worldType(worldType)
                     .gameStartTime(gameStartTime)
                     .targetDuration(targetDuration != null ? targetDuration : 15)
+                    .characterStats(characterStats)
                     .build();
 
             // HTTP 헤더 설정

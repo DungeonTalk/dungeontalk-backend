@@ -54,7 +54,7 @@ public class AiGameFlowService {
             // 게임 시작 시간 계산 (첫 번째 메시지 시간 또는 현재 시간)
             Long gameStartTime = calculateGameStartTime(roomId);
             
-            // Python AI 서비스에서 응답 생성 (시간 관리 포함)
+            // Python AI 서비스에서 응답 생성 (시간 관리 및 캐릭터 스탯 포함)
             AiServiceResponse aiResult = aiApiService.generateAiResponse(
                     request.getGameId(),
                     roomId,
@@ -63,7 +63,8 @@ public class AiGameFlowService {
                     contextMessages,
                     request.getTurnNumber(),
                     gameStartTime,
-                    15  // 15분 목표 시간
+                    15,  // 15분 목표 시간
+                    request.getCharacterStats()  // 캐릭터 스탯 추가
             );
 
             // AI 메시지 저장

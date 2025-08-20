@@ -32,7 +32,12 @@
       "Bash(.gradlew --stop)",
       "Bash(git mv:*)",
       "Bash(git rm:*)",
-      "Bash(gradlew:*)"
+      "Bash(gradlew:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell:*)",
+      "Bash(psql:*)",
+      "Bash(curl:*)",
+      "Bash(dir:*)"
     ],
     "deny": []
   }

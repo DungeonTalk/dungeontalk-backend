@@ -20,5 +20,8 @@ public class AiGenerateRequest {
     private String currentUser;
     private String currentMessage;
     private int turnNumber;
+    private Long gameStartTime;  // 게임 시작 시간
+    private Integer targetDuration;  // 목표 시간 (분)
+    private Object characterStats;  // 캐릭터 스탯 정보
 
 }
