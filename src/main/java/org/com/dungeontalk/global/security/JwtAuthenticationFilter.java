@@ -97,14 +97,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
             
-            // 다음 필터로 이동 (Spring Security가 권한 체크 처리)
-            filterChain.doFilter(request, response);
-            
         } catch (Exception ex) {
             log.error("JWT 인증[필터] 중 오류 발생 : {}", ex.getMessage());
-            // 에러가 발생해도 필터 체인 계속 진행 (Spring Security가 처리)
-            filterChain.doFilter(request, response);
         }
+        
+        // 다음 필터로 이동 (Spring Security가 권한 체크 처리)
+        filterChain.doFilter(request, response);
     }
 
 

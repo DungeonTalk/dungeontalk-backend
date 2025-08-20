@@ -73,6 +73,9 @@
         }
     </script>
     
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
@@ -173,7 +176,10 @@
                                     <a href="/profile" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">프로필</a>
                                     <a href="/settings" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">설정</a>
                                     <hr class="my-1 border-gray-200 dark:border-gray-700">
-                                    <button @click="handleLogout()" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">로그아웃</button>
+                                    <button hx-post="/v1/auth/server-logout" 
+                                            hx-trigger="click"
+                                            hx-on::after-request="window.location.href='/'"
+                                            class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">로그아웃</button>
                                 </div>
                             </div>
                         </div>
@@ -214,7 +220,10 @@
                      class="pt-2 border-t border-gray-200 dark:border-gray-700">
                     <a href="/profile" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">프로필</a>
                     <a href="/settings" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">설정</a>
-                    <button @click="handleLogout()" class="block w-full text-left py-2 hover:text-primary-600 dark:hover:text-primary-400">로그아웃</button>
+                    <button hx-post="/v1/auth/server-logout" 
+                            hx-trigger="click"
+                            hx-on::after-request="window.location.href='/'"
+                            class="block w-full text-left py-2 hover:text-primary-600 dark:hover:text-primary-400">로그아웃</button>
                 </div>
                 <div th:unless="${#authentication != null and #authentication.principal != null and #authentication.principal != 'anonymousUser'}" 
                      class="pt-2">
@@ -370,8 +379,8 @@
             });
         });
         
-        // 로그아웃 처리 함수
-        function handleLogout() {
+        // 로그아웃 처리 함수 - window 객체에 할당하여 전역에서 사용 가능하게 함
+        window.handleLogout = function() {
             // 로딩 알림 표시
             if (typeof Alpine !== 'undefined' && Alpine.store && Alpine.store('notifications')) {
                 Alpine.store('notifications').add('로그아웃 중...', 'info', 2000);

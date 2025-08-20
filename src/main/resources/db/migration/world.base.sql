@@ -103,4 +103,16 @@ INSERT INTO race_stats (
     'dexterity * 0.8',
     '70 + (dexterity * 0.6)',
     'luck * 0.10'
+),
+-- 오크
+(
+    '018fb1a0-7e2b-7f6a-a1c3-5d2a1e9f3b13',
+    '오크',
+    '180 + (willpower * 15)',
+    '60 + (wisdom * 6)',
+    'strength * 2.0',
+    'intelligence * 0.8',
+    'dexterity * 0.7',
+    '55 + (dexterity * 0.5)',
+    'luck * 0.08'
 );

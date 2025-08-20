@@ -8,66 +8,11 @@
 <body>
 <div layout:fragment="content">
     <div class="container mx-auto px-4 py-6" x-data="gameApp()" x-init="init()">
-        <!-- 15분 TRPG 타이머 (게임 진행 중에만 표시) -->
-        <div x-show="gameStarted" class="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl shadow-lg p-6 mb-6 border-l-4 border-primary-600">
-            <h2 class="text-2xl font-bold mb-4 flex items-center">
-                <span class="text-3xl mr-2">⏰</span> TRPG 게임 타이머
-            </h2>
-            <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
-                <div class="flex-1 w-full">
-                    <div class="text-center mb-3">
-                        <span class="text-4xl font-bold font-mono" 
-                              :class="{
-                                  'text-green-600': gameTime >= 600,
-                                  'text-yellow-600': gameTime >= 300 && gameTime < 600,
-                                  'text-orange-600': gameTime >= 60 && gameTime < 300,
-                                  'text-red-600': gameTime < 60
-                              }"
-                              x-text="formatTime(gameTime)">15:00</span>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                        <div class="h-full rounded-full transition-all duration-1000 ease-linear"
-                             :style="`width: ${(gameTime / 900) * 100}%`"
-                             :class="{
-                                 'bg-gradient-to-r from-green-400 to-green-600': gameTime >= 600,
-                                 'bg-gradient-to-r from-yellow-400 to-yellow-600': gameTime >= 300 && gameTime < 600,
-                                 'bg-gradient-to-r from-orange-400 to-orange-600': gameTime >= 60 && gameTime < 300,
-                                 'bg-gradient-to-r from-red-400 to-red-600 animate-pulse': gameTime < 60
-                             }"></div>
-                    </div>
-                </div>
-                <div class="text-center">
-                    <div class="text-lg font-bold mb-2"
-                         :class="{
-                             'text-green-600': gamePhase === 'relaxed',
-                             'text-yellow-600': gamePhase === 'normal',
-                             'text-orange-600': gamePhase === 'urgent',
-                             'text-red-600': gamePhase === 'critical'
-                         }"
-                         x-text="getPhaseText(gamePhase)">시작 단계</div>
-                    <div class="px-4 py-2 rounded-full text-white font-bold"
-                         :class="{
-                             'bg-green-500': gamePhase === 'relaxed',
-                             'bg-yellow-500': gamePhase === 'normal',
-                             'bg-orange-500': gamePhase === 'urgent',
-                             'bg-red-500 animate-pulse': gamePhase === 'critical'
-                         }"
-                         x-text="getPressureText(gamePhase)">여유</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Game Status -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold flex items-center">
-                    <span class="text-3xl mr-2">🎮</span> 게임 상태
-                </h2>
-                <button @click="showCharacterInfo = true"
-                        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105">
-                    ⚔️ 내 캐릭터
-                </button>
-            </div>
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                <span class="text-3xl mr-2">🎮</span> 게임 상태
+            </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-primary-500">
                     <div class="text-sm font-medium text-gray-600 dark:text-gray-400">현재 상태</div>
@@ -307,146 +252,6 @@
                 </button>
             </div>
         </div>
-        
-        <!-- Character Creation Modal -->
-        <div x-show="showCharacterModal" 
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             class="fixed inset-0 z-50 overflow-y-auto"
-             style="display: none;">
-            <div class="flex items-center justify-center min-h-screen px-4">
-                <div class="fixed inset-0 bg-black opacity-50" @click="showCharacterModal = false"></div>
-                
-                <div class="relative bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6 z-10">
-                    <h3 class="text-2xl font-bold mb-4">🧙‍♂️ 캐릭터 생성</h3>
-                    
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium mb-2">종족 선택</label>
-                        <select x-model="selectedRace" 
-                                @change="updateRaceDescription()"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700">
-                            <option value="">종족을 선택하세요...</option>
-                            <option value="HUMAN">인간 - 균형잡힌 능력치</option>
-                            <option value="ELF">엘프 - 민첩과 지혜</option>
-                            <option value="DWARF">드워프 - 강인한 체력</option>
-                            <option value="ORC">오크 - 강력한 힘</option>
-                        </select>
-                    </div>
-                    
-                    <div x-show="selectedRace" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <h4 class="font-semibold mb-2">종족 특성</h4>
-                        <p x-text="raceDescription" class="text-sm text-gray-600 dark:text-gray-300"></p>
-                    </div>
-                    
-                    <div class="flex justify-end gap-3">
-                        <button @click="showCharacterModal = false"
-                                class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
-                            취소
-                        </button>
-                        <button @click="createCharacter()"
-                                :disabled="!selectedRace"
-                                class="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors">
-                            캐릭터 생성
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Character Info Modal -->
-        <div x-show="showCharacterInfo" 
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             class="fixed inset-0 z-50 overflow-y-auto"
-             style="display: none;">
-            <div class="flex items-center justify-center min-h-screen px-4">
-                <div class="fixed inset-0 bg-black opacity-50" @click="showCharacterInfo = false"></div>
-                
-                <div class="relative bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full p-6 z-10">
-                    <h3 class="text-2xl font-bold mb-4">⚔️ 내 캐릭터</h3>
-                    
-                    <div x-show="!characterData" class="text-center py-12">
-                        <div class="text-6xl mb-4">🎭</div>
-                        <p class="text-lg text-gray-600 dark:text-gray-400">캐릭터가 없습니다</p>
-                        <button @click="showCharacterInfo = false; showCharacterModal = true"
-                                class="mt-4 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
-                            캐릭터 생성하기
-                        </button>
-                    </div>
-                    
-                    <div x-show="characterData" class="space-y-6">
-                        <!-- Basic Info -->
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                            <h4 class="font-semibold mb-3">📋 기본 정보</h4>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">종족:</span>
-                                    <span class="ml-2 font-medium" x-text="characterData?.race || '-'"></span>
-                                </div>
-                                <div>
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">레벨:</span>
-                                    <span class="ml-2 font-medium" x-text="characterData?.level || 1"></span>
-                                </div>
-                                <div>
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">경험치:</span>
-                                    <span class="ml-2 font-medium" x-text="`${characterData?.exp || 0} / ${characterData?.maxExp || 100}`"></span>
-                                </div>
-                                <div>
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">생성일:</span>
-                                    <span class="ml-2 font-medium" x-text="characterData?.createdAt || '-'"></span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Stats -->
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                            <h4 class="font-semibold mb-3">📊 능력치</h4>
-                            <div class="grid grid-cols-3 gap-4">
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-red-500" x-text="characterData?.str || 10">10</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">STR (힘)</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-blue-500" x-text="characterData?.wil || 10">10</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">WIL (의지)</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-purple-500" x-text="characterData?.int || 10">10</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">INT (지능)</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-green-500" x-text="characterData?.wis || 10">10</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">WIS (지혜)</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-yellow-500" x-text="characterData?.dex || 10">10</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">DEX (민첩)</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-pink-500" x-text="characterData?.luk || 10">10</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">LUK (행운)</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-end mt-6">
-                        <button @click="showCharacterInfo = false"
-                                class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
-                            닫기
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -495,98 +300,11 @@ function gameApp() {
         // Participants
         participants: [],
         
-        // Timer & Game Phase
-        gameTime: 900, // 15분 = 900초
-        gameInterval: null,
-        gamePhase: 'relaxed', // relaxed, normal, urgent, critical
-        gameEndReason: null,
-        
-        // Character System
-        showCharacterModal: false,
-        showCharacterInfo: false,
-        selectedRace: '',
-        raceDescription: '',
-        characterData: null,
-        
         init() {
             this.checkAuth();
             
             // Handle page unload
             window.addEventListener('beforeunload', () => this.cleanup());
-        },
-        
-        // Timer Functions
-        formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        },
-        
-        updateGamePhase() {
-            if (this.gameTime >= 600) {
-                this.gamePhase = 'relaxed'; // 10분 이상
-            } else if (this.gameTime >= 300) {
-                this.gamePhase = 'normal'; // 5-10분
-            } else if (this.gameTime >= 60) {
-                this.gamePhase = 'urgent'; // 1-5분
-            } else {
-                this.gamePhase = 'critical'; // 1분 미만
-            }
-        },
-        
-        getPhaseText(phase) {
-            const texts = {
-                'relaxed': '시작 단계',
-                'normal': '진행 단계',
-                'urgent': '클라이맥스',
-                'critical': '최종 단계'
-            };
-            return texts[phase] || '준비 중';
-        },
-        
-        getPressureText(phase) {
-            const texts = {
-                'relaxed': '여유',
-                'normal': '보통',
-                'urgent': '긴급',
-                'critical': '위급'
-            };
-            return texts[phase] || '대기';
-        },
-        
-        startGameTimer() {
-            this.gameTime = 900; // 15분 리셋
-            this.updateGamePhase();
-            
-            if (this.gameInterval) {
-                clearInterval(this.gameInterval);
-            }
-            
-            this.gameInterval = setInterval(() => {
-                this.gameTime--;
-                this.updateGamePhase();
-                
-                // 타이머 종료
-                if (this.gameTime <= 0) {
-                    clearInterval(this.gameInterval);
-                    this.gameInterval = null;
-                    this.handleGameEnd('timeout');
-                }
-                
-                // 경고 메시지
-                if (this.gameTime === 300) {
-                    Alpine.store('notifications').warning('⏰ 5분 남았습니다! 서둘러 임무를 완수하세요!');
-                } else if (this.gameTime === 60) {
-                    Alpine.store('notifications').error('⚠️ 1분 남았습니다! 마지막 기회입니다!');
-                }
-            }, 1000);
-        },
-        
-        stopGameTimer() {
-            if (this.gameInterval) {
-                clearInterval(this.gameInterval);
-                this.gameInterval = null;
-            }
         },
         
         checkAuth() {
@@ -643,86 +361,9 @@ function gameApp() {
             Alpine.store('notifications').success(`${world} 세계관이 선택되었습니다.`);
         },
         
-        async checkCharacter() {
-            try {
-                const response = await fetch(`/v1/character/${this.currentUser.id}`, {
-                    headers: {
-                        'Authorization': 'Bearer ' + this.authToken
-                    }
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.data) {
-                        this.characterData = result.data;
-                        return true;
-                    }
-                }
-            } catch (error) {
-                console.error('캐릭터 확인 오류:', error);
-            }
-            return false;
-        },
-        
-        async createCharacter() {
-            if (!this.selectedRace) {
-                Alpine.store('notifications').warning('종족을 선택해주세요.');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/v1/character', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + this.authToken
-                    },
-                    body: JSON.stringify({
-                        memberId: this.currentUser.id,
-                        race: this.selectedRace
-                    })
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    this.characterData = result.data;
-                    this.showCharacterModal = false;
-                    Alpine.store('notifications').success('캐릭터가 생성되었습니다!');
-                    
-                    // 매칭 시작
-                    if (this.selectedWorld) {
-                        this.startMatching();
-                    }
-                } else {
-                    Alpine.store('notifications').error('캐릭터 생성에 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('캐릭터 생성 오류:', error);
-                Alpine.store('notifications').error('캐릭터 생성 중 오류가 발생했습니다.');
-            }
-        },
-        
-        updateRaceDescription() {
-            const descriptions = {
-                'HUMAN': '인간은 모든 능력치가 균형있게 분포되어 있어 어떤 상황에도 잘 적응합니다. 다양한 플레이 스타일이 가능합니다.',
-                'ELF': '엘프는 뛰어난 민첩성과 지혜를 가지고 있습니다. 빠른 반응과 마법적 감각이 필요한 상황에서 강점을 보입니다.',
-                'DWARF': '드워프는 강인한 체력과 의지력을 자랑합니다. 긴 전투와 험난한 환경에서도 버틸 수 있습니다.',
-                'ORC': '오크는 압도적인 힘을 가지고 있습니다. 직접적인 전투에서 강력한 위력을 발휘합니다.'
-            };
-            this.raceDescription = descriptions[this.selectedRace] || '';
-        },
-        
         async startMatching() {
             if (!this.selectedWorld) {
                 Alpine.store('notifications').warning('세계관을 먼저 선택해주세요.');
-                return;
-            }
-            
-            // 캐릭터 확인
-            const hasCharacter = await this.checkCharacter();
-            if (!hasCharacter) {
-                this.showCharacterModal = true;
-                Alpine.store('notifications').info('게임을 시작하려면 먼저 캐릭터를 생성해주세요.');
                 return;
             }
             
@@ -814,9 +455,6 @@ function gameApp() {
             this.gameStatus = '게임 진행 중';
             this.roomInfo = `게임 ID: ${gameSession.sessionId}`;
             
-            // 타이머 시작
-            this.startGameTimer();
-            
             // Create AI game room
             await this.createAiGameRoom(gameSession);
             
@@ -826,96 +464,11 @@ function gameApp() {
             // Connect to party chat
             await this.connectPartyWebSocket(gameSession.chatRoomId);
             
-            // Add initial AI message with world-specific greeting
-            const worldGreeting = this.getWorldGreeting(this.selectedWorld);
-            this.addAiMessage('system', `🎮 게임이 시작되었습니다! 15분 동안의 모험이 시작됩니다.`);
-            this.addAiMessage('ai', worldGreeting);
+            // Add initial AI message
+            this.addAiMessage('system', '🎮 게임이 시작되었습니다! AI 게임 마스터가 준비되었습니다.');
             this.addPlayerMessage('system', '플레이어 채팅방이 연결되었습니다.');
             
             Alpine.store('notifications').success('게임이 시작되었습니다!');
-        },
-        
-        getWorldGreeting(worldType) {
-            const greetings = {
-                'FANTASY': '⚔️ 용사여, 고대의 던전에 오신 것을 환영합니다! 전설의 보물을 찾기 위한 당신의 모험이 지금 시작됩니다. 주변을 둘러보시겠습니까?',
-                'SCIFI': '🚀 에이전트, 버려진 우주 정거장 알파-7에 도착했습니다. 이곳에서 실종된 연구팀의 흔적을 찾아야 합니다. 스캐너를 작동시키시겠습니까?',
-                'MODERN': '🕵️ 탐정님, 도시의 미스터리한 사건 현장에 도착했습니다. 단서를 찾아 진실을 밝혀내야 합니다. 현장을 조사하시겠습니까?'
-            };
-            return greetings[worldType] || '모험이 시작되었습니다. 무엇을 하시겠습니까?';
-        },
-        
-        async handleGameEnd(reason) {
-            this.gameEndReason = reason;
-            this.stopGameTimer();
-            
-            let endMessage = '';
-            let isSuccess = false;
-            
-            switch(reason) {
-                case 'timeout':
-                    endMessage = '⏰ 시간이 초과되었습니다! 15분 동안의 모험이 끝났습니다.';
-                    break;
-                case 'victory':
-                    endMessage = '🎉 축하합니다! 임무를 성공적으로 완수했습니다!';
-                    isSuccess = true;
-                    break;
-                case 'defeat':
-                    endMessage = '💀 안타깝습니다. 임무에 실패했습니다.';
-                    break;
-                case 'leave':
-                    endMessage = '👋 게임을 나갔습니다.';
-                    break;
-                default:
-                    endMessage = '게임이 종료되었습니다.';
-            }
-            
-            // 게임 종료 메시지
-            this.addAiMessage('system', endMessage);
-            this.addPlayerMessage('system', endMessage);
-            
-            // 게임 종료 API 호출
-            if (this.aiGameRoomId && reason !== 'leave') {
-                try {
-                    await fetch(`/v1/ai-game-room/${this.aiGameRoomId}/end`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + this.authToken
-                        },
-                        body: JSON.stringify({
-                            endReason: reason,
-                            success: isSuccess,
-                            finalTurn: this.currentTurnNumber
-                        })
-                    });
-                } catch (error) {
-                    console.error('게임 종료 처리 오류:', error);
-                }
-            }
-            
-            // UI 업데이트
-            this.gameStatus = '게임 종료';
-            Alpine.store('notifications').info(endMessage);
-            
-            // 3초 후 초기 상태로 복귀
-            setTimeout(() => {
-                this.resetGameState();
-            }, 3000);
-        },
-        
-        resetGameState() {
-            this.gameStarted = false;
-            this.gameStatus = '로그인됨';
-            this.roomInfo = '미연결';
-            this.currentGameSession = null;
-            this.aiMessages = [];
-            this.playerMessages = [];
-            this.participants = [];
-            this.currentTurnNumber = 1;
-            this.gameTime = 900;
-            this.gamePhase = 'relaxed';
-            this.gameEndReason = null;
-            this.cleanup();
         },
         
         async createAiGameRoom(gameSession) {
@@ -962,11 +515,6 @@ function gameApp() {
                                     this.addAiMessage('ai', data.content);
                                 } else if (data.type === 'TALK' && data.senderId !== this.currentUser.id) {
                                     this.addAiMessage('other', data.content, data.senderNickname);
-                                } else if (data.type === 'GAME_END') {
-                                    // 게임 종료 메시지 처리
-                                    this.handleGameEnd(data.reason || 'victory');
-                                } else if (data.type === 'SYSTEM') {
-                                    this.addAiMessage('system', data.content);
                                 }
                             }
                         );
@@ -1119,7 +667,15 @@ function gameApp() {
         
         async leaveGame() {
             if (confirm('정말로 게임을 나가시겠습니까?')) {
-                await this.handleGameEnd('leave');
+                await this.cleanup();
+                this.gameStarted = false;
+                this.gameStatus = '로그인됨';
+                this.roomInfo = '미연결';
+                this.currentGameSession = null;
+                this.aiMessages = [];
+                this.playerMessages = [];
+                this.participants = [];
+                Alpine.store('notifications').info('게임을 나갔습니다.');
             }
         },
         

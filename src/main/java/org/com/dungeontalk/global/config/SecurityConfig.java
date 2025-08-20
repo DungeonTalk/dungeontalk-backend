@@ -56,6 +56,11 @@ public class SecurityConfig {
             "/v1/aichat/rooms/available",
             "/v1/worlds"  // 세계관 목록 조회
     };
+    
+    // 인증이 필요한 API
+    private static final String[] AUTHENTICATED_URLS = {
+            "/v2/characters/**"  // v2 캐릭터 API는 인증 필요
+    };
 
     public List<String> getPublicUrls() {
         return List.of(PUBLIC_URLS);
@@ -83,16 +88,20 @@ public class SecurityConfig {
                     .authenticationEntryPoint((request, response, authException) -> {
                         String requestURI = request.getRequestURI();
                         
+                        // API 요청인 경우 401 에러 반환 (v1, v2 모두 포함)
+                        if (requestURI.startsWith("/v1/") || requestURI.startsWith("/v2/")) {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"code\":\"401\",\"message\":\"Unauthorized\",\"data\":null}");
+                        } 
                         // 페이지 요청인 경우 로그인 페이지로 리다이렉트
-                        if (requestURI.equals("/game") || 
-                            requestURI.equals("/profile") || 
-                            requestURI.equals("/settings")) {
+                        else if (requestURI.equals("/game") || 
+                                 requestURI.equals("/profile") || 
+                                 requestURI.equals("/settings")) {
                             response.sendRedirect("/login");
-                        } else if (requestURI.startsWith("/v1/")) {
-                            // API 요청인 경우 401 에러 반환
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-                        } else {
-                            // 기타 요청은 로그인 페이지로 리다이렉트
+                        } 
+                        // 기타 요청은 로그인 페이지로 리다이렉트
+                        else {
                             response.sendRedirect("/login");
                         }
                     })
@@ -106,7 +115,7 @@ public class SecurityConfig {
                         
                         // Thymeleaf 뷰 허용 (게임 페이지는 인증 필요)
                         .requestMatchers("/login", "/test", "/error", "/chat", "/profile", "/settings").permitAll()
-                        .requestMatchers("/game").authenticated()
+                        .requestMatchers("/game", "/game/play").authenticated()
                         
                         // 서버사이드 로그인/로그아웃 추가
                         .requestMatchers("/v1/auth/server-login", "/v1/auth/server-logout").permitAll()
@@ -116,6 +125,9 @@ public class SecurityConfig {
                         
                         // PUBLIC_URLS 배열 사용
                         .requestMatchers(PUBLIC_URLS).permitAll()
+                        
+                        // AUTHENTICATED_URLS - 인증 필요한 API
+                        .requestMatchers(AUTHENTICATED_URLS).authenticated()
                         
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()

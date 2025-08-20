@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- 15분 TRPG 타이머 Fragment -->
+<div th:fragment="timer" x-show="gameStarted" class="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl shadow-lg p-6 mb-6 border-l-4 border-primary-600">
+    <h2 class="text-2xl font-bold mb-4 flex items-center">
+        <span class="text-3xl mr-2">⏰</span> TRPG 게임 타이머
+    </h2>
+    <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+        <div class="flex-1 w-full">
+            <div class="text-center mb-3">
+                <span class="text-4xl font-bold font-mono" 
+                      :class="{
+                          'text-green-600': gameTime >= 600,
+                          'text-yellow-600': gameTime >= 300 && gameTime < 600,
+                          'text-orange-600': gameTime >= 60 && gameTime < 300,
+                          'text-red-600': gameTime < 60
+                      }"
+                      x-text="formatTime(gameTime)">15:00</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-1000 ease-linear"
+                     :style="`width: ${(gameTime / 900) * 100}%`"
+                     :class="{
+                         'bg-gradient-to-r from-green-400 to-green-600': gameTime >= 600,
+                         'bg-gradient-to-r from-yellow-400 to-yellow-600': gameTime >= 300 && gameTime < 600,
+                         'bg-gradient-to-r from-orange-400 to-orange-600': gameTime >= 60 && gameTime < 300,
+                         'bg-gradient-to-r from-red-400 to-red-600 animate-pulse': gameTime < 60
+                     }"></div>
+            </div>
+        </div>
+        <div class="text-center">
+            <div class="text-lg font-bold mb-2"
+                 :class="{
+                     'text-green-600': gamePhase === 'relaxed',
+                     'text-yellow-600': gamePhase === 'normal',
+                     'text-orange-600': gamePhase === 'urgent',
+                     'text-red-600': gamePhase === 'critical'
+                 }"
+                 x-text="getPhaseText(gamePhase)">시작 단계</div>
+            <div class="px-4 py-2 rounded-full text-white font-bold"
+                 :class="{
+                     'bg-green-500': gamePhase === 'relaxed',
+                     'bg-yellow-500': gamePhase === 'normal',
+                     'bg-orange-500': gamePhase === 'urgent',
+                     'bg-red-500 animate-pulse': gamePhase === 'critical'
+                 }"
+                 x-text="getPressureText(gamePhase)">여유</div>
+        </div>
+    </div>
+</div>
+
+</html>

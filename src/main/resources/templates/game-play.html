@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <title>게임 진행 - DungeonTalk</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mx-auto px-4 py-6" x-data="gamePlayApp()" x-init="init()">
+        <!-- TRPG Timer -->
+        <div th:replace="~{fragments/game-timer :: timer}"></div>
+        
+        <!-- Game Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold flex items-center">
+                    <span class="text-3xl mr-2">🎮</span> 게임 상태
+                </h2>
+                <button @click="showCharacterInfo = true; loadCharacterInfo()"
+                        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105">
+                    ⚔️ 내 캐릭터
+                </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-primary-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">현재 상태</div>
+                    <div class="text-lg font-bold mt-1" x-text="gameStatus">매칭 대기</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-secondary-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">세계관</div>
+                    <div class="text-lg font-bold mt-1" x-text="selectedWorld?.name || '-'">-</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-dungeon-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">매칭 정보</div>
+                    <div class="text-lg font-bold mt-1" x-text="matchingInfo">매칭 준비</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-green-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">게임방</div>
+                    <div class="text-lg font-bold mt-1" x-text="roomInfo">미연결</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Matching Status -->
+        <div x-show="isMatching && !gameStarted" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 text-center">
+            <h3 class="text-2xl font-bold mb-4">매칭 중...</h3>
+            <div class="mb-4">
+                <svg class="animate-spin h-12 w-12 mx-auto text-primary-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <div class="text-lg font-medium mb-2" x-text="matchingStatusText">매칭을 찾는 중...</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400" x-text="queueInfo"></div>
+            <button @click="cancelMatching()" 
+                    class="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold transition-colors">
+                매칭 취소
+            </button>
+        </div>
+        
+        <!-- Game Play Section -->
+        <div x-show="gameStarted" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Chat Panel -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden h-[700px] flex flex-col">
+                <!-- Chat Tabs -->
+                <div class="flex border-b border-gray-200 dark:border-gray-700">
+                    <button @click="activeTab = 'ai'" 
+                            :class="{'bg-primary-600 text-white': activeTab === 'ai', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300': activeTab !== 'ai'}"
+                            class="flex-1 px-4 py-3 font-medium transition-colors">
+                        🤖 AI 게임 마스터
+                    </button>
+                    <button @click="activeTab = 'player'" 
+                            :class="{'bg-primary-600 text-white': activeTab === 'player', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300': activeTab !== 'player'}"
+                            class="flex-1 px-4 py-3 font-medium transition-colors">
+                        👥 플레이어 채팅
+                    </button>
+                </div>
+                
+                <!-- AI Chat -->
+                <div x-show="activeTab === 'ai'" class="flex flex-col flex-1">
+                    <div class="p-4 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
+                        <p class="text-sm text-green-800 dark:text-green-300">
+                            🎲 AI 게임 마스터와 RPG를 진행하세요. 행동을 입력하면 AI가 결과를 알려줍니다.
+                        </p>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3" id="aiMessages">
+                        <template x-for="message in aiMessages" :key="message.id">
+                            <div class="flex"
+                                 :class="{
+                                     'justify-end': message.sender === 'user',
+                                     'justify-start': message.sender === 'ai',
+                                     'justify-center': message.sender === 'system'
+                                 }">
+                                <div class="max-w-[75%] rounded-lg px-4 py-2"
+                                     :class="{
+                                         'bg-blue-500 text-white': message.sender === 'user',
+                                         'bg-green-500 text-white': message.sender === 'ai',
+                                         'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm italic': message.sender === 'system'
+                                     }">
+                                    <div x-html="formatMessage(message.content)"></div>
+                                    <div class="text-xs mt-1 opacity-70" x-text="message.time"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex gap-2">
+                            <input type="text" 
+                                   x-model="aiInput"
+                                   @keyup.enter="sendAiMessage()"
+                                   placeholder="AI에게 행동이나 질문을 입력하세요... (예: 주변을 둘러본다)"
+                                   class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                                   :disabled="!gameStarted">
+                            <button @click="sendAiMessage()"
+                                    :disabled="!gameStarted || !aiInput.trim()"
+                                    class="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-medium transition-colors">
+                                🎮 행동
+                            </button>
+                            <button @click="requestAiResponse()"
+                                    :disabled="!gameStarted"
+                                    class="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-medium transition-colors">
+                                🤖 AI 응답
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Player Chat -->
+                <div x-show="activeTab === 'player'" class="flex flex-col flex-1">
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
+                        <p class="text-sm text-blue-800 dark:text-blue-300">
+                            💬 다른 플레이어들과 자유롭게 대화하세요. 전략을 논의하거나 잡담을 나눠보세요!
+                        </p>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3" id="playerMessages">
+                        <template x-for="message in playerMessages" :key="message.id">
+                            <div class="flex"
+                                 :class="{
+                                     'justify-end': message.isMe,
+                                     'justify-start': !message.isMe && message.sender !== 'system',
+                                     'justify-center': message.sender === 'system'
+                                 }">
+                                <div class="max-w-[75%] rounded-lg px-4 py-2"
+                                     :class="{
+                                         'bg-blue-500 text-white': message.isMe,
+                                         'bg-gray-500 text-white': !message.isMe && message.sender !== 'system',
+                                         'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm italic': message.sender === 'system'
+                                     }">
+                                    <div class="text-xs font-semibold mb-1" x-show="!message.isMe && message.sender !== 'system'" x-text="message.senderName"></div>
+                                    <div x-text="message.content"></div>
+                                    <div class="text-xs mt-1 opacity-70" x-text="message.time"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex gap-2">
+                            <input type="text" 
+                                   x-model="playerInput"
+                                   @keyup.enter="sendPlayerMessage()"
+                                   placeholder="다른 플레이어들과 채팅하세요..."
+                                   class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                                   :disabled="!gameStarted">
+                            <button @click="sendPlayerMessage()"
+                                    :disabled="!gameStarted || !playerInput.trim()"
+                                    class="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-medium transition-colors">
+                                💬 전송
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Info Panel -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-6 flex items-center">
+                    <span class="text-2xl mr-2">🎯</span> 게임 정보
+                </h3>
+                
+                <!-- Participants -->
+                <div class="mb-6">
+                    <h4 class="font-semibold mb-3">참여자</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="participant in participants" :key="participant.id">
+                            <div class="px-4 py-2 rounded-full text-sm font-medium"
+                                 :class="participant.isMe ? 'bg-green-500 text-white' : 'bg-primary-500 text-white'">
+                                <span x-text="participant.nickname"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Game Session Info -->
+                <div class="space-y-4">
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-600 dark:text-gray-400">세계관</div>
+                        <div class="text-lg font-bold" x-text="selectedWorld?.name || '-'"></div>
+                    </div>
+                    
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-600 dark:text-gray-400">세션 ID</div>
+                        <div class="text-sm font-mono" x-text="currentGameSession?.sessionId || '-'"></div>
+                    </div>
+                    
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-600 dark:text-gray-400">현재 턴</div>
+                        <div class="text-lg font-bold" x-text="currentTurnNumber"></div>
+                    </div>
+                </div>
+                
+                <!-- Leave Game Button -->
+                <button @click="leaveGame()"
+                        class="w-full mt-6 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+                    게임 나가기
+                </button>
+            </div>
+        </div>
+        
+        <!-- Character Info Modal -->
+        <div th:replace="~{fragments/character-modal :: character-info}"></div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+<!-- SockJS and Stomp -->
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script src="/js/thymeleaf/game/game-play.js"></script>
+</th:block>
+</body>
+</html>

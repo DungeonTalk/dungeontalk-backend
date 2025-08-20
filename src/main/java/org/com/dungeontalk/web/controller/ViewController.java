@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.world.dto.response.WorldResponse;
 import org.com.dungeontalk.domain.world.service.WorldService;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,15 +41,16 @@ public class ViewController {
     }
 
     /**
-     * 게임 페이지 (로그인 필수)
-     * Spring Security 어노테이션으로 인증 체크
+     * 게임 세계관 선택 페이지
+     * Spring Security에서 인증 체크 (쿠키 기반)
      */
     @GetMapping("/game")
-    @PreAuthorize("isAuthenticated()")
     public String game(@AuthenticationPrincipal Authentication authentication, Model model) {
-        // 인증된 사용자 정보는 이미 @AuthenticationPrincipal로 주입됨
-        log.info("게임 페이지 접근 성공 - 사용자: {}", authentication.getName());
-        model.addAttribute("username", authentication.getName());
+        // Spring Security가 쿠키 기반 인증을 처리
+        if (authentication != null) {
+            log.info("게임 페이지 접근 - 사용자: {}", authentication.getName());
+            model.addAttribute("username", authentication.getName());
+        }
         
         // 세계관 목록을 서버에서 가져와서 Model에 추가
         try {
@@ -63,7 +62,22 @@ public class ViewController {
             model.addAttribute("worlds", List.of());
         }
         
-        return "game";
+        return "game-select";
+    }
+    
+    /**
+     * 게임 플레이 페이지
+     * 실제 게임이 진행되는 페이지
+     */
+    @GetMapping("/game/play")
+    public String gamePlay(@AuthenticationPrincipal Authentication authentication, Model model) {
+        // Spring Security가 쿠키 기반 인증을 처리
+        if (authentication != null) {
+            log.info("게임 플레이 페이지 접근 - 사용자: {}", authentication.getName());
+            model.addAttribute("username", authentication.getName());
+        }
+        
+        return "game-play";
     }
 
     /**

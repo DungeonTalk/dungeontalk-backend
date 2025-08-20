@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <title>세계관 선택 - DungeonTalk</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mx-auto px-4 py-6" x-data="gameApp()" x-init="init()">
+        <!-- Game Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold flex items-center">
+                    <span class="text-3xl mr-2">🎮</span> 게임 상태
+                </h2>
+                <button hx-get="/game/character/info"
+                        hx-target="#character-modal-content"
+                        hx-swap="innerHTML"
+                        onclick="document.getElementById('character-modal').style.display='flex'"
+                        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105">
+                    ⚔️ 내 캐릭터
+                </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-primary-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">현재 상태</div>
+                    <div class="text-lg font-bold mt-1" x-text="gameStatus">대기 중</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-secondary-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">사용자</div>
+                    <div class="text-lg font-bold mt-1" x-text="currentUser?.nickname || '-'">-</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-green-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">캐릭터</div>
+                    <div class="text-lg font-bold mt-1" x-text="characterData ? characterData.race : '없음'">없음</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- World Selection Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-6 flex items-center">
+                <span class="text-3xl mr-2">🌍</span> 세계관 선택
+            </h2>
+            
+            <!-- World Selection (Thymeleaf 서버사이드 렌더링) -->
+            <div th:if="${worlds != null && !worlds.isEmpty()}" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div th:each="world : ${worlds}" 
+                     th:data-world-id="${world.id}"
+                     th:data-world-name="${world.worldName}"
+                     onclick="selectWorld(this.dataset.worldId, this.dataset.worldName)"
+                     class="cursor-pointer bg-gray-50 dark:bg-gray-700 rounded-xl p-6 transition-all hover:transform hover:-translate-y-1 hover:shadow-xl world-card">
+                    <h3 class="text-xl font-bold mb-3 flex items-center">
+                        <span class="text-2xl mr-2">
+                            <span th:if="${world.id == 'FANTASY'}">🏰</span>
+                            <span th:if="${world.id == 'SCIFI'}">🚀</span>
+                            <span th:if="${world.id == 'MODERN'}">🏙️</span>
+                            <span th:if="${world.id != 'FANTASY' && world.id != 'SCIFI' && world.id != 'MODERN'}">🌍</span>
+                        </span>
+                        <span th:text="${world.worldName}">세계관 이름</span>
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <span class="block">경험치 보상: <strong th:text="${world.clearExp}">0</strong> EXP</span>
+                        <span class="block mt-2 text-sm">도전해보세요! 멋진 모험이 기다립니다.</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div th:if="${worlds == null || worlds.isEmpty()}" class="text-center py-8 text-gray-600">
+                <p>현재 이용 가능한 세계관이 없습니다.</p>
+            </div>
+            
+            <!-- Start Game Button -->
+            <div class="text-center">
+                <button id="gameStartButton"
+                        onclick="startGame()"
+                        disabled
+                        class="px-8 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-bold transition-all transform hover:scale-105 disabled:scale-100">
+                    <span class="flex items-center">
+                        <span class="text-xl mr-2">🎮</span>
+                        게임 시작
+                    </span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- HTMX Character Modal -->
+        <div id="character-modal" style="display:none" 
+             class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center">
+            <div class="fixed inset-0 bg-black opacity-50" onclick="this.parentElement.style.display='none'"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full p-6 z-10 m-4">
+                <h3 class="text-2xl font-bold mb-4">⚔️ 내 캐릭터</h3>
+                <div id="character-modal-content">
+                    <!-- HTMX로 내용이 로드됩니다 -->
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button onclick="document.getElementById('character-modal').style.display='none'"
+                            class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+<script src="/js/thymeleaf/game/game-app.js"></script>
+<script th:inline="javascript">
+// 전역 변수로 선택된 세계관 저장
+var selectedWorldId = null;
+var selectedWorldName = null;
+
+// selectWorld 함수 재정의
+window.selectWorld = function(worldId, worldName) {
+    selectedWorldId = worldId;
+    selectedWorldName = worldName;
+    
+    // Alpine 컴포넌트 업데이트 (있으면)
+    const element = document.querySelector('[x-data*="gameApp"]');
+    if (element && element._x_dataStack && element._x_dataStack[0]) {
+        element._x_dataStack[0].selectWorld(worldId, worldName);
+    }
+    
+    // 버튼 활성화
+    const button = document.getElementById('gameStartButton');
+    if (button) {
+        button.removeAttribute('disabled');
+    }
+    
+    // 알림 표시
+    if (Alpine && Alpine.store && Alpine.store('notifications')) {
+        Alpine.store('notifications').success(worldName + ' 세계관이 선택되었습니다.');
+    }
+};
+
+// 게임 시작 함수
+window.startGame = function() {
+    if (!selectedWorldId) {
+        if (Alpine && Alpine.store && Alpine.store('notifications')) {
+            Alpine.store('notifications').warning('세계관을 먼저 선택해주세요.');
+        }
+        return;
+    }
+    
+    // Alpine 컴포넌트의 startMatching 호출 (있으면)
+    const element = document.querySelector('[x-data*="gameApp"]');
+    if (element && element._x_dataStack && element._x_dataStack[0] && element._x_dataStack[0].startMatching) {
+        element._x_dataStack[0].startMatching();
+    } else {
+        // 직접 페이지 이동
+        window.location.href = '/game/play?world=' + selectedWorldId;
+    }
+};
+</script>
+</th:block>
+</body>
+</html>

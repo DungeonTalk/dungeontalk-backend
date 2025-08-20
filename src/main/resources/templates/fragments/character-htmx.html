@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- 캐릭터 정보 표시 (HTMX로 로드) -->
+<div th:fragment="character-display" class="space-y-6">
+    <div th:if="${character == null}" class="text-center py-12">
+        <div class="text-6xl mb-4">🎭</div>
+        <p class="text-lg text-gray-600 dark:text-gray-400">캐릭터가 없습니다</p>
+        <button hx-get="/game/character/create-form"
+                hx-target="#character-modal-content"
+                hx-swap="innerHTML"
+                class="mt-4 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+            캐릭터 생성하기
+        </button>
+    </div>
+    
+    <div th:if="${character != null}">
+        <!-- Basic Info -->
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <h4 class="font-semibold mb-3">📋 기본 정보</h4>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">종족:</span>
+                    <span class="ml-2 font-medium" th:text="${character.race}">-</span>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">레벨:</span>
+                    <span class="ml-2 font-medium" th:text="${character.level}">1</span>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">경험치:</span>
+                    <span class="ml-2 font-medium" th:text="${character.exp + ' / ' + character.maxExp}">0 / 100</span>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">생성일:</span>
+                    <span class="ml-2 font-medium" th:text="${#temporals.format(character.createdAt, 'yyyy-MM-dd')}">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats -->
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <h4 class="font-semibold mb-3">📊 능력치</h4>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-red-500" th:text="${character.strength}">10</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">STR (힘)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-500" th:text="${character.willpower}">10</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">WIL (의지)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-500" th:text="${character.intelligence}">10</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">INT (지능)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-500" th:text="${character.wisdom}">10</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">WIS (지혜)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-yellow-500" th:text="${character.dexterity}">10</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">DEX (민첩)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-pink-500" th:text="${character.luck}">10</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">LUK (행운)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 캐릭터 생성 폼 (HTMX) -->
+<div th:fragment="character-create-form">
+    <form hx-post="/v2/characters"
+          hx-trigger="submit"
+          hx-target="#character-modal-content"
+          hx-swap="innerHTML">
+        
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-2">종족 선택</label>
+            <select name="race" required
+                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700">
+                <option value="">종족을 선택하세요...</option>
+                <option value="HUMAN">인간 - 균형잡힌 능력치</option>
+                <option value="ELF">엘프 - 민첩과 지혜</option>
+                <option value="DWARF">드워프 - 강인한 체력</option>
+                <option value="ORC">오크 - 강력한 힘</option>
+            </select>
+        </div>
+        
+        <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg" id="race-description">
+            <h4 class="font-semibold mb-2">종족 특성</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-300">종족을 선택하면 특성이 표시됩니다.</p>
+        </div>
+        
+        <div class="flex justify-end gap-3">
+            <button type="button" 
+                    onclick="document.getElementById('character-modal').style.display='none'"
+                    class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                취소
+            </button>
+            <button type="submit"
+                    class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+                캐릭터 생성
+            </button>
+        </div>
+    </form>
+    
+    <script>
+        // 종족 선택 시 설명 업데이트
+        document.querySelector('select[name="race"]').addEventListener('change', function() {
+            const descriptions = {
+                'HUMAN': '인간은 모든 능력치가 균형있게 분포되어 있어 어떤 상황에도 잘 적응합니다.',
+                'ELF': '엘프는 뛰어난 민첩성과 지혜를 가지고 있습니다.',
+                'DWARF': '드워프는 강인한 체력과 의지력을 자랑합니다.',
+                'ORC': '오크는 압도적인 힘을 가지고 있습니다.'
+            };
+            const desc = descriptions[this.value] || '종족을 선택하면 특성이 표시됩니다.';
+            document.querySelector('#race-description p').textContent = desc;
+        });
+    </script>
+</div>
+
+</html>
