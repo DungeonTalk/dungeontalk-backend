@@ -67,4 +67,15 @@ public class AiChatStompController {
     public RsData<String> endTurn(@Payload AiGameMessageSendRequest request) {
         return aiGameMessageService.handleEndTurn(request);
     }
+
+    /**
+     * 게임 종료를 위한 엔드포인트
+     * 
+     * AI가 게임 완료/실패/시간초과를 판단했을 때 사용한다.
+     * 파이썬 AI 서비스에서 게임 종료 조건을 감지하면 호출된다.
+     */
+    @MessageMapping("/aichat/game/end")
+    public RsData<String> endGame(@Payload AiGameMessageSendRequest request) {
+        return aiGameMessageService.handleGameEnd(request);
+    }
 }

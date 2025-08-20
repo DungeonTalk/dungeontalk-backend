@@ -2,7 +2,7 @@ package org.com.dungeontalk.domain.matching.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 
 import java.time.Instant;
 import java.util.List;

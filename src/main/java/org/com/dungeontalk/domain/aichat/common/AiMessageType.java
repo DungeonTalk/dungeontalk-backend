@@ -41,7 +41,14 @@ public enum AiMessageType {
      * - AI 응답 완료 후 전송
      * - 다음 턴 준비 신호
      */
-    TURN_END;
+    TURN_END,
+    
+    /**
+     * 게임 종료를 알리는 메시지
+     * - AI가 게임 완료/실패/시간초과를 판단했을 때 전송
+     * - 게임 결과와 함께 전송 (SUCCESS/FAILURE/TIMEOUT)
+     */
+    GAME_END;
 
     // @Enumerated 반영 안 되는 이슈 처리 (기존 컨벤션 따름)
     @Override

@@ -30,9 +30,22 @@ public class GameCharacterService {
     // 새로운 캐릭터 생성 (레벨 1, 모든 스탯 10으로 초기화)
     @Transactional
     public GameCharacterResponse createCharacter(CreateCharacterRequest request) {
-        // UUID로 RaceStats 조회
-        RaceStats raceStats = raceStatsRepository.findById(request.raceId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceId()));
+        RaceStats raceStats;
+        
+        // raceId가 UUID 형식인지 종족명인지 확인하여 처리
+        try {
+            // UUID로 먼저 시도
+            raceStats = raceStatsRepository.findById(request.raceId())
+                    .orElse(null);
+        } catch (Exception e) {
+            raceStats = null;
+        }
+        
+        // UUID로 찾지 못한 경우 종족명으로 조회
+        if (raceStats == null) {
+            raceStats = raceStatsRepository.findByRace(request.raceId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceId()));
+        }
 
         GameCharacter character = new GameCharacter();
         character.setMemberId(request.memberId());

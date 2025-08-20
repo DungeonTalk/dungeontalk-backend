@@ -40,9 +40,10 @@ public class AiApiService {
      */
     public AiServiceResponse generateAiResponse(String gameId, String aiGameRoomId, 
                                              String currentUser, String currentMessage,
-                                             List<AiGameMessageDto> contextMessages, int turnNumber) {
+                                             List<AiGameMessageDto> contextMessages, int turnNumber,
+                                             Long gameStartTime, Integer targetDuration, Object characterStats) {
         
-        String url = aiServiceUrl + "/ai-response";
+        String url = aiServiceUrl + "/ai-response-enhanced";
         
         try {
             log.info("Python AI 서비스 호출 시작: roomId={}, user={}, turn={}", 
@@ -52,9 +53,12 @@ public class AiApiService {
             AiGameRoomResponse roomResponse = aiGameRoomService.getAiGameRoom(aiGameRoomId);
             String gameSettings = roomResponse.getGameSettings();
             
-            log.debug("게임 세계관 설정: {}", gameSettings);
+            // 게임 설정에서 세계관 추출
+            String worldType = extractWorldTypeFromGameSettings(gameSettings);
+            
+            log.debug("게임 세계관 설정: {}, 추출된 세계관: {}", gameSettings, worldType);
 
-            // 요청 데이터 구성
+            // 요청 데이터 구성 (시간 관리 및 캐릭터 스탯 추가)
             AiServiceRequest request = AiServiceRequest.builder()
                     .gameId(gameId)
                     .aiGameRoomId(aiGameRoomId)
@@ -65,6 +69,10 @@ public class AiApiService {
                             .toList())
                     .turnNumber(turnNumber)
                     .gameSettings(gameSettings)
+                    .worldType(worldType)
+                    .gameStartTime(gameStartTime)
+                    .targetDuration(targetDuration != null ? targetDuration : 15)
+                    .characterStats(characterStats)
                     .build();
 
             // HTTP 헤더 설정
@@ -100,11 +108,20 @@ public class AiApiService {
                         .content(content)
                         .responseTime(responseTime)
                         .sources((List<String>) responseBody.get("sources"))
+                        .worldType((String) responseBody.get("world_type"))
+                        .docTypesUsed((List<String>) responseBody.get("doc_types_used"))
+                        .gameTimeInfo((Map<String, Object>) responseBody.get("game_time_info"))
                         .build();
 
-                log.info("Python AI 서비스 호출 성공: roomId={}, responseTime={}ms, sourcesCount={}", 
+                log.info("Python AI 서비스 호출 성공: roomId={}, responseTime={}ms, sourcesCount={}, gamePhase={}, gameEnded={}", 
                          aiGameRoomId, result.getResponseTime(), 
-                         result.getSources() != null ? result.getSources().size() : 0);
+                         result.getSources() != null ? result.getSources().size() : 0,
+                         result.getGamePhase(), result.isGameEnded());
+
+                // 게임 종료 로그 출력
+                if (result.isGameEnded()) {
+                    log.info("🎯 TRPG 게임 종료 감지: gameId={}, roomId={}", gameId, aiGameRoomId);
+                }
 
                 return result;
             } else {
@@ -160,6 +177,45 @@ public class AiApiService {
                 .turnNumber(messageDto.getTurnNumber())
                 .messageOrder(messageDto.getMessageOrder())
                 .build();
+    }
+
+    /**
+     * 게임 설정에서 세계관 코드 추출
+     * gameSettings 문자열을 분석하여 세계관을 추출합니다.
+     */
+    private String extractWorldTypeFromGameSettings(String gameSettings) {
+        if (gameSettings == null || gameSettings.isEmpty()) {
+            return "FANTASY"; // 기본값
+        }
+        
+        String upperSettings = gameSettings.toUpperCase();
+        
+        // 키워드 기반 세계관 감지
+        if (upperSettings.contains("판타지") || upperSettings.contains("마법") || 
+            upperSettings.contains("FANTASY") || upperSettings.contains("중세")) {
+            return "FANTASY";
+        } else if (upperSettings.contains("SF") || upperSettings.contains("사이버") || 
+                   upperSettings.contains("우주") || upperSettings.contains("미래")) {
+            return "SF";
+        } else if (upperSettings.contains("현대") || upperSettings.contains("MODERN") || 
+                   upperSettings.contains("도시")) {
+            return "MODERN";
+        } else if (upperSettings.contains("사이버펑크") || upperSettings.contains("CYBERPUNK")) {
+            return "CYBERPUNK";
+        } else if (upperSettings.contains("스팀펑크") || upperSettings.contains("STEAMPUNK")) {
+            return "STEAMPUNK";
+        } else if (upperSettings.contains("공포") || upperSettings.contains("호러") || 
+                   upperSettings.contains("HORROR")) {
+            return "HORROR";
+        } else if (upperSettings.contains("서부") || upperSettings.contains("WESTERN")) {
+            return "WESTERN";
+        } else if (upperSettings.contains("포스트") || upperSettings.contains("아포칼립스") || 
+                   upperSettings.contains("POST_APOCALYPTIC")) {
+            return "POST_APOCALYPTIC";
+        }
+        
+        log.debug("세계관을 특정할 수 없어 기본값(FANTASY) 사용: {}", gameSettings);
+        return "FANTASY"; // 기본값
     }
 
 }
