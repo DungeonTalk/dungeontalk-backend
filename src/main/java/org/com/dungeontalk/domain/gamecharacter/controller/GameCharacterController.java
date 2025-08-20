@@ -7,9 +7,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.AddExperienceRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
+import org.com.dungeontalk.domain.gamecharacter.dto.request.GameResultRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
 import org.com.dungeontalk.domain.gamecharacter.service.GameCharacterService;
@@ -107,6 +109,18 @@ public class GameCharacterController {
         GameCharacterResponse response = gameCharacterService.addExperience(id, request.experience());
 
         return RsData.of("200", "경험치 추가 완료", response);
+    }
+
+    @Operation(summary = "게임 결과 처리", description = "게임 클리어/실패에 따라 경험치를 부여합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "경험치 부여 성공",
+                    content = @Content(schema = @Schema(implementation = GameCharacterResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (존재하지 않는 캐릭터 또는 월드)")
+    })
+    @PostMapping("/game/result")
+    public RsData<GameCharacterResponse> processGameResult(@RequestBody @Valid GameResultRequest request) {
+        GameCharacterResponse response = gameCharacterService.processGameResult(request);
+        return RsData.of("200", "게임 결과 처리 완료", response);
     }
 
 }
