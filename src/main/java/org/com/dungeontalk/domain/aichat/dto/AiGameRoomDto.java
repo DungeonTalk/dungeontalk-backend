@@ -1,33 +1,32 @@
 package org.com.dungeontalk.domain.aichat.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 import org.com.dungeontalk.domain.aichat.common.AiGamePhase;
 import org.com.dungeontalk.domain.aichat.common.AiGameStatus;
 import org.com.dungeontalk.domain.aichat.entity.AiGameRoom;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
-@Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AiGameRoomDto {
 
     private String id;
     private String gameId;
     private String roomName;
-    private String description;
     private AiGameStatus status;
     private AiGamePhase currentPhase;
     private int currentTurn;
     private int maxParticipants;
     private List<String> participants;
     private String gameSettings;
-    private LocalDateTime lastActivity;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant createdAt;
 
     /**
      * Entity를 DTO로 변환
@@ -37,16 +36,13 @@ public class AiGameRoomDto {
                 .id(room.getId())
                 .gameId(room.getGameId())
                 .roomName(room.getRoomName())
-                .description(room.getDescription())
                 .status(room.getStatus())
                 .currentPhase(room.getCurrentPhase())
                 .currentTurn(room.getCurrentTurn())
                 .maxParticipants(room.getMaxParticipants())
                 .participants(room.getParticipants())
                 .gameSettings(room.getGameSettings())
-                .lastActivity(room.getLastActivity())
                 .createdAt(room.getCreatedAt())
-                .updatedAt(room.getUpdatedAt())
                 .build();
     }
 

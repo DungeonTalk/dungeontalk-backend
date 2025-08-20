@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+import org.com.dungeontalk.domain.member.entity.Member;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,8 @@ import java.util.Date;
 
 @Slf4j
 @Service
-public class JwtProvider {
+public class
+JwtProvider {
     @Value("${jwt.secret}")
     private String SECRET_KEY;
 
@@ -97,6 +99,7 @@ public class JwtProvider {
             return true;  // 파싱 실패도 만료로 처리
         }
     }
+
 
     // ======================= JWT Version Issue =========================
 

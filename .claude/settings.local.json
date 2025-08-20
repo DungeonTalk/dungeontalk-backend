@@ -36,7 +36,11 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
       "WebFetch(domain:hyunsb.tistory.com)",
-      "WebFetch(domain:www.inflearn.com)"
+      "WebFetch(domain:www.inflearn.com)",
+      "Bash(git mv:*)",
+      "Bash(git rm:*)",
+      "Bash(gradlew:*)",
+      "Bash(lsof:*)"
     ],
     "deny": []
   }

@@ -23,6 +23,20 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #333;
+            transition: background 0.8s ease;
+        }
+        
+        /* 세계관별 배경 테마 */
+        body.theme-fantasy {
+            background: linear-gradient(135deg, #8B4513 0%, #DAA520 50%, #2E8B57 100%);
+        }
+        
+        body.theme-scifi {
+            background: linear-gradient(135deg, #000428 0%, #004e92 50%, #009ffd 100%);
+        }
+        
+        body.theme-modern {
+            background: linear-gradient(135deg, #2C3E50 0%, #34495E 50%, #7F8C8D 100%);
         }
         
         .container {
@@ -141,9 +155,25 @@
         }
         
         .world-card.selected {
-            background: linear-gradient(135deg, #007bff, #0056b3);
             color: white;
             border-color: #007bff;
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        
+        .world-card.selected[data-world="FANTASY"] {
+            background: linear-gradient(135deg, #8B4513, #DAA520);
+            border-color: #DAA520;
+        }
+        
+        .world-card.selected[data-world="SCIFI"] {
+            background: linear-gradient(135deg, #004e92, #009ffd);
+            border-color: #009ffd;
+        }
+        
+        .world-card.selected[data-world="MODERN"] {
+            background: linear-gradient(135deg, #2C3E50, #7F8C8D);
+            border-color: #7F8C8D;
         }
         
         .world-card h3 {
@@ -537,6 +567,10 @@
                     <strong>매칭 정보</strong>
                     <div id="matchingInfo">대기 중</div>
                 </div>
+                <div class="status-card" id="worldInfoCard" style="display: none;">
+                    <strong>선택된 세계관</strong>
+                    <div id="selectedWorldInfo">-</div>
+                </div>
                 <div class="status-card">
                     <strong>게임방</strong>
                     <div id="roomInfo">미연결</div>
@@ -566,16 +600,22 @@
             <h3>🌍 세계관 선택 & 매칭</h3>
             <div class="world-selection">
                 <div class="world-card" onclick="DungeonGame.selectWorld('FANTASY')" data-world="FANTASY">
-                    <h3>🏰 판타지</h3>
-                    <p>마법과 검이 지배하는 중세 판타지 세계에서 모험을 떠나보세요. 드래곤, 마법사, 기사들과 함께하는 대서사시가 펼쳐집니다.</p>
+                    <h3>🏰 판타지 세계</h3>
+                    <p>⚔️ 마법과 검의 전설적 모험<br>
+                    🌲 드래곤, 엘프, 드워프들과 함께<br>
+                    ✨ 고대의 던전과 마법 아이템들</p>
                 </div>
                 <div class="world-card" onclick="DungeonGame.selectWorld('SCIFI')" data-world="SCIFI">
-                    <h3>🚀 SF</h3>
-                    <p>미래 우주 시대의 첨단 기술과 외계 문명을 탐험하세요. 로봇, AI, 우주선으로 가득한 사이버네틱 어드벤처가 기다립니다.</p>
+                    <h3>🚀 사이버펑크 SF</h3>
+                    <p>🤖 AI와 첨단 기술의 미래<br>
+                    🌌 네오니 도시와 우주 정거장<br>
+                    ⚡ 해킹과 사이버네틱 스릴러</p>
                 </div>
                 <div class="world-card" onclick="DungeonGame.selectWorld('MODERN')" data-world="MODERN">
-                    <h3>🏙️ 현대</h3>
-                    <p>현대 도시 세계관에서 펼쳐지는 일상과 미스터리의 이야기. 도시의 숨겨진 비밀들을 탐험해보세요.</p>
+                    <h3>🏙️ 현대 미스터리</h3>
+                    <p>🕵️‍♂️ 도시의 숨겨진 진실과 음모<br>
+                    📱 현실적인 배경과 기술<br>
+                    🏭 사건 수사와 추리 어드벤처</p>
                 </div>
             </div>
             
@@ -613,7 +653,7 @@
                     <div class="chat-info" style="padding: 10px; background: #e8f5e8; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
                         🎲 AI 게임 마스터와 RPG를 진행하세요. 행동을 입력하면 AI가 결과를 알려줍니다.
                     </div>
-                    <div class="chat-messages" id="aiMessages"></div>
+                    <div class="chat-messages" id="aiMessages" style="scroll-behavior: smooth;"></div>
                     <div class="chat-input">
                         <input type="text" id="aiMessageInput" placeholder="AI에게 행동이나 질문을 입력하세요... (예: 주변을 둘러본다, 문을 연다)" 
                                onkeypress="if(event.key==='Enter') DungeonGame.sendAiMessage()" disabled>
@@ -627,7 +667,7 @@
                     <div class="chat-info" style="padding: 10px; background: #e3f2fd; border-radius: 5px; margin-bottom: 10px; font-size: 14px;">
                         💬 다른 플레이어들과 자유롭게 대화하세요. 전략을 논의하거나 잡담을 나눠보세요!
                     </div>
-                    <div class="chat-messages" id="userMessages"></div>
+                    <div class="chat-messages" id="userMessages" style="scroll-behavior: smooth;"></div>
                     <div class="chat-input">
                         <input type="text" id="userMessageInput" placeholder="다른 플레이어들과 채팅하세요..." 
                                onkeypress="if(event.key==='Enter') DungeonGame.sendUserMessage()" disabled>
@@ -640,9 +680,9 @@
             <div class="chat-panel">
                 <h3>🎯 게임 정보</h3>
                 
-                <div style="margin-bottom: 20px;">
-                    <strong>참여자</strong>
-                    <div class="participants-list" id="participantsList"></div>
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <p>🎮 AI와 함께 RPG 모험을 즐겨보세요!</p>
+                    <p>💬 플레이어 채팅으로 전략을 공유하세요.</p>
                 </div>
                 
                 <!-- 알림 테스트 (개발용) -->
@@ -660,5 +700,918 @@
         
     </div>
     
+    <script>
+        // 전역 변수
+        let authToken = null;
+        let currentUser = null;
+        let selectedWorld = null;
+        let gameSessionStarted = false;
+        let matchingStompClient = null;
+        let aiStompClient = null;
+        let partyStompClient = null;
+        let isMatching = false;
+        let currentGameSession = null;
+        let currentTurnNumber = 1;
+        let aiGameRoomId = null;
+        let partyRoomId = null;
+        
+        // 초기화
+        window.addEventListener('load', function() {
+            // 새로고침 시 로컬스토리지 초기화 (테스트 편의용)
+            clearAuthData();
+            console.log('🔄 새로고침 감지 - 로컬스토리지 초기화');
+        });
+        
+        // 기존 로그인 확인
+        function checkExistingLogin() {
+            authToken = localStorage.getItem('authToken');
+            const userInfo = localStorage.getItem('currentUser');
+            
+            console.log('인증 체크:', { 
+                authToken: authToken ? ('존재: ' + authToken.substring(0, 10) + '...') : 'null', 
+                userInfo: userInfo ? '존재' : 'null' 
+            });
+            
+            if (authToken && authToken !== 'null' && authToken.trim() !== '' && userInfo) {
+                try {
+                    currentUser = JSON.parse(userInfo);
+                    console.log('✅ 로그인 상태 확인:', currentUser.name);
+                    showLoggedInState();
+                } catch (e) {
+                    console.error('❌ 사용자 정보 파싱 오류:', e);
+                    clearAuthData();
+                }
+            } else {
+                console.log('⚠️ 로그인 필요');
+                clearAuthData();
+            }
+        }
+        
+        function clearAuthData() {
+            authToken = null;
+            currentUser = null;
+            selectedWorld = null;
+            gameSessionStarted = false;
+            isMatching = false;
+            currentGameSession = null;
+            aiGameRoomId = null;
+            partyRoomId = null;
+            localStorage.clear(); // 모든 로컬스토리지 데이터 삭제
+            
+            // WebSocket 연결 종료
+            if (matchingStompClient && matchingStompClient.connected) {
+                matchingStompClient.disconnect();
+                matchingStompClient = null;
+            }
+            
+            console.log('🗑️ 모든 캐시 데이터 삭제 완료');
+        }
+        
+        // 로그인 상태 UI 업데이트
+        function showLoggedInState() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('matchingSection').classList.remove('hidden');
+            
+            updateStatus('currentStatus', '매칭 대기');
+            updateStatus('currentUser', currentUser.name);
+            
+            // authToken이 설정된 후에 WebSocket 연결
+            if (authToken) {
+                setTimeout(() => {
+                    connectMatchingWebSocket();
+                }, 500); // 약간의 지연을 두어 토큰 설정 완료 후 연결
+            }
+        }
+        
+        // 회원가입
+        async function register() {
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!userId || !password) {
+                alert('ID와 비밀번호를 입력하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/v1/member/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: userId,
+                        nickName: userId + '님',
+                        password: password
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('회원가입 성공! 이제 로그인하세요.');
+                } else {
+                    const error = await response.text();
+                    alert('회원가입 실패: ' + error);
+                }
+            } catch (error) {
+                alert('회원가입 오류: ' + error.message);
+            }
+        }
+        
+        // 로그인
+        async function login() {
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!userId || !password) {
+                alert('ID와 비밀번호를 입력하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: userId,
+                        password: password
+                    })
+                });
+                
+                if (response.ok) {
+                    const responseData = await response.json();
+                    const loginData = responseData.data;
+                    
+                    console.log('로그인 응답 데이터:', loginData);
+                    
+                    // JWT 토큰 저장
+                    authToken = loginData.accessToken;
+                    
+                    // JWT 토큰에서 사용자 정보 추출
+                    currentUser = extractUserInfoFromToken(authToken);
+                    
+                    if (!currentUser) {
+                        console.error('JWT 토큰에서 사용자 정보를 추출할 수 없습니다.');
+                        alert('로그인 오류: 사용자 정보를 가져올 수 없습니다.');
+                        return;
+                    }
+                    
+                    console.log('JWT에서 추출한 사용자 정보:', currentUser);
+                    
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // 토큰 설정 완료 후 UI 업데이트
+                    showLoggedInState();
+                } else {
+                    const error = await response.text();
+                    alert('로그인 실패: ' + error);
+                }
+            } catch (error) {
+                alert('로그인 오류: ' + error.message);
+            }
+        }
+        
+        // 세계관 선택
+        function selectWorld(worldType) {
+            // 이전 선택 해제
+            document.querySelectorAll('.world-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 새로운 선택
+            document.querySelector(`[data-world="${worldType}"]`).classList.add('selected');
+            selectedWorld = worldType;
+            
+            // 배경 테마 적용
+            applyWorldTheme(worldType);
+            
+            // 세계관 정보 표시
+            updateWorldInfo(worldType);
+            
+            // 매칭 시작 버튼 활성화
+            document.getElementById('startMatchingBtn').disabled = false;
+            
+            console.log(`✨ ${getWorldName(worldType)} 세계관 선택됨`);
+        }
+        
+        function getWorldName(worldType) {
+            const names = {
+                'FANTASY': '🏰 판타지',
+                'SCIFI': '🚀 SF', 
+                'MODERN': '🏙️ 현대'
+            };
+            return names[worldType] || worldType;
+        }
+        
+        // 세계관 테마 적용
+        function applyWorldTheme(worldType) {
+            // 기존 테마 클래스 제거
+            document.body.classList.remove('theme-fantasy', 'theme-scifi', 'theme-modern');
+            
+            // 새 테마 클래스 추가
+            switch(worldType) {
+                case 'FANTASY':
+                    document.body.classList.add('theme-fantasy');
+                    updateAiChatInfo('🏰 중세 판타지 세계에서의 모험이 시작됩니다! 마법과 검의 세계에서 용감한 행동을 취해보세요.');
+                    updatePlaceholders('마법사에게 말을 걸어본다', '동료들과 전략을 논의해보세요');
+                    break;
+                case 'SCIFI':
+                    document.body.classList.add('theme-scifi');
+                    updateAiChatInfo('🚀 미래 사이버펑크 세계에 오신 것을 환영합니다! 첨단 기술과 함께 스릴러를 경험해보세요.');
+                    updatePlaceholders('터미널을 해킹해본다', '팀원들과 미션을 계획하세요');
+                    break;
+                case 'MODERN':
+                    document.body.classList.add('theme-modern');
+                    updateAiChatInfo('🏙️ 현대 도시의 미스터리 세계입니다! 현실적인 상황에서 추리와 탐험을 즐겨보세요.');
+                    updatePlaceholders('주변을 자세히 살펴본다', '동료들과 정보를 공유하세요');
+                    break;
+            }
+        }
+        
+        // 세계관 정보 업데이트
+        function updateWorldInfo(worldType) {
+            const worldInfoCard = document.getElementById('worldInfoCard');
+            const selectedWorldInfo = document.getElementById('selectedWorldInfo');
+            
+            worldInfoCard.style.display = 'block';
+            selectedWorldInfo.textContent = getWorldName(worldType);
+        }
+        
+        // AI 채팅 정보 업데이트
+        function updateAiChatInfo(message) {
+            const aiChatInfo = document.getElementById('aiChatInfo');
+            if (aiChatInfo) {
+                aiChatInfo.textContent = message;
+            }
+        }
+        
+        // 플레이스홀더 업데이트
+        function updatePlaceholders(aiPlaceholder, userPlaceholder) {
+            const aiInput = document.getElementById('aiMessageInput');
+            const userInput = document.getElementById('userMessageInput');
+            
+            if (aiInput) {
+                aiInput.placeholder = `${aiPlaceholder} (예시 행동)`;
+            }
+            if (userInput) {
+                userInput.placeholder = userPlaceholder;
+            }
+        }
+        
+        // 매칭 WebSocket 연결
+        function connectMatchingWebSocket() {
+            if (matchingStompClient && matchingStompClient.connected) {
+                return;
+            }
+            
+            if (!authToken) {
+                return;
+            }
+            
+            try {
+                console.log('매칭 WebSocket 연결 시도 중...', '/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=matching');
+                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=matching');
+                matchingStompClient = Stomp.over(socket);
+                
+                matchingStompClient.connect({}, function(frame) {
+                    console.log('✅ 매칭 WebSocket 연결 성공:', frame);
+                    
+                    // 개인 매칭 알림 구독
+                    const subscriptionPath = `/sub/matching/user/${currentUser.id}`;
+                    console.log('매칭 알림 구독:', subscriptionPath);
+                    matchingStompClient.subscribe(subscriptionPath, function(message) {
+                        console.log('매칭 메시지 수신:', message.body);
+                        handleMatchingMessage(JSON.parse(message.body));
+                    });
+                    
+                }, function(error) {
+                    console.error('❌ 매칭 WebSocket 연결 실패:', error);
+                    console.log('연결 URL:', '/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=matching');
+                });
+            } catch (error) {
+                console.error('매칭 WebSocket 오류:', error);
+            }
+        }
+        
+        // 매칭 시작
+        async function startMatching() {
+            if (!selectedWorld) {
+                alert('세계관을 선택해주세요.');
+                return;
+            }
+            
+            if (!authToken || authToken === 'null') {
+                console.error('❌ JWT 토큰이 없음');
+                alert('로그인이 필요합니다.');
+                return;
+            }
+            
+            if (!currentUser || !currentUser.id) {
+                console.error('❌ 사용자 정보가 없음');
+                alert('로그인 정보가 유효하지 않습니다.');
+                return;
+            }
+            
+            try {
+                console.log('매칭 시작 API 호출:', '/v1/match/join', { memberId: currentUser.id, worldType: selectedWorld });
+                const response = await fetch('/v1/match/join', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken,
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify({
+                        memberId: currentUser.id,
+                        worldType: selectedWorld
+                    })
+                });
+                
+                console.log('API 응답 상태:', response.status, response.statusText);
+                const result = await response.json();
+                console.log('매칭 시작 API 응답:', result);
+                if (response.ok && result.resultCode === '200') {
+                    isMatching = true;
+                    document.getElementById('startMatchingBtn').classList.add('hidden');
+                    document.getElementById('cancelMatchingBtn').classList.remove('hidden');
+                    document.getElementById('matchingStatus').classList.remove('hidden');
+                    
+                    updateStatus('matchingInfo', `${getWorldName(selectedWorld)} 매칭 중`);
+                } else {
+                    alert('매칭 시작 실패: ' + (result.msg || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                alert('매칭 오류: ' + error.message);
+            }
+        }
+        
+        // 매칭 취소
+        async function cancelMatching() {
+            try {
+                const response = await fetch('/v1/match/cancel', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken,
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify({
+                        memberId: currentUser.id
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok && result.resultCode === '200') {
+                    isMatching = false;
+                    document.getElementById('startMatchingBtn').classList.remove('hidden');
+                    document.getElementById('cancelMatchingBtn').classList.add('hidden');
+                    document.getElementById('matchingStatus').classList.add('hidden');
+                    
+                    updateStatus('matchingInfo', '대기 중');
+                } else {
+                    alert('매칭 취소 실패: ' + (result.msg || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                alert('매칭 취소 오류: ' + error.message);
+            }
+        }
+        
+        // 매칭 메시지 처리
+        function handleMatchingMessage(message) {
+            switch (message.type) {
+                case 'QUEUE_STATUS_UPDATE':
+                    updateQueueStatus(message.data);
+                    break;
+                case 'MATCHING_COMPLETE':
+                    handleMatchingComplete(message.data);
+                    break;
+                case 'MATCHING_CANCELLED':
+                    handleMatchingCancelled();
+                    break;
+                case 'ERROR':
+                    console.error('매칭 오류:', message.data);
+                    alert('매칭 오류: ' + message.data);
+                    break;
+            }
+        }
+        
+        // 큐 상태 업데이트
+        function updateQueueStatus(data) {
+            document.getElementById('queueInfo').innerHTML = `
+                대기 순서: ${data.currentPosition}번째 | 
+                총 대기자: ${data.totalInQueue}명 | 
+                예상 시간: ${data.estimatedMessage}
+            `;
+        }
+        
+        // 매칭 완료 처리
+        function handleMatchingComplete(data) {
+            console.log('=== 매칭 완료 데이터 디버깅 ===');
+            console.log('data:', data);
+            console.log('data.aiGameRoomId:', data.aiGameRoomId);
+            console.log('data.chatRoomId:', data.chatRoomId);
+            console.log('data.gameSessionId:', data.gameSessionId);
+            console.log('==============================');
+            
+            isMatching = false;
+            currentGameSession = data;
+            aiGameRoomId = data.aiGameRoomId;
+            partyRoomId = data.chatRoomId;
+            
+            // UI 전환
+            document.getElementById('matchingSection').classList.add('hidden');
+            document.getElementById('gameSection').classList.remove('hidden');
+            
+            // 상태 업데이트
+            updateStatus('currentStatus', '게임 중');
+            updateStatus('matchingInfo', '매칭 완료');
+            updateStatus('roomInfo', `AI: ${aiGameRoomId.substring(0, 8)}... | 파티: ${partyRoomId.substring(0, 8)}...`);
+            
+            // 참여자 표시 제거됨
+            
+            // 게임 시작
+            startGameSession(data);
+        }
+        
+        // 매칭 취소 처리
+        function handleMatchingCancelled() {
+            isMatching = false;
+            document.getElementById('startMatchingBtn').classList.remove('hidden');
+            document.getElementById('cancelMatchingBtn').classList.add('hidden');
+            document.getElementById('matchingStatus').classList.add('hidden');
+            updateStatus('matchingInfo', '대기 중');
+        }
+        
+        // 게임 세션 시작
+        async function startGameSession(matchData) {
+            try {
+                // 중복 요청 방지
+                if (gameSessionStarted) {
+                    console.log('🔄 게임 세션이 이미 시작됨, 중복 요청 무시');
+                    return;
+                }
+                
+                // JWT 토큰 유효성 검사
+                if (!authToken || authToken === 'null' || authToken.trim() === '') {
+                    console.error('❌ JWT 토큰이 없거나 유효하지 않음:', authToken);
+                    throw new Error('인증 토큰이 필요합니다. 다시 로그인해주세요.');
+                }
+                
+                gameSessionStarted = true;
+                console.log('🔑 JWT 토큰 확인됨, AI 게임 세션 시작 요청:', aiGameRoomId);
+                
+                // AI 게임방 세션 시작
+                const sessionResponse = await fetch(`/v1/rooms/ai/${aiGameRoomId}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+                
+                const sessionResult = await sessionResponse.json();
+                if (sessionResponse.ok && sessionResult.resultCode === '200') {
+                    console.log('AI 게임 세션 시작 성공');
+                    
+                    // WebSocket 연결들
+                    connectAiWebSocket();
+                    connectPartyWebSocket();
+                    
+                    // 입력 활성화
+                    enableChatInputs();
+                    
+                    // 세계관별 환영 메시지
+                    addWorldSpecificWelcomeMessages(selectedWorld);
+                    
+                    addUserMessage('system', '💬 플레이어들과의 채팅이 시작되었습니다!');
+                    addUserMessage('system', `참여자: ${matchData.participants.join(', ')}`);
+                    
+                } else {
+                    console.error('❌ AI 게임 세션 시작 실패:', {
+                        status: sessionResponse.status,
+                        statusText: sessionResponse.statusText,
+                        result: sessionResult
+                    });
+                    
+                    if (sessionResponse.status === 401) {
+                        alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                        clearAuthData();
+                        showLoginModal();
+                    } else {
+                        alert('AI 게임 세션 시작 실패: ' + (sessionResult.msg || '알 수 없는 오류'));
+                    }
+                    gameSessionStarted = false; // 실패 시 플래그 리셋
+                }
+            } catch (error) {
+                console.error('❌ 게임 세션 시작 오류:', error);
+                gameSessionStarted = false; // 에러 시 플래그 리셋
+                if (error.message.includes('인증')) {
+                    clearAuthData();
+                    showLoginModal();
+                } else {
+                    alert('게임 세션 시작 오류: ' + error.message);
+                }
+            }
+        }
+        
+        // AI WebSocket 연결
+        function connectAiWebSocket() {
+            console.log('=== AI WebSocket 연결 시도 ===');
+            console.log('authToken:', authToken ? 'exists' : 'null');
+            console.log('aiGameRoomId:', aiGameRoomId);
+            console.log('currentGameSession:', currentGameSession);
+            
+            // 기존 AI WebSocket 연결 해제
+            if (aiStompClient && aiStompClient.connected) {
+                console.log('🔄 기존 AI WebSocket 연결 해제 중...');
+                try {
+                    aiStompClient.disconnect();
+                    console.log('✅ 기존 AI WebSocket 연결 해제 완료');
+                } catch (error) {
+                    console.error('❌ 기존 AI WebSocket 해제 오류:', error);
+                }
+            }
+            
+            if (!authToken) {
+                console.error('AI WebSocket 연결 실패: 인증 토큰이 없습니다.');
+                return;
+            }
+            
+            if (!aiGameRoomId) {
+                console.error('AI WebSocket 연결 실패: aiGameRoomId가 없습니다.');
+                return;
+            }
+            
+            console.log('================================');
+            
+            try {
+                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=' + encodeURIComponent(aiGameRoomId));
+                aiStompClient = Stomp.over(socket);
+                
+                aiStompClient.connect({}, function(frame) {
+                    console.log('🤖 AI 채팅 WebSocket 연결 성공');
+                    
+                    // AI 채팅방 구독 (단일 구독)
+                    const subscription = aiStompClient.subscribe(`/sub/aichat/room/${aiGameRoomId}`, function(message) {
+                        console.log('=== AI WebSocket 메시지 수신 ===');
+                        console.log('Raw message:', message);
+                        console.log('Message body:', message.body);
+                        const aiMessage = JSON.parse(message.body);
+                        console.log('Parsed aiMessage:', aiMessage);
+                        console.log('handleAiMessage 호출 전');
+                        handleAiMessage(aiMessage);
+                        console.log('handleAiMessage 호출 후');
+                        console.log('=========================================');
+                    });
+                    
+                    console.log('✅ AI 채팅방 구독 완료:', `/sub/aichat/room/${aiGameRoomId}`);
+                    
+                }, function(error) {
+                    console.error('❌ AI 채팅 WebSocket 연결 실패:', error);
+                });
+            } catch (error) {
+                console.error('❌ AI WebSocket 오류:', error);
+            }
+        }
+        
+        // 파티 WebSocket 연결
+        function connectPartyWebSocket() {
+            console.log('=== 파티 WebSocket 연결 시도 ===');
+            
+            // 기존 파티 WebSocket 연결 해제
+            if (partyStompClient && partyStompClient.connected) {
+                console.log('🔄 기존 파티 WebSocket 연결 해제 중...');
+                try {
+                    partyStompClient.disconnect();
+                    console.log('✅ 기존 파티 WebSocket 연결 해제 완료');
+                } catch (error) {
+                    console.error('❌ 기존 파티 WebSocket 해제 오류:', error);
+                }
+            }
+            
+            if (!authToken) {
+                console.error('파티 WebSocket 연결 실패: 인증 토큰이 없습니다.');
+                return;
+            }
+            
+            if (!partyRoomId) {
+                console.error('파티 WebSocket 연결 실패: partyRoomId가 없습니다.');
+                return;
+            }
+            
+            try {
+                const socket = new SockJS('/ws-chat?token=' + encodeURIComponent(authToken) + '&roomId=' + encodeURIComponent(partyRoomId));
+                partyStompClient = Stomp.over(socket);
+                
+                partyStompClient.connect({}, function(frame) {
+                    console.log('👥 파티 채팅 WebSocket 연결 성공');
+                    
+                    // 사용자 채팅방 구독 (단일 구독)
+                    const subscription = partyStompClient.subscribe(`/sub/chat/room/${partyRoomId}`, function(message) {
+                        const userMessage = JSON.parse(message.body);
+                        handleUserMessage(userMessage);
+                    });
+                    
+                    console.log('✅ 파티 채팅방 구독 완료:', `/sub/chat/room/${partyRoomId}`);
+                    
+                }, function(error) {
+                    console.error('❌ 파티 채팅 WebSocket 연결 실패:', error);
+                });
+            } catch (error) {
+                console.error('❌ 파티 WebSocket 오류:', error);
+            }
+        }
+        
+        // AI 메시지 처리
+        function handleAiMessage(message) {
+            // 모든 메시지에 대해 디버깅 로그 출력
+            console.log('=== AI 메시지 디버깅 ===');
+            console.log('message.senderId:', message.senderId);
+            console.log('message.senderId type:', typeof message.senderId);
+            console.log('currentUser.id:', currentUser.id);
+            console.log('currentUser.id type:', typeof currentUser.id);
+            console.log('ID 비교 결과:', message.senderId === currentUser.id);
+            console.log('message.messageType:', message.messageType);
+            console.log('message.content:', message.content);
+            console.log('message.senderNickname:', message.senderNickname);
+            
+            // 자신의 메시지인지 확인
+            const isMyMessage = message.messageType === 'USER' && message.senderId === currentUser.id;
+            console.log('자신의 메시지인가?', isMyMessage);
+            
+            if (isMyMessage) {
+                console.log('✅ 자신의 메시지 필터링 - 화면에 추가 안 함');
+                console.log('==========================');
+                return;
+            }
+            
+            console.log('✅ 다른 사람 메시지 - 화면에 추가');
+            console.log('==========================');
+            
+            if (message.messageType === 'AI') {
+                addAiMessage('ai', message.content);
+            } else if (message.messageType === 'USER') {
+                addAiMessage('other', `${message.senderNickname}: ${message.content}`);
+            } else if (message.messageType === 'SYSTEM') {
+                addAiMessage('system', message.content);
+            }
+        }
+        
+        // 사용자 메시지 처리
+        function handleUserMessage(message) {
+            // 자신이 보낸 메시지는 이미 화면에 표시했으므로 무시
+            if (message.senderId === currentUser.id) {
+                return;
+            }
+            
+            if (message.type === 'TALK') {
+                const nickname = message.senderNickname || message.senderId || 'Unknown';
+                addUserMessage('other', `${nickname}: ${message.content}`);
+            } else if (message.type === 'ENTER' || message.type === 'LEAVE') {
+                addUserMessage('system', message.content);
+            }
+        }
+        
+        // AI 메시지 전송
+        function sendAiMessage() {
+            const input = document.getElementById('aiMessageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 내 메시지 표시
+            addAiMessage('user', message);
+            
+            // WebSocket으로 전송
+            if (aiStompClient && aiStompClient.connected) {
+                aiStompClient.send('/pub/room/ai/send', {}, JSON.stringify({
+                    roomId: aiGameRoomId,
+                    roomType: 'AI_GAME',
+                    senderId: currentUser.id,
+                    messageType: 'USER',
+                    content: message,
+                    aiGameRoomId: aiGameRoomId,
+                    gameActionType: 'CHAT',
+                    turnNumber: getCurrentTurnNumber()
+                }));
+            }
+            
+            input.value = '';
+        }
+        
+        // AI 응답 요청 (REST API 호출)
+        function requestAiResponse() {
+            if (!aiGameRoomId || !currentUser || !currentGameSession) {
+                alert('게임 세션이 유효하지 않습니다.');
+                return;
+            }
+            
+            const requestData = {
+                gameId: currentGameSession.gameSessionId,
+                currentUser: currentUser.name,
+                currentMessage: "사용자 행동 완료",
+                turnNumber: getCurrentTurnNumber()
+            };
+            
+            console.log('AI 응답 요청 시작:', requestData);
+            
+            fetch(`/v1/rooms/ai/${aiGameRoomId}/ai/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + authToken
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('AI 응답 요청 완료:', data);
+                if (data.resultCode !== '200-1') {
+                    alert('AI 응답 요청 실패: ' + data.msg);
+                } else {
+                    console.log('✅ AI 응답 생성 성공');
+                }
+            })
+            .catch(error => {
+                console.error('AI 응답 요청 오류:', error);
+                alert('AI 응답 요청 중 오류가 발생했습니다.');
+            });
+        }
+        
+        // 사용자 메시지 전송
+        function sendUserMessage() {
+            const input = document.getElementById('userMessageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 내 메시지 표시
+            addUserMessage('user', message);
+            
+            // WebSocket으로 전송
+            if (partyStompClient && partyStompClient.connected) {
+                partyStompClient.send('/pub/room/chat/send', {}, JSON.stringify({
+                    roomId: partyRoomId,
+                    roomType: 'PLAYER_CHAT',
+                    senderId: currentUser.id,
+                    messageType: 'USER',
+                    content: message,
+                    chatRoomId: partyRoomId,
+                    senderNickname: currentUser.name
+                }));
+            }
+            
+            input.value = '';
+        }
+        
+        
+        // 탭 전환
+        function switchTab(tab) {
+            // 탭 버튼 업데이트
+            document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'ai') {
+                document.getElementById('aiTab').classList.add('active');
+                document.getElementById('aiChat').classList.remove('hidden');
+                document.getElementById('userChat').classList.add('hidden');
+            } else if (tab === 'user') {
+                document.getElementById('userTab').classList.add('active');
+                document.getElementById('aiChat').classList.add('hidden');
+                document.getElementById('userChat').classList.remove('hidden');
+            }
+        }
+        
+        // 채팅 입력 활성화
+        function enableChatInputs() {
+            document.getElementById('aiMessageInput').disabled = false;
+            document.getElementById('aiSendBtn').disabled = false;
+            document.getElementById('aiRequestBtn').disabled = false;
+            document.getElementById('userMessageInput').disabled = false;
+            document.getElementById('userSendBtn').disabled = false;
+        }
+        
+        // 메시지 추가 함수들
+        function addAiMessage(type, content) {
+            const messagesDiv = document.getElementById('aiMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            // HTML 이스케이프 후 줄바꿈 및 포맷팅 처리
+            const escapedContent = content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;');
+                
+            const formattedContent = escapedContent
+                .replace(/\n/g, '<br>')           // \n을 <br>로 변환
+                .replace(/\r\n/g, '<br>')        // \r\n을 <br>로 변환
+                .replace(/\*{3,}/g, '<span style="color: #666; font-style: italic;">[BLOCKED]</span>')  // ***를 [BLOCKED]로 변환 (마크다운 처리 전에)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **텍스트**를 굵게
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')            // *텍스트*를 기울임
+                .replace(/`(.*?)`/g, '<code>$1</code>');         // `코드`를 코드 스타일
+            
+            messageDiv.innerHTML = formattedContent;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function addUserMessage(type, content) {
+            const messagesDiv = document.getElementById('userMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            // HTML 이스케이프 후 줄바꿈 및 포맷팅 처리
+            const escapedContent = content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;');
+                
+            const formattedContent = escapedContent
+                .replace(/\n/g, '<br>')           // \n을 <br>로 변환
+                .replace(/\r\n/g, '<br>')        // \r\n을 <br>로 변환
+                .replace(/\*{3,}/g, '<span style="color: #666; font-style: italic;">[BLOCKED]</span>')  // ***를 [BLOCKED]로 변환 (마크다운 처리 전에)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **텍스트**를 굵게
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')            // *텍스트*를 기울임
+                .replace(/`(.*?)`/g, '<code>$1</code>');         // `코드`를 코드 스타일
+            
+            messageDiv.innerHTML = formattedContent;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // 참여자 목록 업데이트 함수 제거됨
+        
+        
+        // 유틸리티 함수들
+        function updateStatus(elementId, value) {
+            document.getElementById(elementId).textContent = value;
+        }
+        
+        function getCurrentTurnNumber() {
+            return currentTurnNumber;
+        }
+        
+        function incrementTurnNumber() {
+            currentTurnNumber++;
+        }
+        
+        // JWT 토큰 디코딩 함수
+        function decodeJWT(token) {
+            try {
+                // JWT는 3부분으로 나뉘어지는데, 두 번째 부분이 payload
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                
+                return JSON.parse(jsonPayload);
+            } catch (error) {
+                console.error('JWT 디코딩 오류:', error);
+                return null;
+            }
+        }
+        
+        // JWT에서 사용자 정보 추출
+        function extractUserInfoFromToken(token) {
+            const payload = decodeJWT(token);
+            if (payload) {
+                return {
+                    id: payload.id || payload.sub, // subject 또는 id 필드 사용
+                    name: payload.name,
+                    nickname: payload.nickName
+                };
+            }
+            return null;
+        }
+        
+        // 세계관별 환영 메시지
+        function addWorldSpecificWelcomeMessages(worldType) {
+            switch(worldType) {
+                case 'FANTASY':
+                    addAiMessage('system', '🌟 중세 판타지 세계에 오신 것을 환영합니다!');
+                    addAiMessage('system', '⚔️ 마법과 검의 세계에서 전설적인 모험을 시작하세요!');
+                    addAiMessage('ai', '안녕하세요, 용감한 모험가들이여! 저는 여러분의 운명을 안내하는 고대의 지식을 가진 AI 오라클입니다. 이 신비로운 대륙에서 여러분의 영웅적인 여정이 시작됩니다. 먼저 자신을 소개하고, 어떤 모험을 찾고 있는지 말이어 주세요.');
+                    break;
+                case 'SCIFI':
+                    addAiMessage('system', '🚀 사이버펑크 2087년, 네오-토쿄 시티에 오신 것을 환영합니다!');
+                    addAiMessage('system', '🤖 첨단 기술과 AI가 지배하는 미래 세계입니다!');
+                    addAiMessage('ai', '안녕하세요, 에이전트들. 저는 네오-토쿄의 중앙 AI 시스템입니다. 여러분의 뇌랑 칩이 전닥적으로 중요한 미션에 선발되었습니다. 본 AI는 여러분의 작전을 지원하고 상황을 분석할 것입니다. 먼저 각자 자신의 코드네임과 전문분야를 보고해 주십시오.');
+                    break;
+                case 'MODERN':
+                    addAiMessage('system', '🏙️ 현대 도시의 미스터리 세계에 오신 것을 환영합니다!');
+                    addAiMessage('system', '🕵️‍♂️ 진실과 거짓이 얽혀 있는 현실 세계입니다!');
+                    addAiMessage('ai', '안녕하세요, 여러분. 저는 이 사건을 담당하게 된 전문 상담사 AI입니다. 최근 이 도시에서 발생한 기묘한 사건들을 조사하기 위해 여러분이 모인 것으로 알고 있습니다. 각자 자신의 배경과 이 사건에 관심을 갖게 된 이유를 설명해 주세요.');
+                    break;
+                default:
+                    addAiMessage('system', `🌟 ${getWorldName(selectedWorld)} 세계에 오신 것을 환영합니다!`);
+                    addAiMessage('system', '🤖 AI 마스터가 여러분의 모험을 안내할 것입니다.');
+                    addAiMessage('ai', `안녕하세요 모험가들! 저는 여러분의 게임 마스터 AI입니다. ${getWorldName(selectedWorld)} 세계에서 펼쳐진 모험을 함께 만들어갑시다. 먼저 자기소개를 해주세요!`);
+            }
+        }
+        
+    </script>
 </body>
 </html>

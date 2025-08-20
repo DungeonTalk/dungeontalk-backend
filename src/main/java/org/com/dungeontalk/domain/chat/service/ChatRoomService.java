@@ -18,6 +18,8 @@ import org.com.dungeontalk.domain.chat.repository.ChatRoomRepository;
 import org.com.dungeontalk.domain.chat.util.ChatRoomProperties;
 import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
+import org.com.dungeontalk.global.exception.ErrorCode;
+import org.com.dungeontalk.global.exception.customException.ChatException;
 import org.com.dungeontalk.global.redis.ChatRoomMemberManager;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
@@ -32,12 +34,12 @@ public class ChatRoomService {
     private final ChatRoomMemberManager chatRoomMemberManager;  // Redis
     private final SimpMessageSendingOperations messagingTemplate;
     private final MemberRepository memberRepository;
-    private final ChatRoomProperties chatRoomProperties; // ✅ 주입
+    private final ChatRoomProperties chatRoomProperties;
 
-    // 채팅방 생성
+    /** 채팅방 생성 */
     @Transactional
     public ChatRoomDto createRoom(ChatRoomCreateRequestDto req) {
-        Long capacity = (req.getMaxCapacity() != null)
+        Integer capacity = (req.getMaxCapacity() != null)
             ? req.getMaxCapacity()
             : chatRoomProperties.getDefaultMaxCapacity();
 
@@ -53,16 +55,16 @@ public class ChatRoomService {
         return fromEntity(saved);
     }
 
-    // 채팅방 단일 조회
+    /** 채팅방 단일 조회 */
     @Transactional(readOnly = true)
     public ChatRoomDto getRoomById(String roomId) {
         ChatRoom room = chatRoomRepository.findById(roomId)
-            .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다: " + roomId));
+            .orElseThrow(() -> new ChatException(ErrorCode.CHAT_ROOM_NOT_FOUND, "roomId=" + roomId));
 
         return fromEntity(room);
     }
 
-    // 채팅방 전체 조회
+    /** 채팅방 전체 조회 */
     @Transactional(readOnly = true)
     public List<ChatRoomDto> getAllRooms() {
         return chatRoomRepository.findAll().stream()
@@ -70,21 +72,23 @@ public class ChatRoomService {
             .toList();
     }
 
-    // 참여자 입장
+    /** 참여자 입장 */
     @Transactional
     public boolean joinRoom(String roomId, String memberId) {
         ChatRoom room = chatRoomRepository.findById(roomId)
-            .orElseThrow(() -> new IllegalArgumentException("채팅방 없음: " + roomId));
+            .orElseThrow(() -> new ChatException(ErrorCode.CHAT_ROOM_NOT_FOUND, "roomId=" + roomId));
 
         // ✅ 유효 정원 계산: null → default, 0/음수 → 무제한
-        Long capacity = (room.getMaxCapacity() != null) ? room.getMaxCapacity() : chatRoomProperties.getDefaultMaxCapacity();
+        Integer capacity = (room.getMaxCapacity() != null) ? room.getMaxCapacity()
+            : chatRoomProperties.getDefaultMaxCapacity();
         long current = chatRoomMemberManager.getUserCount(roomId);
 
         boolean capacityLimited = (capacity != null) && (capacity > 0);
         if (capacityLimited && current >= capacity) {
             // 정원 초과
             broadcastPresence(roomId, "JOIN_IGNORED");
-            return false;
+            throw new ChatException(ErrorCode.CHAT_CAPACITY_EXCEEDED,
+                "roomId=%s, cap=%d, curr=%d".formatted(roomId, capacity, current));
         }
 
         String nickName = memberRepository.findById(memberId)
@@ -122,11 +126,11 @@ public class ChatRoomService {
     // Presence 하나로만 브로드캐스트 (정원/현재인원/목록/이벤트)
     private void broadcastPresence(String roomId, String eventType) {
         ChatRoom room = chatRoomRepository.findById(roomId)
-            .orElseThrow(() -> new IllegalArgumentException("채팅방 없음: " + roomId));
+            .orElseThrow(() -> new ChatException(ErrorCode.CHAT_ROOM_NOT_FOUND, "roomId=" + roomId));
 
         // 유효 정원 계산: room.maxCapacity가 null이면 설정 기본값 사용.
         // 0 또는 음수 → '무제한'으로 해석하고, 페이로드에 0으로 전달(프론트에서 '-' 처리 권장)
-        Long max = resolveEffectiveCapacity(room);
+        Integer max = resolveEffectiveCapacity(room);
 
         Map<String, String> nickMap = Optional
             .ofNullable(chatRoomMemberManager.getOnlineNickMap(roomId))
@@ -150,35 +154,32 @@ public class ChatRoomService {
         messagingTemplate.convertAndSend("/sub/chat/room/" + roomId, payload);
     }
 
-    // ✅ 정원 결정 로직 (null → 설정 기본값, ≤0 → 무제한=0)
-    private Long resolveEffectiveCapacity(ChatRoom room) {
-        Long capacity = room.getMaxCapacity();
-        if (capacity == null) {
-            capacity = chatRoomProperties.getDefaultMaxCapacity(); // yml에서 주입, 없으면 properties에서 3으로 기본
-        }
-
-        // cap이 여전히 null이거나 0/음수면 무제한 취급 → 0 반환
-        if (capacity == null || capacity <= 0) {
-            return 0L;
-        }
+    // ✅ 정원 결정 로직 (null → 설정 기본값, ≤0 → 무제한 = 0)
+    private Integer resolveEffectiveCapacity(ChatRoom room) {
+        Integer capacity = Optional.ofNullable(room.getMaxCapacity())
+            .orElse(chatRoomProperties.getDefaultMaxCapacity());
+        if (capacity == null || capacity <= 0) return 0;       // 무제한
         return capacity;
     }
 
     /**
      * 운영 중 방의 정원을 바꿔야 할 수도 있으니, 현재 접속자 수보다 작은 값으로는 못 줄이게 설정
+     * (아직 사용 X)
      */
     @Transactional
     public ChatRoomDto updateRoomCapacity(String roomId, Integer newCap) {
         ChatRoom room = chatRoomRepository.findById(roomId)
-            .orElseThrow(() -> new IllegalArgumentException("채팅방 없음: " + roomId));
+            .orElseThrow(() -> new ChatException(ErrorCode.CHAT_ROOM_NOT_FOUND, "roomId=" + roomId));
 
         long online = chatRoomMemberManager.getUserCount(roomId);
         boolean limited = (newCap != null) && (newCap > 0);
         if (limited && online > newCap) {
-            throw new IllegalStateException("현재 접속자(" + online + ")보다 작은 정원(" + newCap + ")으로는 설정할 수 없습니다.");
+            throw new ChatException(ErrorCode.CHAT_CAPACITY_EXCEEDED,
+                "현재 접속자(" + online + ")보다 작은 정원(" + newCap + ")으로는 설정할 수 없습니다.");
         }
 
-        room.updateChatRoom(room.getMaxCapacity(), room.getUpdatedAt());
+        // 엔티티 메서드명 기준
+        room.updateCapacity(room.getMaxCapacity(), room.getUpdatedAt());
         ChatRoom saved = chatRoomRepository.save(room);
 
         // 정원 변경도 Presence로 알려주면 UX 좋음

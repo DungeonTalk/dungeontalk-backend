@@ -15,8 +15,6 @@ public class AiMessageSaveRequest {
     private final String gameId;
     private final String content;
     private final int turnNumber;
-    private final Long responseTime;
-    private final String aiSources;
     
     /**
      * 빌더 패턴으로 생성된 객체의 유효성을 검증합니다.

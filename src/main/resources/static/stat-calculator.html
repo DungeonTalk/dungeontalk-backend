@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>스탯 계산 테스트</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --accent: #4f46e5;
+            --accent-2: #22c55e;
+            --danger: #ef4444;
+            --border: #1f2937;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            background: radial-gradient(1250px 650px at 0% 0%, rgba(79,70,229,0.15), transparent),
+            radial-gradient(1250px 650px at 100% 0%, rgba(34,197,94,0.15), transparent),
+            var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 32px 16px 80px;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        h1 { font-size: 22px; margin: 0; }
+        .card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 720px) { .row { grid-template-columns: 1.2fr 0.8fr; } }
+
+        label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+        input[type="text"], select {
+            width: 100%;
+            background: #0b1020;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            outline: none;
+        }
+        input[type="text"]:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,0.25); }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .status { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+        .result {
+            margin-top: 16px;
+            background: #0b1020;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            overflow: auto;
+            max-height: 60vh;
+        }
+        pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+
+        .error { color: var(--danger); font-size: 13px; margin-top: 8px; }
+        .grid {
+            margin-top: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .grid table { width: 100%; border-collapse: collapse; }
+        .grid th, .grid td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+        .grid th { text-align: left; font-size: 12px; color: var(--muted); background: #0e152b; }
+        .grid tr:last-child td { border-bottom: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>캐릭터 스탯 계산 테스트</h1>
+        <div class="status" id="status">대기 중</div>
+    </header>
+
+    <div class="card">
+        <div class="row">
+            <div>
+                <label for="characterId">캐릭터 ID</label>
+                <input id="characterId" type="text" placeholder="예: 018f9b6b-8f1e-7fc4-b2a7-8b6fbe8a7f0c" />
+            </div>
+            <div>
+                <label for="endpoint">엔드포인트</label>
+                <select id="endpoint">
+                    <option value="prod">/v1/stat/{characterId}/calculated</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="controls" style="margin-top:12px;">
+            <button id="runBtn">계산하기</button>
+            <button id="copyBtn" class="secondary" disabled>JSON 복사</button>
+            <span class="status" id="lastUrl"></span>
+        </div>
+
+        <div id="error" class="error" style="display:none;"></div>
+
+        <div class="result" id="result" style="display:none;">
+            <pre id="json"></pre>
+        </div>
+
+        <div class="grid" id="tableWrap" style="display:none;">
+            <table>
+                <thead>
+                <tr>
+                    <th style="width:45%">스탯 키</th>
+                    <th>값</th>
+                </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const $ = (id) => document.getElementById(id);
+
+    function buildUrl(baseType, characterId) {
+        return `/v1/stat/${encodeURIComponent(characterId)}/calculated`;
+    }
+
+    function setStatus(text) { $('status').textContent = text; }
+    function setLastUrl(url) { $('lastUrl').textContent = url ? `요청: ${url}` : ''; }
+
+    function renderJson(data) {
+        const jsonText = JSON.stringify(data, null, 2);
+        $('json').textContent = jsonText;
+        $('result').style.display = 'block';
+        $('copyBtn').disabled = false;
+    }
+
+    function renderTable(data, endpointType) {
+        const tbody = $('tableBody');
+        tbody.innerHTML = '';
+        // 컨트롤러 응답 DTO 필드 중 스탯만 표시
+        const keys = ['hp','mp','physicalAttack','magicAttack','evasionRate','accuracy','diceOdds'];
+        keys.forEach((key) => {
+            if (!(key in data)) return;
+            const tr = document.createElement('tr');
+            const tdKey = document.createElement('td');
+            const tdVal = document.createElement('td');
+            tdKey.textContent = key;
+            tdVal.textContent = typeof data[key] === 'number' ? data[key].toFixed(4) : String(data[key]);
+            tr.appendChild(tdKey);
+            tr.appendChild(tdVal);
+            tbody.appendChild(tr);
+        });
+        $('tableWrap').style.display = keys.length ? 'block' : 'none';
+    }
+
+    async function onRun() {
+        const characterId = $('characterId').value.trim();
+        const endpointType = $('endpoint').value;
+        $('error').style.display = 'none';
+        $('result').style.display = 'none';
+        $('tableWrap').style.display = 'none';
+        $('copyBtn').disabled = true;
+
+        if (!characterId) {
+            $('error').textContent = '캐릭터 ID를 입력하세요.';
+            $('error').style.display = 'block';
+            return;
+        }
+
+        const url = buildUrl(endpointType, characterId);
+        setLastUrl(url);
+        setStatus('요청 중...');
+        $('runBtn').disabled = true;
+
+        try {
+            const res = await fetch(url, { method: 'GET' });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`HTTP ${res.status} - ${text || res.statusText}`);
+            }
+            const data = await res.json();
+            renderJson(data);
+            renderTable(data, endpointType);
+            setStatus('완료');
+        } catch (err) {
+            $('error').textContent = err.message || String(err);
+            $('error').style.display = 'block';
+            setStatus('실패');
+        } finally {
+            $('runBtn').disabled = false;
+        }
+    }
+
+    async function onCopy() {
+        const text = $('json').textContent;
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            const prev = $('status').textContent;
+            setStatus('JSON 복사됨');
+            setTimeout(() => setStatus(prev), 1200);
+        } catch {}
+    }
+
+    $('runBtn').addEventListener('click', onRun);
+    $('copyBtn').addEventListener('click', onCopy);
+
+    // Enter key to submit
+    $('characterId').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') onRun();
+    });
+</script>
+</body>
+</html>

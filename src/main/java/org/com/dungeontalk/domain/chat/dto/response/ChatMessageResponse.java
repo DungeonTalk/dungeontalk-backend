@@ -11,6 +11,6 @@ public class ChatMessageResponse {
     private String roomId;
     private String senderId;
     private String senderNickname;      // PostgreSQL에서 조회된 닉네임
-    private String message;
+    private String content;
     private Instant createdAt;
 }

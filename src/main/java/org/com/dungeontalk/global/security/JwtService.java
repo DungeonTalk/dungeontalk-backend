@@ -33,27 +33,36 @@ public class JwtService {
 
     // 토큰에서 멤버 객체 생성
     public Member getMemberFromToken(String token) {
-        System.out.println("멤버 추출 메서드 진입");
 
         String memberId = extractIdFromToken(token);
-
-        System.out.println("멤버 아이디 추출 : " + memberId);  // 테스트 결과 정상 추출
-
-        /* 여기서 문제 확인 */
-        Member member = memberRepository.findById(memberId)
+        return memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(ErrorCode.GLOBAL_ERROR));
-
-        System.out.println("member 추출 : " + member);
-
-        return member;
     }
 
     // 토큰에서 고유 번호 추출
     public String extractIdFromToken(String token) {
 
-        System.out.println("토큰에서 고유 번호 추출 메서드 진입 ");
         return jwtProvider.extractClaims(token).get("id", String.class);
     }
+
+    public CustomUserDetails getUserDetailsFromToken(String accessToken) {
+        Claims claims = jwtProvider.extractClaims(accessToken);
+
+        String id = claims.get("id", String.class);
+        String name = claims.get("name", String.class);
+        String nickName = claims.get("nickName", String.class);
+
+        // ======================= BEFORE VERSION =========================
+        /* 혹은 DB를 거치는 방법 : 캐싱 필요 - 매 요청마다 DB를 거치면 부담이 크기 때문 */
+        // 토큰 유효성 검사 및 멤버 조회 // 캐싱의 대상
+        //Member member = jwtService.getMemberFromToken(accessToken);
+        // 인증 정보 생성 및 SecurityContext에 저장
+        //CustomUserDetails userDetails = new CustomUserDetails(member);
+        // ======================= BEFORE VERSION =========================
+
+        return new CustomUserDetails(id, name, nickName);
+    }
+
 
 
 }

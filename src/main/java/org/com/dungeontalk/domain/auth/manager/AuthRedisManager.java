@@ -41,8 +41,6 @@ public class AuthRedisManager {
                 .getBody();
 
         Date expiration = claims.getExpiration();
-
-        // todo : instant
         long now = System.currentTimeMillis();
         long expirationTimeMs = expiration.getTime();
 

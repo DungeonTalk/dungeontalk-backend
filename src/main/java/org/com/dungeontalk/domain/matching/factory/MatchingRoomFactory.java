@@ -34,13 +34,14 @@ public class MatchingRoomFactory {
         log.debug("AI 게임방 생성 시작: sessionId={}, worldType={}", 
                  context.getGameSessionId(), context.getWorldType());
         
-        AiGameRoomCreateRequest request = new AiGameRoomCreateRequest();
-        request.setGameId(context.getGameSessionId());
-        request.setRoomName(buildAiGameRoomName(context.getWorldType()));
-        request.setDescription(buildAiGameRoomDescription(context.getWorldType()));
-        request.setMaxParticipants(MatchingConstants.REQUIRED_PARTICIPANTS);
-        request.setGameSettings(context.getWorldType().getGameSettings());
-        request.setCreatorId(selectCreator(context.getParticipants()));
+        AiGameRoomCreateRequest request = AiGameRoomCreateRequest.builder()
+                .gameId(context.getGameSessionId())
+                .roomName(buildAiGameRoomName(context.getWorldType()))
+                // description 필드 제거됨
+                .maxParticipants(MatchingConstants.REQUIRED_PARTICIPANTS)
+                .gameSettings(context.getWorldType().getGameSettings())
+                .creatorId(selectCreator(context.getParticipants()))
+                .build();
         
         AiGameRoomResponse response = aiGameRoomService.createAiGameRoom(request);
         
@@ -52,21 +53,22 @@ public class MatchingRoomFactory {
     /**
      * 채팅방 생성
      */
-    public ChatRoomDto createChatRoom(RoomCreationContext context) {
-        log.debug("채팅방 생성 시작: sessionId={}, worldType={}", 
-                 context.getGameSessionId(), context.getWorldType());
-        
-        ChatRoomCreateRequestDto request = new ChatRoomCreateRequestDto();
-        request.setRoomName(buildChatRoomName(context.getWorldType()));
-        request.setMode(ChatMode.MULTI);
-        request.setParticipantIds(context.getParticipants());
-        
-        ChatRoomDto response = chatRoomService.createRoom(request);
-        
-        log.info("채팅방 생성 완료: roomId={}, sessionId={}", 
-                response.getId(), context.getGameSessionId());
-        return response;
-    }
+ 
+//    public ChatRoomDto createChatRoom(RoomCreationContext context) {
+//        log.debug("채팅방 생성 시작: sessionId={}, worldType={}",
+//                 context.getGameSessionId(), context.getWorldType());
+//
+//        ChatRoomCreateRequestDto request = new ChatRoomCreateRequestDto();
+//        request.setRoomName(buildChatRoomName(context.getWorldType()));
+//        request.setMode(ChatMode.MULTI);
+//        request.setParticipantIds(context.getParticipants());
+//
+//        ChatRoomDto response = chatRoomService.createRoom(request);
+//
+//        log.info("채팅방 생성 완료: roomId={}, sessionId={}",
+//                response.getId(), context.getGameSessionId());
+//        return response;
+//    }
     
     /**
      * AI 게임방 이름 생성

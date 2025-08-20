@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.aichat.dto.AiGameMessageDto;
+import org.com.dungeontalk.domain.aichat.dto.request.AiServiceRequest;
+import org.com.dungeontalk.domain.aichat.dto.request.ContextMessage;
+import org.com.dungeontalk.domain.aichat.dto.response.AiServiceResponse;
+import org.com.dungeontalk.domain.aichat.dto.response.AiGameRoomResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -19,10 +23,11 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiResponseService {
+public class AiApiService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final AiGameRoomService aiGameRoomService;
 
     @Value("${ai.service.url:http://localhost:8001}")
     private String aiServiceUrl;
@@ -33,7 +38,7 @@ public class AiResponseService {
     /**
      * Python AI 서비스에서 응답 생성
      */
-    public AiResponseResult generateAiResponse(String gameId, String aiGameRoomId, 
+    public AiServiceResponse generateAiResponse(String gameId, String aiGameRoomId, 
                                              String currentUser, String currentMessage,
                                              List<AiGameMessageDto> contextMessages, int turnNumber) {
         
@@ -43,8 +48,14 @@ public class AiResponseService {
             log.info("Python AI 서비스 호출 시작: roomId={}, user={}, turn={}", 
                      aiGameRoomId, currentUser, turnNumber);
 
+            // 게임방 정보 조회하여 gameSettings 가져오기
+            AiGameRoomResponse roomResponse = aiGameRoomService.getAiGameRoom(aiGameRoomId);
+            String gameSettings = roomResponse.getGameSettings();
+            
+            log.debug("게임 세계관 설정: {}", gameSettings);
+
             // 요청 데이터 구성
-            AiResponseRequest request = AiResponseRequest.builder()
+            AiServiceRequest request = AiServiceRequest.builder()
                     .gameId(gameId)
                     .aiGameRoomId(aiGameRoomId)
                     .currentUser(currentUser)
@@ -53,13 +64,14 @@ public class AiResponseService {
                             .map(this::convertToContextMessage)
                             .toList())
                     .turnNumber(turnNumber)
+                    .gameSettings(gameSettings)
                     .build();
 
             // HTTP 헤더 설정
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<AiResponseRequest> httpEntity = new HttpEntity<>(request, headers);
+            HttpEntity<AiServiceRequest> httpEntity = new HttpEntity<>(request, headers);
 
             // Python AI 서비스 호출
             ResponseEntity<Map> response = restTemplate.exchange(
@@ -84,7 +96,7 @@ public class AiResponseService {
                     responseTime = ((Number) responseBody.get("response_time")).longValue();
                 }
                 
-                AiResponseResult result = AiResponseResult.builder()
+                AiServiceResponse result = AiServiceResponse.builder()
                         .content(content)
                         .responseTime(responseTime)
                         .sources((List<String>) responseBody.get("sources"))
@@ -150,44 +162,4 @@ public class AiResponseService {
                 .build();
     }
 
-    // Inner classes for request/response DTOs
-    @lombok.Builder
-    @lombok.Data
-    public static class AiResponseRequest {
-        @com.fasterxml.jackson.annotation.JsonProperty("game_id")
-        private String gameId;
-        
-        @com.fasterxml.jackson.annotation.JsonProperty("ai_game_room_id")
-        private String aiGameRoomId;
-        
-        @com.fasterxml.jackson.annotation.JsonProperty("current_user")
-        private String currentUser;
-        
-        @com.fasterxml.jackson.annotation.JsonProperty("current_message")
-        private String currentMessage;
-        
-        @com.fasterxml.jackson.annotation.JsonProperty("context_messages")
-        private List<ContextMessage> contextMessages;
-        
-        @com.fasterxml.jackson.annotation.JsonProperty("turn_number")
-        private int turnNumber;
-    }
-
-    @lombok.Builder
-    @lombok.Data
-    public static class ContextMessage {
-        private String messageType;
-        private String senderNickname;
-        private String content;
-        private int turnNumber;
-        private int messageOrder;
-    }
-
-    @lombok.Builder
-    @lombok.Data
-    public static class AiResponseResult {
-        private String content;
-        private Long responseTime;
-        private List<String> sources;
-    }
 }

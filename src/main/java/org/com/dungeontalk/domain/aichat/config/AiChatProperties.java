@@ -1,6 +1,6 @@
 package org.com.dungeontalk.domain.aichat.config;
 
-import lombok.Data;
+import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * 
  * 동료 개발자들이 설정 변경 시 코드 수정 없이 properties 파일만 수정하면 됩니다!
  */
-@Data
+@Getter
 @Component
 @ConfigurationProperties(prefix = "aichat")
 public class AiChatProperties {
@@ -35,7 +35,7 @@ public class AiChatProperties {
      */
     private MessageOrder messageOrder = new MessageOrder();
 
-    @Data
+    @Getter
     public static class Session {
         /**
          * 게임 세션 타임아웃 (초)
@@ -48,7 +48,7 @@ public class AiChatProperties {
         private int turnLockTimeoutSeconds = 300;
     }
 
-    @Data
+    @Getter
     public static class Context {
         /**
          * AI 컨텍스트 메시지 개수
@@ -56,7 +56,7 @@ public class AiChatProperties {
         private int messageCount = 5;
     }
 
-    @Data
+    @Getter
     public static class Websocket {
         /**
          * WebSocket destination prefix
@@ -64,7 +64,7 @@ public class AiChatProperties {
         private String destinationPrefix = "/sub/aichat/room/";
     }
 
-    @Data
+    @Getter
     public static class MessageOrder {
         /**
          * 턴 시작 메시지 순서

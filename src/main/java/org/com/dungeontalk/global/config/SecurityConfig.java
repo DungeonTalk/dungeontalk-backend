@@ -15,6 +15,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -26,6 +28,36 @@ public class SecurityConfig {
         return (web) -> web.ignoring()
                 .requestMatchers("/test-auth.html", "/debug-login.html", "/*.html")
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico");
+    }
+
+    // 공개 API를 한 곳에서 정의
+    private static final String[] PUBLIC_URLS = {
+            "/v1/member/register",
+            "/v1/auth/login",
+            "/v1/valkey/session/keys",
+            "/v1/valkey/session/all",
+            "/v1/auth/refresh",
+            "/v1/valkey/session/test/save",
+            "/v1/stat/**",
+            "/v1/characters/**",
+            "/init/**",
+            "/stat-calculator.html",
+            "/character-test.html",
+            "/dungeon-game.html",
+            "/ws-chat/**",
+            // Swagger UI 관련 경로들
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/webjars/**",
+            "/swagger-resources/**",
+            "/dungeontalk-heartbeat.html",
+            // 게임 관련 조회 API만 공개
+            "/v1/match/queue-stats",
+            "/v1/aichat/rooms/available"
+    };
+
+    public List<String> getPublicUrls() {
+        return List.of(PUBLIC_URLS);
     }
 
     @Bean
@@ -64,7 +96,9 @@ public class SecurityConfig {
                         }
                     })
                 )
-                .authorizeHttpRequests(req -> req
+                
+                // 권한 url 설정
+                .authorizeHttpRequests(auth -> auth
                         // 정적 리소스 허용
                         .requestMatchers("/", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers("/*.html", "/test-auth.html").permitAll()
@@ -73,21 +107,18 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/test", "/error", "/chat", "/profile", "/settings").permitAll()
                         .requestMatchers("/game").authenticated()
                         
-                        // 회원가입, 로그인, 로그아웃 API 허용
-                        .requestMatchers("/v1/member/register").permitAll()
-                        .requestMatchers("/v1/auth/login", "/v1/auth/server-login", "/v1/auth/logout", "/v1/auth/server-logout").permitAll()
-                        .requestMatchers("/v1/valkey/session/all").permitAll()
+                        // 서버사이드 로그인/로그아웃 추가
+                        .requestMatchers("/v1/auth/server-login", "/v1/auth/server-logout").permitAll()
                         
-                        // Swagger UI 허용
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Swagger UI 관련
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                         
-                        // WebSocket 엔드포인트 허용
-                        .requestMatchers("/ws-chat/**", "/ws-matching/**", "/ws-ai-chat/**").permitAll()
+                        // PUBLIC_URLS 배열 사용
+                        .requestMatchers(PUBLIC_URLS).permitAll()
                         
-                        // 나머지는 모두 허용 (개발 단계)
-                        .anyRequest().permitAll())
-                        
-                // JWT 필터 활성화
+                        // 나머지는 인증 필요
+                        .anyRequest().authenticated()
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -107,6 +138,6 @@ public class SecurityConfig {
 
     // ======================= 권한 설정 로직 =========================
 
-  // 아직 권한은 없으니, 보류
+    /* 아직 권한은 없으니, 보류 */
 
 }

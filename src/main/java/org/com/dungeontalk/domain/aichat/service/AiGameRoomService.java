@@ -20,11 +20,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
 @Slf4j
 @Service
@@ -46,14 +48,11 @@ public class AiGameRoomService {
                 .id(UuidV7Creator.create())
                 .gameId(request.getGameId())
                 .roomName(request.getRoomName())
-                .description(request.getDescription())
                 .status(AiGameStatus.CREATED)
                 .currentPhase(AiGamePhase.WAITING)
-                .currentTurn(1)
-                .maxParticipants(request.getMaxParticipants())
-                .participants(new ArrayList<>())
+                .maxParticipants(request.getMaxParticipants() > 0 ? 
+                    request.getMaxParticipants() : DEFAULT_MAX_PARTICIPANTS)
                 .gameSettings(request.getGameSettings())
-                .lastActivity(LocalDateTime.now())
                 .build();
 
         // 생성자를 첫 번째 참여자로 추가
@@ -86,15 +85,18 @@ public class AiGameRoomService {
 
         // 참여자 추가
         room.getParticipants().add(request.getParticipantId());
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
 
         // 정원이 찼으면 게임 시작
+        AiGameRoom roomToSave = room;
         if (room.getCurrentParticipantCount() >= room.getMaxParticipants()) {
-            room.setStatus(AiGameStatus.ACTIVE);
-            room.setCurrentPhase(AiGamePhase.TURN_INPUT);
+            roomToSave = room.toBuilder()
+                    .status(AiGameStatus.ACTIVE)
+                    .currentPhase(AiGamePhase.TURN_INPUT)
+                    .build();
         }
 
-        AiGameRoom saved = aiGameRoomRepository.save(room);
+        AiGameRoom saved = aiGameRoomRepository.save(roomToSave);
         log.info("AI 게임방 참여 완료: roomId={}, participant={}, currentCount={}", 
                  saved.getId(), request.getParticipantId(), saved.getCurrentParticipantCount());
 
@@ -114,15 +116,18 @@ public class AiGameRoomService {
         }
 
         room.getParticipants().remove(participantId);
-        room.setLastActivity(LocalDateTime.now());
+        // lastActivity 필드 제거됨
 
         // 참여자가 모두 나가면 게임 종료
+        AiGameRoom roomToSave = room;
         if (room.getParticipants().isEmpty()) {
-            room.setStatus(AiGameStatus.COMPLETED);
-            room.setCurrentPhase(AiGamePhase.GAME_END);
+            roomToSave = room.toBuilder()
+                    .status(AiGameStatus.COMPLETED)
+                    .currentPhase(AiGamePhase.GAME_END)
+                    .build();
         }
 
-        aiGameRoomRepository.save(room);
+        aiGameRoomRepository.save(roomToSave);
         log.info("AI 게임방 퇴장 완료: roomId={}, participant={}, remainingCount={}", 
                  room.getId(), participantId, room.getCurrentParticipantCount());
     }
@@ -191,10 +196,12 @@ public class AiGameRoomService {
         AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
                 .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
 
-        room.setCurrentPhase(newPhase);
-        room.setLastActivity(LocalDateTime.now());
+        AiGameRoom updatedRoom = room.toBuilder()
+                .currentPhase(newPhase)
+                .build();
+        // lastActivity 필드 제거됨
 
-        AiGameRoom saved = aiGameRoomRepository.save(room);
+        AiGameRoom saved = aiGameRoomRepository.save(updatedRoom);
         log.info("AI 게임방 페이즈 업데이트: roomId={}, newPhase={}", aiGameRoomId, newPhase);
 
         return AiGameRoomResponse.fromEntity(saved);
@@ -208,11 +215,13 @@ public class AiGameRoomService {
         AiGameRoom room = aiGameRoomRepository.findById(aiGameRoomId)
                 .orElseThrow(() -> new AiChatException(ErrorCode.AI_GAME_ROOM_NOT_FOUND));
 
-        room.setCurrentTurn(room.getCurrentTurn() + 1);
-        room.setCurrentPhase(AiGamePhase.TURN_INPUT);
-        room.setLastActivity(LocalDateTime.now());
+        AiGameRoom updatedRoom = room.toBuilder()
+                .currentTurn(room.getCurrentTurn() + 1)
+                .currentPhase(AiGamePhase.TURN_INPUT)
+                .build();
+        // lastActivity 필드 제거됨
 
-        AiGameRoom saved = aiGameRoomRepository.save(room);
+        AiGameRoom saved = aiGameRoomRepository.save(updatedRoom);
         log.info("AI 게임방 턴 증가: roomId={}, newTurn={}", aiGameRoomId, saved.getCurrentTurn());
 
         return AiGameRoomResponse.fromEntity(saved);

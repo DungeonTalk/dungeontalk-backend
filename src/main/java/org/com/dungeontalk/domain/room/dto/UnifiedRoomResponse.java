@@ -1,5 +1,6 @@
 package org.com.dungeontalk.domain.room.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,100 +14,59 @@ import org.com.dungeontalk.domain.chat.dto.ChatRoomDto;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * 통합된 룸 응답 DTO
- * AI 게임룸과 플레이어 채팅룸 응답을 통합
- */
+@Schema(description = "통합 룸 응답")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UnifiedRoomResponse {
 
-    // === 공통 필드 ===
-    
-    /**
-     * 룸 ID
-     */
+    @Schema(description = "룸 ID", example = "room-12345")
     private String roomId;
     
-    /**
-     * 룸 타입
-     */
+    @Schema(description = "룸 타입", example = "AI_GAME")
     private RoomType roomType;
     
-    /**
-     * 룸 이름
-     */
+    @Schema(description = "룸 이름", example = "재미있는 던전탐험")
     private String roomName;
     
-    /**
-     * 룸 설명
-     */
+    @Schema(description = "룸 설명", example = "초보자도 환영하는 던전탐험")
     private String description;
     
-    /**
-     * 룸 상태
-     */
+    @Schema(description = "룸 상태", example = "CREATED")
     private UnifiedRoomStatus status;
     
-    /**
-     * 현재 참여자 수
-     */
+    @Schema(description = "현재 참여자 수", example = "2")
     private int currentParticipants;
     
-    /**
-     * 최대 참여자 수
-     */
+    @Schema(description = "최대 참여자 수", example = "4")
     private int maxParticipants;
     
-    /**
-     * 참여자 ID 목록
-     */
+    @Schema(description = "참여자 ID 목록")
     private List<String> participantIds;
     
-    /**
-     * 생성 시간 (UTC)
-     */
+    @Schema(description = "생성 시간 (UTC)")
     private Instant createdAt;
     
-    /**
-     * 수정 시간 (UTC)
-     */
+    @Schema(description = "수정 시간 (UTC)")
     private Instant updatedAt;
 
-    // === AI 게임룸 전용 필드 ===
-    
-    /**
-     * 연결된 게임 ID
-     */
+    @Schema(description = "연결된 게임 ID (AI 게임룸용)", example = "game-12345")
     private String gameId;
     
-    /**
-     * 현재 턴 번호
-     */
+    @Schema(description = "현재 턴 번호 (AI 게임룸용)", example = "3")
     private Integer currentTurn;
     
-    /**
-     * 게임 설정
-     */
+    @Schema(description = "게임 설정 (AI 게임룸용)", example = "{\"difficulty\": \"normal\"}")
     private String gameSettings;
     
-    /**
-     * 마지막 활동 시간 (UTC)
-     */
+    @Schema(description = "마지막 활동 시간 (AI 게임룸용)")
     private Instant lastActivity;
 
-    // === 플레이어 채팅룸 전용 필드 ===
-    
-    /**
-     * 최대 용량 (플레이어 채팅룸용)
-     */
+    @Schema(description = "최대 용량 (플레이어 채팅룸용)", example = "10")
     private Long maxCapacity;
     
-    /**
-     * 현재 온라인 사용자 수
-     */
+    @Schema(description = "현재 온라인 사용자 수 (플레이어 채팅룸용)", example = "5")
     private Long onlineUserCount;
 
     /**
@@ -139,7 +99,6 @@ public class UnifiedRoomResponse {
                 .roomId(aiResponse.getId())
                 .roomType(RoomType.AI_GAME)
                 .roomName(aiResponse.getRoomName())
-                .description(aiResponse.getDescription())
                 .status(mapAiGameStatus(aiResponse.getStatus()))
                 .currentParticipants(aiResponse.getCurrentParticipantCount())
                 .maxParticipants(aiResponse.getMaxParticipants())
@@ -149,8 +108,6 @@ public class UnifiedRoomResponse {
                 // AI 게임룸 전용 필드
                 .gameId(aiResponse.getGameId())
                 .currentTurn(aiResponse.getCurrentTurn())
-                .lastActivity(aiResponse.getLastActivity() != null ? 
-                          aiResponse.getLastActivity().atZone(java.time.ZoneOffset.UTC).toInstant() : null)
                 .build();
     }
 

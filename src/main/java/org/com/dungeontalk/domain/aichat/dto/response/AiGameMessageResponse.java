@@ -1,16 +1,18 @@
 package org.com.dungeontalk.domain.aichat.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 import org.com.dungeontalk.domain.aichat.common.AiMessageType;
 import org.com.dungeontalk.domain.aichat.entity.AiGameMessage;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
-@Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AiGameMessageResponse {
 
     private String messageId;
@@ -21,8 +23,7 @@ public class AiGameMessageResponse {
     private AiMessageType messageType;
     private int turnNumber;
     private int messageOrder;
-    private Long aiResponseTime;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /**
      * AI 메시지 여부
@@ -53,7 +54,6 @@ public class AiGameMessageResponse {
                 .messageType(message.getMessageType())
                 .turnNumber(message.getTurnNumber())
                 .messageOrder(message.getMessageOrder())
-                .aiResponseTime(message.getAiResponseTime())
                 .createdAt(message.getCreatedAt())
                 .build();
     }
@@ -71,7 +71,6 @@ public class AiGameMessageResponse {
                 .messageType(dto.getMessageType())
                 .turnNumber(dto.getTurnNumber())
                 .messageOrder(dto.getMessageOrder())
-                .aiResponseTime(dto.getAiResponseTime())
                 .createdAt(dto.getCreatedAt())
                 .build();
     }

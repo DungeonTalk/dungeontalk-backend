@@ -6,6 +6,7 @@ import jakarta.persistence.Enumerated;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,16 +16,17 @@ import org.com.dungeontalk.domain.chat.common.ChatRoomType;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "chat_rooms")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-@Builder
+@Builder(toBuilder = true)
 public class ChatRoom {
 
     @Id
@@ -33,19 +35,20 @@ public class ChatRoom {
     @Indexed
     private String roomName;                 // ✅ 누락 보완
 
-    @Enumerated(EnumType.STRING)
     private ChatRoomType roomType;           // PLAYER or GAME
 
-    @Enumerated(EnumType.STRING)
     private ChatMode mode;                  // SINGLE or MULTI
-
-//    private List<String> participants;      // RDB 회원 ID
 
     /** null 이면 미설정 → 서비스에서 defaultMaxCapacity 적용.
      *  0 또는 음수면 '무제한'으로 해석 (권장) */
-    private Long maxCapacity;
+    private Integer maxCapacity;
 
-    @Builder.Default
+    /**
+     * 도큐먼트 폭증/이중 저장 방지를 위해 영속화 대상에서 제외
+     * (메시지는 별도 컬렉션 chat_messages 사용)
+     * 필요 없다면 필드 자체를 제거하는 것을 권장
+     */
+    @Transient
     private List<ChatMessage> messages = new ArrayList<>();
 
     @CreatedDate
@@ -54,9 +57,11 @@ public class ChatRoom {
     @LastModifiedDate
     private Instant updatedAt;
 
-    public void updateChatRoom(Long maxCapacity, Instant updatedAt) {
-        this.maxCapacity = maxCapacity;
-        this.updatedAt = updatedAt;
+    /** 도메인 메서드(세터 대체) */
+    public ChatRoom updateCapacity(Integer newCapacity, Instant now) {
+        this.maxCapacity = newCapacity;
+        this.updatedAt = now;
+        return this;
     }
 
 }

@@ -9,6 +9,7 @@ import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
 import org.com.dungeontalk.domain.auth.dto.request.RefreshTokenRequest;
 import org.com.dungeontalk.domain.auth.dto.response.AuthLoginResponse;
 import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
+import org.com.dungeontalk.domain.auth.dto.response.TokenResponse;
 import org.com.dungeontalk.domain.auth.manager.CookieManager;
 import org.com.dungeontalk.domain.auth.service.AuthService;
 import org.com.dungeontalk.global.rsData.RsData;
@@ -31,15 +32,16 @@ public class AuthController {
     @ResponseBody
     public RsData<AuthLoginResponse> login(
             @RequestBody AuthLoginRequest request,
-            HttpServletResponse httpServletResponse) {
+            HttpServletRequest httpServletRequest,
+            HttpServletResponse httpServletResponse) throws InterruptedException {
 
         // 로그인 서비스 레이어 호출
-        AuthLoginResponse jwtTokenResponse = authService.login(request);
+        TokenResponse tokenResponse = authService.login(request,httpServletRequest);
 
         // 쿠키에 리프레시 토큰 저장
-        authService.saveRefreshTokenToCookie(httpServletResponse, jwtTokenResponse.refreshToken());
+        authService.saveRefreshTokenToCookie(httpServletResponse, tokenResponse.getRefreshToken());
 
-        return RsData.of("200", "로그인 성공", jwtTokenResponse);
+        return RsData.of("200", "로그인 성공", new AuthLoginResponse(tokenResponse.getAccessToken()));
     }
     
     // 서버사이드 로그인 (폼 제출)
@@ -75,7 +77,7 @@ public class AuthController {
     // JWT 토큰 재발급
     @PostMapping("/refresh")
     @ResponseBody
-    public RsData<JwtTokenResponse> refreshToken(
+    public RsData<AuthLoginResponse> refreshToken(
             @RequestBody RefreshTokenRequest request,
             HttpServletResponse httpServletResponse) {
 
@@ -85,7 +87,7 @@ public class AuthController {
         // 쿠키에 리프레시 토큰 저장
         authService.saveRefreshTokenToCookie(httpServletResponse, jwtTokenResponse.getRefreshToken());
 
-        return RsData.of("200", "토큰 재발급 성공", jwtTokenResponse);
+        return RsData.of("200", "토큰 재발급 성공", new AuthLoginResponse(jwtTokenResponse.getAccessToken()));
     }
 
     // API 로그아웃 (JSON)

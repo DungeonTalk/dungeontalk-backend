@@ -1,5 +1,6 @@
 package org.com.dungeontalk.domain.room.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,75 +13,46 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
 
-/**
- * 통합된 룸 생성 요청 DTO
- * AI 게임룸과 플레이어 채팅룸 생성 요청을 통합
- */
+@Schema(description = "통합 룸 생성 요청")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UnifiedRoomRequest {
 
-    // === 공통 필드 ===
-    
-    /**
-     * 룸 타입 (필수)
-     */
+    @Schema(description = "룸 타입", example = "AI_GAME", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "룸 타입은 필수입니다")
     private RoomType roomType;
     
-    /**
-     * 룸 이름 (필수)
-     */
+    @Schema(description = "룸 이름", example = "재미있는 던전탐험", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "룸 이름은 필수입니다")
     private String roomName;
     
-    /**
-     * 룸 설명 (선택)
-     */
+    @Schema(description = "룸 설명", example = "초보자도 환영하는 던전탐험")
     private String description;
     
-    /**
-     * 최대 참여자 수 (선택, 기본값은 각 타입별 기본값 사용)
-     */
+    @Schema(description = "최대 참여자 수", example = "4")
     @Positive(message = "최대 참여자 수는 양수여야 합니다")
     private Integer maxParticipants;
     
-    /**
-     * 생성자 ID (필수)
-     */
+    @Schema(description = "생성자 ID", example = "user-12345", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "생성자 ID는 필수입니다")
     private String creatorId;
     
-    /**
-     * 초기 참여자 ID 목록 (선택)
-     */
+    @Schema(description = "초기 참여자 ID 목록")
     private List<String> participantIds;
 
-    // === AI 게임룸 전용 필드 ===
-    
-    /**
-     * 연결된 게임 ID (AI 게임룸용, 선택)
-     */
+    @Schema(description = "연결된 게임 ID (AI 게임룸용)", example = "game-12345")
     private String gameId;
     
-    /**
-     * 게임 설정 JSON (AI 게임룸용, 선택)
-     */
+    @Schema(description = "게임 설정 JSON (AI 게임룸용)", example = "{\"difficulty\": \"normal\"}")
     private String gameSettings;
 
-    // === 플레이어 채팅룸 전용 필드 ===
-    
-    /**
-     * 채팅 모드 (플레이어 채팅룸용, 선택)
-     */
+    @Schema(description = "채팅 모드 (플레이어 채팅룸용)", example = "MULTI")
     private ChatMode chatMode;
     
-    /**
-     * 최대 용량 (플레이어 채팅룸용, 선택)
-     */
-    private Long maxCapacity;
+    @Schema(description = "최대 용량 (플레이어 채팅룸용)", example = "10")
+    private Integer maxCapacity;
 
     /**
      * AI 게임룸 생성 요청인지 확인
