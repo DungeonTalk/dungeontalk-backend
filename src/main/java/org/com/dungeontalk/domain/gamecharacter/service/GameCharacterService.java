@@ -115,7 +115,7 @@ public class GameCharacterService {
             RequestExp currentLevelInfo = requestExpRepository.findByLevel(currentLevel)
                     .orElseThrow(() -> new IllegalStateException("레벨 정보를 찾을 수 없습니다: " + currentLevel));
 
-            // 만렙인지 확인
+            // 만렙인지 확인( getRequestNextLevelExp -> 만렙(30)인 경우 해당 컬럼이 유일하게 0)
             if (currentLevelInfo.getRequestNextLevelExp() == 0) {
                 break; // 만렙이면 더 이상 레벨업하지 않음
             }
