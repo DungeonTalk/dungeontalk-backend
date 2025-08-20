@@ -24,10 +24,8 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring()
-                .requestMatchers("/v1/member/register", "/v1/auth/login")
                 .requestMatchers("/test-auth.html", "/debug-login.html", "/*.html")
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico")
-                .requestMatchers("/login", "/game", "/chat", "/profile", "/settings", "/test", "/");
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico");
     }
 
     @Bean
@@ -44,10 +42,18 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 
-                // 인증 실패 시 401 반환 (리다이렉트 방지)
+                // 로그아웃 설정 비활성화 (커스텀 로그아웃 사용)
+                .logout(AbstractHttpConfigurer::disable)
+                
+                // 인증 실패 시 처리
                 .exceptionHandling(exceptions -> exceptions
                     .authenticationEntryPoint((request, response, authException) -> {
-                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                        // 게임 페이지 접근 시 index 페이지로 리다이렉트
+                        if (request.getRequestURI().equals("/game")) {
+                            response.sendRedirect("/");
+                        } else {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                        }
                     })
                 )
                 .authorizeHttpRequests(req -> req
@@ -55,12 +61,13 @@ public class SecurityConfig {
                         .requestMatchers("/", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers("/*.html", "/test-auth.html").permitAll()
                         
-                        // Thymeleaf 뷰 허용
-                        .requestMatchers("/login", "/test", "/error", "/game", "/chat", "/profile", "/settings").permitAll()
+                        // Thymeleaf 뷰 허용 (게임 페이지는 인증 필요)
+                        .requestMatchers("/login", "/test", "/error", "/chat", "/profile", "/settings").permitAll()
+                        .requestMatchers("/game").authenticated()
                         
-                        // 회원가입, 로그인 API 허용
+                        // 회원가입, 로그인, 로그아웃 API 허용
                         .requestMatchers("/v1/member/register").permitAll()
-                        .requestMatchers("/v1/auth/login").permitAll()
+                        .requestMatchers("/v1/auth/login", "/v1/auth/server-login", "/v1/auth/logout", "/v1/auth/server-logout").permitAll()
                         .requestMatchers("/v1/valkey/session/all").permitAll()
                         
                         // Swagger UI 허용

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+    <!-- 인증 디버깅 프래그먼트 - 필요시 include 해서 사용 -->
+    <th:block th:fragment="debug-auth">
+        <div class="bg-yellow-100 dark:bg-yellow-900 p-4 text-sm border-b-2 border-yellow-500">
+            <details class="cursor-pointer">
+                <summary class="font-bold">🔍 인증 디버깅 정보 (클릭하여 펼치기)</summary>
+                <div class="mt-2 space-y-2">
+                    <!-- 기본 인증 정보 -->
+                    <div th:if="${#authentication}" class="border-l-4 border-green-500 pl-2">
+                        <p class="font-semibold text-green-700">✅ 인증 객체 존재</p>
+                        <ul class="ml-4 text-xs">
+                            <li>Principal: <code th:text="${#authentication.principal}">principal</code></li>
+                            <li>Name: <code th:text="${#authentication.name}">name</code></li>
+                            <li>Authenticated: <code th:text="${#authentication.authenticated}">authenticated</code>
+                            </li>
+                            <li>Authorities: <code th:text="${#authentication.authorities}">authorities</code></li>
+                            <li>Details: <code th:text="${#authentication.details}">details</code></li>
+                        </ul>
+                    </div>
+                    <div th:unless="${#authentication}" class="border-l-4 border-red-500 pl-2">
+                        <p class="font-semibold text-red-700">❌ 인증 객체 없음</p>
+                    </div>
+
+                    <!-- Principal 타입 체크 -->
+                    <div th:if="${#authentication}" class="border-l-4 border-blue-500 pl-2">
+                        <p class="font-semibold text-blue-700">📋 Principal 분석</p>
+                        <ul class="ml-4 text-xs">
+                            <li th:if="${#authentication.principal == 'anonymousUser'}">
+                                ⚠️ Anonymous User 감지됨
+                            </li>
+                            <li th:unless="${#authentication.principal == 'anonymousUser'}">
+                                ✅ 실제 사용자: <code th:text="${#authentication.principal}"></code>
+                            </li>
+                            <li>Principal 클래스: <code th:text="${#authentication.principal.class.name}">class</code></li>
+                        </ul>
+                    </div>
+
+                    <!-- sec:authorize 테스트 -->
+                    <div class="border-l-4 border-purple-500 pl-2">
+                        <p class="font-semibold text-purple-700">🔐 sec:authorize 테스트</p>
+                        <ul class="ml-4 text-xs">
+                            <li sec:authorize="isAuthenticated()">✅ isAuthenticated() = true</li>
+                            <li sec:authorize="!isAuthenticated()">❌ isAuthenticated() = false</li>
+                            <li sec:authorize="isAnonymous()">👤 isAnonymous() = true</li>
+                            <li sec:authorize="!isAnonymous()">👤 isAnonymous() = false</li>
+                            <li sec:authorize="permitAll()">🌐 permitAll() = true</li>
+                            <li sec:authorize="hasRole('USER')">👤 hasRole('USER') = true</li>
+                            <li sec:authorize="hasRole('ADMIN')">👨‍💼 hasRole('ADMIN') = true</li>
+                            <li sec:authorize="hasAnyRole('USER','ADMIN')">📋 hasAnyRole('USER','ADMIN') = true</li>
+                        </ul>
+                    </div>
+
+                    <!-- Request 정보 (기본적인 정보만) -->
+                    <div class="border-l-4 border-orange-500 pl-2">
+                        <p class="font-semibold text-orange-700">🌐 Request 정보</p>
+                        <ul class="ml-4 text-xs">
+                            <li>Context Path: <code th:text="${#httpServletRequest.contextPath}">contextPath</code></li>
+                            <li>Request URL: <code th:text="${#httpServletRequest.requestURL}">requestURL</code></li>
+                            <li>Method: <code th:text="${#httpServletRequest.method}">method</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </th:block>
+</body>
+</html>

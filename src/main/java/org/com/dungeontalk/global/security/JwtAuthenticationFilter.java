@@ -23,90 +23,46 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final JwtExtractor jwtExtractor;
 
-    private boolean isPublicApi(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        List<String> publicApis = List.of(
-                "/v1/member/register",
-                "/v1/auth/login",
-                "/v1/valkey/session/keys",
-                "/v1/valkey/session/all",
-                "/v1/auth/refresh",
-                "/v1/valkey/session/test/save"
-        );
-
-        return PUBLIC_APIS.stream().anyMatch(path::startsWith);
-    }
-
-    /*
-    * 권한 체크가 불필요한 API 리스트 정의 메서드
-    */
-    private static final List<String> PUBLIC_APIS = List.of(
-            "/v1/member/register",
-            "/v1/auth/login",
-            "/v1/valkey",
-            "/swagger-ui",
-            "/v3/api-docs",
-            "/test-auth.html",
-            "/debug-login.html",
-            "/login",
-            "/",
-            "/css",
-            "/js",
-            "/images",
-            "/error",
-            "/test",
-            "/chat",
-            "/game",
-            "/profile",
-            "/settings",
-            "/favicon.ico"
-           );
 
     // 필터 체인
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-
+        
+        String requestURI = request.getRequestURI();
+        log.debug("JWT Filter - Request URI: {}", requestURI);
+        
         try {
-            if (isPublicApi(request)) {
-                // 공개 API는 인증 없이 통과
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            System.out.println("공개 API 통과");
             String accessToken = jwtExtractor.extractAccessToken(request);
-
-            System.out.println("엑세스 토큰" + accessToken);
-            if (accessToken == null || accessToken.isEmpty()) {
-                // 토큰 없으면 401 Unauthorized
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Access Token is missing");
-                return;
+            
+            // 토큰이 있으면 인증 처리
+            if (accessToken != null && !accessToken.isEmpty()) {
+                log.debug("Access token found, validating...");
+                
+                // 토큰 유효성 검사 및 멤버 조회
+                Member member = jwtService.getMemberFromToken(accessToken);
+                
+                if (member != null) {
+                    log.debug("Member extracted from token: {}", member.getName());
+                    
+                    // 인증 정보 생성 및 SecurityContext에 저장
+                    CustomUserDetails userDetails = new CustomUserDetails(member);
+                    JwtAuthenticationToken authentication = new JwtAuthenticationToken(userDetails);
+                    authentication.setAuthenticated(true);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    
+                    log.debug("Authentication set in SecurityContext: {}", authentication.getPrincipal());
+                }
             }
-
-            System.out.println("엑세스 토큰 검증 완료");
-            // 토큰 유효성 검사 및 멤버 조회
-            Member member = jwtService.getMemberFromToken(accessToken);
-            System.out.println("토큰으로 부터 멤버 추출" + member);
-
-            // 인증 정보 생성 및 SecurityContext에 저장
-//            JwtAuthenticationToken authentication = new JwtAuthenticationToken(member);
-//            authentication.setAuthenticated(true);
-//            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
-            CustomUserDetails userDetails = new CustomUserDetails(member);
-            JwtAuthenticationToken authentication = new JwtAuthenticationToken(userDetails);
-            authentication.setAuthenticated(true);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            System.out.println("authentication : "+ authentication);
-
-            // 다음 필터로 이동
+            
+            // 다음 필터로 이동 (Spring Security가 권한 체크 처리)
             filterChain.doFilter(request, response);
-
+            
         } catch (Exception ex) {
             log.error("JWT 인증[필터] 중 오류 발생 : {}", ex.getMessage());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+            // 에러가 발생해도 필터 체인 계속 진행 (Spring Security가 처리)
+            filterChain.doFilter(request, response);
         }
     }
 

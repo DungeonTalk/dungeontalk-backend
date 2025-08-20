@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
     <!-- Reusable header fragment -->
     <th:block th:fragment="header">
@@ -19,7 +20,6 @@
                     <!-- Desktop Navigation -->
                     <div class="hidden md:flex items-center space-x-8">
                         <a href="/" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">홈</a>
-                        <a href="/game" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">게임</a>
                         <a href="/chat" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">채팅</a>
                         
                         <div class="flex items-center space-x-4">
@@ -37,13 +37,13 @@
                             </button>
                             
                             <!-- User menu -->
-                            <div class="relative" x-data="{ userMenuOpen: false }" th:if="${session.user != null}">
+                            <div class="relative" x-data="{ userMenuOpen: false }" sec:authorize="isAuthenticated()">
                                 <button @click="userMenuOpen = !userMenuOpen" 
                                         class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                     <div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center">
-                                        <span class="text-white text-sm font-semibold" th:text="${#strings.substring(session.user.username, 0, 1).toUpperCase()}">U</span>
+                                        <span class="text-white text-sm font-semibold" sec:authentication="principal">U</span>
                                     </div>
-                                    <span class="text-sm font-medium" th:text="${session.user.username}">사용자</span>
+                                    <span class="text-sm font-medium" sec:authentication="principal">사용자</span>
                                 </button>
                                 
                                 <div x-show="userMenuOpen" 
@@ -60,7 +60,7 @@
                                         <a href="/profile" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">프로필</a>
                                         <a href="/settings" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">설정</a>
                                         <hr class="my-1 border-gray-200 dark:border-gray-700">
-                                        <form th:action="@{/logout}" method="post">
+                                        <form action="/v1/auth/server-logout" method="post" class="inline-block w-full">
                                             <button type="submit" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">로그아웃</button>
                                         </form>
                                     </div>
@@ -68,7 +68,7 @@
                             </div>
                             
                             <!-- Login button for guests -->
-                            <a th:unless="${session.user != null}" 
+                            <a sec:authorize="!isAuthenticated()" 
                                href="/login" 
                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                                 로그인
@@ -99,16 +99,15 @@
                  class="md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
                 <div class="px-4 py-2 space-y-1">
                     <a href="/" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">홈</a>
-                    <a href="/game" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">게임</a>
                     <a href="/chat" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">채팅</a>
-                    <div th:if="${session.user != null}" class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div sec:authorize="isAuthenticated()" class="pt-2 border-t border-gray-200 dark:border-gray-700">
                         <a href="/profile" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">프로필</a>
                         <a href="/settings" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">설정</a>
-                        <form th:action="@{/logout}" method="post">
+                        <form action="/v1/auth/server-logout" method="post" class="inline-block w-full">
                             <button type="submit" class="block w-full text-left py-2 hover:text-primary-600 dark:hover:text-primary-400">로그아웃</button>
                         </form>
                     </div>
-                    <div th:unless="${session.user != null}" class="pt-2">
+                    <div sec:authorize="!isAuthenticated()" class="pt-2">
                         <a href="/login" class="block py-2 text-primary-600 font-medium">로그인</a>
                     </div>
                 </div>

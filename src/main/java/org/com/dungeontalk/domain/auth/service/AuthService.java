@@ -149,7 +149,10 @@ public class AuthService {
         cookieManager.addRefreshTokenCookie(response, refreshToken);
     }
 
-    // 리프레시 토큰을 쿠키에서 제거
+    /**
+     * @deprecated Use CookieManager.clearAllAuthCookies() instead
+     */
+    @Deprecated
     public void removeRefreshTokenCookie(HttpServletResponse response) {
         cookieManager.clearRefreshTokenCookie(response);
     }

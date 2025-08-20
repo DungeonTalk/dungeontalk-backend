@@ -21,7 +21,15 @@
 
                 <!-- Login Form -->
                 <div x-data="loginForm()" class="mt-8">
-                    <form @submit.prevent="login" class="space-y-5">
+                    <!-- 서버 사이드 로그인 기본 사용 -->
+                    <div th:if="${error}" class="mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg">
+                        <span th:text="${error}"></span>
+                    </div>
+                    
+                    <form action="/v1/auth/server-login"
+                          method="post"
+                          @submit="handleSubmit($event)" 
+                          class="space-y-5">
                         <!-- User ID Input -->
                         <div>
                             <label for="userId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -30,6 +38,7 @@
                             <div class="relative">
                                 <input type="text" 
                                        id="userId" 
+                                       name="name"
                                        x-model="formData.userId"
                                        @input="clearError"
                                        class="appearance-none block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white transition-colors"
@@ -53,6 +62,7 @@
                             <div class="relative">
                                 <input :type="showPassword ? 'text' : 'password'" 
                                        id="password" 
+                                       name="password"
                                        x-model="formData.password"
                                        @input="clearError"
                                        class="appearance-none block w-full px-4 py-3 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white transition-colors"
@@ -221,6 +231,18 @@
 
 <th:block layout:fragment="scripts">
 <script>
+// 페이지 로드 시 남은 쿠키 정리
+document.addEventListener('DOMContentLoaded', function() {
+    // 로그인 페이지에 도착했다면 인증 관련 쿠키 삭제
+    document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    document.cookie = 'userInfo=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    
+    // localStorage도 정리
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+});
+
 function loginForm() {
     return {
         formData: {
@@ -237,6 +259,7 @@ function loginForm() {
         loading: false,
         registerLoading: false,
         showRegisterModal: false,
+        useServerLogin: true, // 서버 사이드 로그인 고정
         errors: {},
         
         fillCredentials(userId, password) {
@@ -249,7 +272,21 @@ function loginForm() {
             this.errors = {};
         },
         
-        async login() {
+        handleSubmit(event) {
+            // 서버 사이드 로그인 사용 시 폼 제출
+            if (this.useServerLogin) {
+                this.loading = true;
+                // 폼이 정상적으로 제출되도록 함
+                return true;
+            }
+            
+            // 클라이언트 사이드 로그인 (백업용)
+            event.preventDefault();
+            this.clientLogin();
+        },
+        
+        async clientLogin() {
+            // 클라이언트 사이드 로그인 로직 (백업용)
             this.loading = true;
             this.errors = {};
             
@@ -273,35 +310,18 @@ function loginForm() {
                 const result = await response.json();
                 const data = result.data || result;
                 
-                // 토큰 저장
+                // 토큰을 localStorage에 저장 (클라이언트 사이드)
                 localStorage.setItem('authToken', data.accessToken);
-                
-                // 사용자 정보 조회
-                try {
-                    const meResponse = await fetch('/v1/member/me', {
-                        headers: {
-                            'Authorization': 'Bearer ' + data.accessToken
-                        }
-                    });
-                    
-                    if (meResponse.ok) {
-                        const meResult = await meResponse.json();
-                        const meData = meResult.data || meResult;
-                        localStorage.setItem('currentUser', JSON.stringify({
-                            id: meData.id || meData.memberId || data.memberId,
-                            nickname: meData.nickName || meData.nickname || this.formData.userId + '님'
-                        }));
-                    }
-                } catch (e) {
-                    console.error('사용자 정보 조회 실패:', e);
-                }
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: data.memberId || this.formData.userId,
+                    nickname: this.formData.userId + '님'
+                }));
                 
                 // 성공 알림
                 Alpine.store('notifications').success('로그인에 성공했습니다! 잠시 후 이동합니다.');
                 
                 // 페이지 이동
                 setTimeout(() => {
-                    console.log('Redirecting to /game...');
                     window.location.href = '/game';
                 }, 1000);
                 

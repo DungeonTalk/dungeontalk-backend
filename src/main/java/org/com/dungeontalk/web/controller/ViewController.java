@@ -2,6 +2,8 @@ package org.com.dungeontalk.web.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,11 +35,15 @@ public class ViewController {
     }
 
     /**
-     * 게임 페이지
+     * 게임 페이지 (로그인 필수)
      */
     @GetMapping("/game")
     public String game(Model model) {
-        // JWT 기반 인증이므로 클라이언트 사이드에서 토큰 체크
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            log.info("게임 페이지 접근 성공 - 사용자: {}", authentication.getName());
+            model.addAttribute("username", authentication.getName());
+        }
         return "game";
     }
 

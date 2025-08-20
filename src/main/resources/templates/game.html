@@ -323,13 +323,41 @@ function gameApp() {
         },
         
         checkAuth() {
+            // 먼저 localStorage에서 토큰 확인 (클라이언트사이드 로그인)
             this.authToken = localStorage.getItem('authToken');
-            const userInfo = localStorage.getItem('currentUser');
+            let userInfo = localStorage.getItem('currentUser');
             
-            if (!this.authToken || !userInfo) {
+            // localStorage에 토큰이 없으면 쿠키 확인 (서버사이드 로그인)
+            if (!this.authToken) {
+                // 쿠키에서 accessToken과 userInfo 읽기
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const [name, value] = cookie.trim().split('=');
+                    if (name === 'accessToken') {
+                        this.authToken = value;
+                    } else if (name === 'userInfo' && !userInfo) {
+                        // URL 디코딩 후 localStorage에 저장
+                        userInfo = decodeURIComponent(value);
+                        localStorage.setItem('currentUser', userInfo);
+                    }
+                }
+            }
+            
+            // 토큰이 없으면 로그인 페이지로
+            if (!this.authToken) {
                 Alpine.store('notifications').error('로그인이 필요합니다.');
                 setTimeout(() => window.location.href = '/login', 2000);
                 return;
+            }
+            
+            // 사용자 정보가 없으면 기본값 설정
+            if (!userInfo) {
+                // 서버사이드 로그인의 경우 기본 사용자 정보 생성
+                userInfo = JSON.stringify({
+                    id: 'user_' + Date.now(),
+                    nickname: '플레이어'
+                });
+                localStorage.setItem('currentUser', userInfo);
             }
             
             try {

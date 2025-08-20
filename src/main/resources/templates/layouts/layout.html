@@ -106,6 +106,16 @@
     <th:block layout:fragment="head"></th:block>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+    <!-- 디버깅용: 인증 정보 출력 (필요시 주석 해제) -->
+    <!--<div th:if="${#authentication != null and #authentication.authenticated}"
+         class="fixed top-0 right-0 bg-yellow-100 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-700 p-2 text-xs z-50 rounded-bl-lg">
+        <div class="text-yellow-800 dark:text-yellow-200">
+            <strong>🔐 인증됨:</strong> <span th:text="${#authentication.name}">사용자</span><br>
+            <strong>권한:</strong> <span th:text="${#authentication.authorities}">권한</span>
+        </div>
+    </div>
+    <th:block layout:fragment="debug-auth"></th:block-->
+    
     <!-- Navigation -->
     <nav class="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50" x-data="{ mobileMenuOpen: false }">
         <div class="container mx-auto px-4">
@@ -123,7 +133,6 @@
                 <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="/" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">홈</a>
-                    <a href="/game" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">게임</a>
                     <a href="/chat" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">채팅</a>
                     
                     <div class="flex items-center space-x-4">
@@ -141,13 +150,14 @@
                         </button>
                         
                         <!-- User menu -->
-                        <div class="relative" x-data="{ userMenuOpen: false }" th:if="${#authentication != null && #authentication.principal != null}">
+                        <div class="relative" x-data="{ userMenuOpen: false }" 
+                             th:if="${#authentication != null and #authentication.principal != null and #authentication.principal != 'anonymousUser'}">
                             <button @click="userMenuOpen = !userMenuOpen" 
                                     class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                 <div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center">
-                                    <span class="text-white text-sm font-semibold" th:text="${#strings.substring(#authentication.principal.username, 0, 1).toUpperCase()}">U</span>
+                                    <span class="text-white text-sm font-semibold" th:text="${#authentication.principal.nickname != null ? #strings.substring(#authentication.principal.nickname, 0, 1).toUpperCase() : 'U'}">U</span>
                                 </div>
-                                <span class="text-sm font-medium" th:text="${#authentication.principal.username}">사용자</span>
+                                <span class="text-sm font-medium" th:text="${#authentication.principal.nickname != null ? #authentication.principal.nickname : '사용자'}">사용자</span>
                             </button>
                             
                             <div x-show="userMenuOpen" 
@@ -163,15 +173,13 @@
                                     <a href="/profile" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">프로필</a>
                                     <a href="/settings" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">설정</a>
                                     <hr class="my-1 border-gray-200 dark:border-gray-700">
-                                    <form th:action="@{/logout}" method="post">
-                                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">로그아웃</button>
-                                    </form>
+                                    <button @click="handleLogout()" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">로그아웃</button>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Login button for guests -->
-                        <a th:unless="${#authentication != null && #authentication.principal != null}" 
+                        <a th:unless="${#authentication != null and #authentication.principal != null and #authentication.principal != 'anonymousUser'}" 
                            href="/login" 
                            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                             로그인
@@ -201,8 +209,17 @@
              class="md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
             <div class="px-4 py-2 space-y-1">
                 <a href="/" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">홈</a>
-                <a href="/game" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">게임</a>
                 <a href="/chat" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">채팅</a>
+                <div th:if="${#authentication != null and #authentication.principal != null and #authentication.principal != 'anonymousUser'}" 
+                     class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <a href="/profile" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">프로필</a>
+                    <a href="/settings" class="block py-2 hover:text-primary-600 dark:hover:text-primary-400">설정</a>
+                    <button @click="handleLogout()" class="block w-full text-left py-2 hover:text-primary-600 dark:hover:text-primary-400">로그아웃</button>
+                </div>
+                <div th:unless="${#authentication != null and #authentication.principal != null and #authentication.principal != 'anonymousUser'}" 
+                     class="pt-2">
+                    <a href="/login" class="block py-2 text-primary-600 font-medium">로그인</a>
+                </div>
             </div>
         </div>
     </nav>
@@ -282,10 +299,10 @@
     </script>
     
     <!-- Authentication data for Alpine.js -->
-    <script th:if="${#authentication != null && #authentication.principal != null}" 
+    <script th:if="${#authentication != null and #authentication.principal != null and #authentication.principal != 'anonymousUser'}" 
             id="auth-data" 
             type="application/json" 
-            th:text="${#authentication.principal}">
+            th:text="${#authentication.principal.nickname}">
     </script>
     
     <!-- Notification container -->
@@ -314,6 +331,84 @@
             </div>
         </template>
     </div>
+    
+    <!-- Authentication and navigation handling -->
+    <script>
+        // 페이지 로드 시 토큰 확인 및 게임 페이지 접근 처리
+        document.addEventListener('DOMContentLoaded', function() {
+            // 게임 페이지 링크에 클릭 이벤트 추가
+            const gameLinks = document.querySelectorAll('a[href="/game"]');
+            gameLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+                    if (!accessToken) {
+                        window.location.href = '/';
+                        return;
+                    }
+                    
+                    // 토큰을 헤더에 포함하여 게임 페이지로 이동
+                    fetch('/game', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': 'Bearer ' + accessToken
+                        }
+                    }).then(response => {
+                        if (response.redirected && response.url.includes('/')) {
+                            window.location.href = '/';
+                        } else if (response.ok) {
+                            window.location.href = '/game';
+                        } else {
+                            window.location.href = '/';
+                        }
+                    }).catch(error => {
+                        console.error('Error:', error);
+                        window.location.href = '/';
+                    });
+                });
+            });
+        });
+        
+        // 로그아웃 처리 함수
+        function handleLogout() {
+            // 로딩 알림 표시
+            if (typeof Alpine !== 'undefined' && Alpine.store && Alpine.store('notifications')) {
+                Alpine.store('notifications').add('로그아웃 중...', 'info', 2000);
+            }
+            
+            // 로컬 스토리지에서 토큰 제거
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            
+            // 세션 스토리지에서 토큰 제거
+            sessionStorage.removeItem('accessToken');
+            sessionStorage.removeItem('refreshToken');
+            
+            // Alpine.js 스토어에서 사용자 정보 제거
+            if (typeof Alpine !== 'undefined' && Alpine.store && Alpine.store('user')) {
+                Alpine.store('user').logout();
+            }
+            
+            // 폼을 동적으로 생성하여 서버에 로그아웃 요청
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/v1/auth/server-logout';
+            
+            // Authorization 헤더 대신 hidden input으로 토큰 전송
+            const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            if (accessToken) {
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = 'accessToken';
+                tokenInput.value = accessToken;
+                form.appendChild(tokenInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
     
     <!-- Additional scripts -->
     <th:block layout:fragment="scripts"></th:block>
