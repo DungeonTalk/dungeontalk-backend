@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.matching.common.MatchingConstants;
 import org.com.dungeontalk.domain.matching.common.MatchingStatus;
-import org.com.dungeontalk.domain.matching.common.WorldType;
+import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 import org.com.dungeontalk.global.exception.customException.AiChatException;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.springframework.dao.DataAccessException;
@@ -24,6 +24,7 @@ import java.util.*;
 public class MatchingQueueManager {
 
     private final StringRedisTemplate redisTemplate;
+    private final WorldTypeCompatService worldTypeCompatService;
 
     // Lua 스크립트: 3명 추출 (원자성 보장)
     private static final String EXTRACT_USERS_SCRIPT = """
@@ -71,7 +72,7 @@ public class MatchingQueueManager {
 
         // 사용자 상태 저장
         Map<String, String> userInfo = Map.of(
-                "worldType", worldType.name(),
+                "worldType", worldType.getCode(),
                 "status", MatchingStatus.WAITING.name(),
                 "joinedAt", Instant.now().toString(),
                 "sessionId", UUID.randomUUID().toString()
@@ -100,7 +101,7 @@ public class MatchingQueueManager {
         }
 
         String worldTypeName = (String) userInfo.get("worldType");
-        WorldType worldType = WorldType.valueOf(worldTypeName);
+        WorldType worldType = worldTypeCompatService.valueOf(worldTypeName);
         String queueKey = worldType.getQueueKey();
 
         // 큐에서 사용자 제거

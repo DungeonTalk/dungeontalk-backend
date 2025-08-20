@@ -287,6 +287,44 @@ public class AiGameMessageService {
     }
 
     /**
+     * AI 게임 종료 처리 (컨트롤러 단순화용)
+     */
+    @Transactional
+    public RsData<String> handleGameEnd(AiGameMessageSendRequest request) {
+        try {
+            // 게임 종료 메시지 생성 및 처리
+            AiGameMessageSendRequest gameEndMessage = AiGameMessageSendRequest.builder()
+                    .aiGameRoomId(request.getAiGameRoomId())
+                    .gameId(request.getGameId())
+                    .senderId(AI_SENDER_ID)
+                    .senderNickname(AI_SENDER_NICKNAME)
+                    .content(request.getContent())
+                    .messageType(AiMessageType.GAME_END)
+                    .turnNumber(request.getTurnNumber())
+                    .messageOrder(request.getMessageOrder())
+                    .build();
+
+            processMessage(gameEndMessage);
+
+            // AI 응답 처리 중 상태 해제
+            aiGameStateService.unlockAfterAiResponse(request.getAiGameRoomId());
+
+            log.info("AI 게임 종료 완료: roomId={}, result={}", 
+                     request.getAiGameRoomId(), request.getContent());
+            return RsData.of("200", "게임 종료 완료", null);
+
+        } catch (AiChatException e) {
+            log.error("AI 게임 종료 중 비즈니스 오류: roomId={}, errorCode={}, error={}", 
+                      request.getAiGameRoomId(), e.getErrorCode().getErrorCode(), e.getMessage());
+            return RsData.of("400", "게임 종료 실패: " + e.getMessage(), null);
+        } catch (Exception e) {
+            log.error("예상치 못한 AI 게임 종료 오류: roomId={}, error={}", 
+                      request.getAiGameRoomId(), e.getMessage(), e);
+            return RsData.of("500", "게임 종료 중 오류 발생", null);
+        }
+    }
+
+    /**
      * STOMP 메시지 분기 처리 (Controller에서 단일 호출)
      */
     @Transactional
@@ -298,6 +336,7 @@ public class AiGameMessageService {
             case SYSTEM -> messageDto = handleSystemMessage(request);
             case TURN_START -> messageDto = handleTurnStartMessage(request);
             case TURN_END -> messageDto = handleTurnEndMessage(request);
+            case GAME_END -> messageDto = handleGameEndMessage(request);
             default -> throw new AiChatException(ErrorCode.AI_GAME_MESSAGE_INVALID_STATE);
         }
 
@@ -519,6 +558,44 @@ public class AiGameMessageService {
         AiGameMessage saved = aiGameMessageRepository.save(message);
         log.info("턴 종료 메시지 저장 완료: roomId={}, turn={}", 
                  request.getAiGameRoomId(), request.getTurnNumber());
+
+        return AiGameMessageDto.fromEntity(saved);
+    }
+
+    /**
+     * 게임 종료 메시지 처리
+     */
+    @Transactional
+    public AiGameMessageDto handleGameEndMessage(AiGameMessageSendRequest request) {
+        aiGameValidator.validateGameRoom(request.getAiGameRoomId());
+
+        AiGameMessage message = AiGameMessage.builder()
+                .id(UuidV7Creator.create())
+                .aiGameRoomId(request.getAiGameRoomId())
+                .gameId(request.getGameId())
+                .senderId(AI_SENDER_ID)
+                .senderNickname(AI_SENDER_NICKNAME)
+                .content(request.getContent())
+                .messageType(AiMessageType.GAME_END)
+                .turnNumber(request.getTurnNumber())
+                .messageOrder(request.getMessageOrder())
+                .createdAt(Instant.now())
+                .build();
+
+        AiGameMessage saved = aiGameMessageRepository.save(message);
+        
+        // 게임 종료 처리 - 게임 방 상태 업데이트
+        try {
+            AiGameRoom room = aiGameRoomService.getGameRoomEntity(request.getAiGameRoomId());
+            AiGameRoom updatedRoom = room.updatePhase(AiGamePhase.GAME_END);
+            aiGameRoomRepository.save(updatedRoom);
+            log.info("게임 방 상태를 GAME_END로 변경: roomId={}", request.getAiGameRoomId());
+        } catch (Exception e) {
+            log.error("게임 방 상태 변경 실패: roomId={}, error={}", request.getAiGameRoomId(), e.getMessage());
+        }
+
+        log.info("게임 종료 메시지 저장 완료: roomId={}, result={}", 
+                 request.getAiGameRoomId(), request.getContent());
 
         return AiGameMessageDto.fromEntity(saved);
     }
