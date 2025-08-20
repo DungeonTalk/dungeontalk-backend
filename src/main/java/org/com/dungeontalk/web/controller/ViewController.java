@@ -2,11 +2,15 @@ package org.com.dungeontalk.web.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.com.dungeontalk.domain.world.dto.response.WorldResponse;
+import org.com.dungeontalk.domain.world.service.WorldService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.List;
 
 /**
  * Thymeleaf 뷰를 반환하는 컨트롤러
@@ -16,6 +20,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 @RequiredArgsConstructor
 public class ViewController {
+    
+    private final WorldService worldService;
 
     /**
      * 메인 홈 페이지
@@ -44,6 +50,17 @@ public class ViewController {
             log.info("게임 페이지 접근 성공 - 사용자: {}", authentication.getName());
             model.addAttribute("username", authentication.getName());
         }
+        
+        // 세계관 목록을 서버에서 가져와서 Model에 추가
+        try {
+            List<WorldResponse> worlds = worldService.getAllWorlds();
+            model.addAttribute("worlds", worlds);
+            log.info("세계관 목록 로드 성공: {} 개", worlds.size());
+        } catch (Exception e) {
+            log.error("세계관 목록 로드 실패", e);
+            model.addAttribute("worlds", List.of());
+        }
+        
         return "game";
     }
 

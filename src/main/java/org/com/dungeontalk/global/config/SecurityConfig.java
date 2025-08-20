@@ -53,7 +53,8 @@ public class SecurityConfig {
             "/dungeontalk-heartbeat.html",
             // 게임 관련 조회 API만 공개
             "/v1/match/queue-stats",
-            "/v1/aichat/rooms/available"
+            "/v1/aichat/rooms/available",
+            "/v1/worlds"  // 세계관 목록 조회
     };
 
     public List<String> getPublicUrls() {

@@ -39,40 +39,25 @@
                 <span class="text-3xl mr-2">🌍</span> 세계관 선택 & 매칭
             </h2>
             
-            <!-- World Selection -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div @click="selectWorld('FANTASY')" 
-                     :class="{'ring-4 ring-primary-500 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20': selectedWorld === 'FANTASY'}"
+            <!-- World Selection (Thymeleaf 서버사이드 렌더링) -->
+            <div th:if="${worlds != null && !worlds.isEmpty()}" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div th:each="world : ${worlds}" 
+                     @click="selectWorld(/*[[${world.id}]]*/ '')" 
+                     :class="{'ring-4 ring-primary-500 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20': selectedWorld === /*[[${world.id}]]*/ ''}"
                      class="cursor-pointer bg-gray-50 dark:bg-gray-700 rounded-xl p-6 transition-all hover:transform hover:-translate-y-1 hover:shadow-xl">
                     <h3 class="text-xl font-bold mb-3 flex items-center">
-                        <span class="text-2xl mr-2">🏰</span> 판타지
+                        <span class="text-2xl mr-2">🌍</span>
+                        <span th:text="${world.worldName}">세계관 이름</span>
                     </h3>
                     <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        마법과 검이 지배하는 중세 판타지 세계에서 모험을 떠나보세요. 드래곤, 마법사, 기사들과 함께하는 대서사시가 펼쳐집니다.
+                        <span class="block">경험치 보상: <strong th:text="${world.clearExp}">0</strong> EXP</span>
+                        <span class="block mt-2 text-sm">도전해보세요! 멋진 모험이 기다립니다.</span>
                     </p>
                 </div>
-                
-                <div @click="selectWorld('SCIFI')" 
-                     :class="{'ring-4 ring-primary-500 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20': selectedWorld === 'SCIFI'}"
-                     class="cursor-pointer bg-gray-50 dark:bg-gray-700 rounded-xl p-6 transition-all hover:transform hover:-translate-y-1 hover:shadow-xl">
-                    <h3 class="text-xl font-bold mb-3 flex items-center">
-                        <span class="text-2xl mr-2">🚀</span> SF
-                    </h3>
-                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        미래 우주 시대의 첨단 기술과 외계 문명을 탐험하세요. 로봇, AI, 우주선으로 가득한 사이버네틱 어드벤처가 기다립니다.
-                    </p>
-                </div>
-                
-                <div @click="selectWorld('MODERN')" 
-                     :class="{'ring-4 ring-primary-500 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20': selectedWorld === 'MODERN'}"
-                     class="cursor-pointer bg-gray-50 dark:bg-gray-700 rounded-xl p-6 transition-all hover:transform hover:-translate-y-1 hover:shadow-xl">
-                    <h3 class="text-xl font-bold mb-3 flex items-center">
-                        <span class="text-2xl mr-2">🏙️</span> 현대
-                    </h3>
-                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        현대 도시 세계관에서 펼쳐지는 일상과 미스터리의 이야기. 도시의 숨겨진 비밀들을 탐험해보세요.
-                    </p>
-                </div>
+            </div>
+            
+            <div th:if="${worlds == null || worlds.isEmpty()}" class="text-center py-8 text-gray-600">
+                <p>현재 이용 가능한 세계관이 없습니다.</p>
             </div>
             
             <!-- Matching Controls -->
