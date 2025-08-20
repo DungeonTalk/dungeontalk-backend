@@ -40,7 +40,8 @@
       "Bash(git mv:*)",
       "Bash(git rm:*)",
       "Bash(gradlew:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(kill:*)"
     ],
     "deny": []
   }

@@ -48,16 +48,17 @@ public class AuthController {
     @PostMapping("/server-login")
     public String serverLogin(
             @ModelAttribute AuthLoginRequest loginRequest,
+            HttpServletRequest request,
             HttpServletResponse response,
             RedirectAttributes redirectAttributes) {
         
         try {
             // 로그인 처리
-            AuthLoginResponse loginResponse = authService.login(loginRequest);
+            TokenResponse tokenResponse = authService.login(loginRequest, request);
             
             // 토큰을 쿠키에 저장
-            cookieManager.addAccessTokenCookie(response, loginResponse.accessToken());
-            cookieManager.addRefreshTokenCookie(response, loginResponse.refreshToken());
+            cookieManager.addAccessTokenCookie(response, tokenResponse.getAccessToken());
+            cookieManager.addRefreshTokenCookie(response, tokenResponse.getRefreshToken());
             
             // 사용자 정보를 쿠키에 저장 (JavaScript에서 읽기 가능)
 //            cookieManager.addUserInfoCookie(response, loginRequest.name(), loginResponse.memberId());
