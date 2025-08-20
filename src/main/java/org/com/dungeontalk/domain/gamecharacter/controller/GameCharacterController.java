@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.com.dungeontalk.domain.gamecharacter.dto.request.AddExperienceRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
@@ -99,6 +100,24 @@ public class GameCharacterController {
     public RsData<Boolean> hasCharacter(@RequestParam String memberId) {
         boolean hasCharacter = gameCharacterService.hasCharacter(memberId);
         return RsData.of("200", "캐릭터 존재 여부 확인 완료", hasCharacter);
+    }
+
+    // 특정 캐릭터에게 경험치 추가 및 레벨업 처리
+    @Operation(summary = "캐릭터 경험치 추가", description = "캐릭터 ID로 특정 캐릭터에게 경험치를 추가하고, 조건 충족 시 레벨업을 처리합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "경험치 추가 및 캐릭터 정보 업데이트 성공",
+                    content = @Content(schema = @Schema(implementation = GameCharacterResponse.class))),
+            @ApiResponse(responseCode = "404", description = "캐릭터 없음")
+    })
+    @PostMapping("/{id}/experience") // POST /v1/characters/{캐릭터ID}/experience
+    public RsData<GameCharacterResponse> addExperience(
+            @PathVariable String id,
+            @RequestBody AddExperienceRequest request) {
+
+        // 서비스의 addExperience 메소드를 호출합니다.
+        GameCharacterResponse response = gameCharacterService.addExperience(id, request.experience());
+
+        return RsData.of("200", "경험치 추가 완료", response);
     }
 
 }

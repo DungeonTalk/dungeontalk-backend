@@ -5,8 +5,8 @@ import java.util.Map;
 
 public record CalculatedStatsResponse(
         String characterId,
-        double hp,
-        double mp,
+        double healthPoints,
+        double manaPoints,
         double physicalAttack,
         double magicAttack,
         double evasionRate,
@@ -17,8 +17,8 @@ public record CalculatedStatsResponse(
     public static CalculatedStatsResponse fromMap(String characterId, Map<String, Double> m) {
         return new CalculatedStatsResponse(
                 characterId,
-                m.getOrDefault("hp", 0d),
-                m.getOrDefault("mp", 0d),
+                m.getOrDefault("healthPoints", 0d),
+                m.getOrDefault("manaPoints", 0d),
                 m.getOrDefault("physicalAttack", 0d),
                 m.getOrDefault("magicAttack", 0d),
                 m.getOrDefault("evasionRate", 0d),

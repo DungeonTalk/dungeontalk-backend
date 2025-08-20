@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,6 +22,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @DataMongoTest
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+    // test 프로필의 exclude 무력화
+    "spring.autoconfigure.exclude="
+})
 class ChatRoomRepositoryTest {
 
     // Mongo 6/7 이미지 어느 쪽이든 OK
