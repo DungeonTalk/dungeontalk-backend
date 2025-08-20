@@ -3,7 +3,9 @@ package org.com.dungeontalk.domain.gamecharacter.service;
 import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
+import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponseV2;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
+import org.com.dungeontalk.domain.gamecharacter.dto.projection.GameCharacterDetailProjection;
 import org.com.dungeontalk.domain.gamecharacter.entity.GameCharacter;
 import org.com.dungeontalk.domain.gamecharacter.entity.RequestExp;
 import org.com.dungeontalk.domain.gamecharacter.repository.GameCharacterRepository;
@@ -152,6 +154,44 @@ public class GameCharacterService {
         // 변경된 캐릭터 정보 저장 및 반환
         GameCharacter updatedCharacter = gameCharacterRepository.save(character);
         return GameCharacterResponse.from(updatedCharacter);
+    }
+
+    /**
+     * 캐릭터 상세 정보 조회 V2 (N+1 문제 해결 버전)
+     * Projection을 사용하여 단일 쿼리로 필요한 모든 데이터를 가져옴
+     */
+    public GameCharacterDetailResponseV2 findDetailByIdV2(String id) {
+        GameCharacterDetailProjection projection = gameCharacterRepository.findDetailProjectionById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Character not found: " + id));
+        
+        // 모든 스탯 계산
+        Map<String, Double> calculatedStats = statAggregateService.calculateAllStats(id);
+        
+        // Projection 데이터를 V2 DTO로 변환
+        return new GameCharacterDetailResponseV2(
+                projection.getId(),
+                projection.getNickname(),
+                projection.getRaceId(),
+                projection.getRaceName(),
+                projection.getPlayerLevel(),
+                projection.getTotalExp(),
+                projection.getUnspentPoints(),
+                projection.getStrength(),
+                projection.getWillpower(),
+                projection.getIntelligence(),
+                projection.getWisdom(),
+                projection.getDexterity(),
+                projection.getLuck(),
+                calculatedStats.getOrDefault("healthPoints", 0.0),
+                calculatedStats.getOrDefault("manaPoints", 0.0),
+                calculatedStats.getOrDefault("physicalAttack", 0.0),
+                calculatedStats.getOrDefault("magicAttack", 0.0),
+                calculatedStats.getOrDefault("evasionRate", 0.0),
+                calculatedStats.getOrDefault("accuracy", 0.0),
+                calculatedStats.getOrDefault("diceOdds", 0.0),
+                projection.getCreatedAt(),
+                projection.getUpdatedAt()
+        );
     }
 
     /**

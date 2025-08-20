@@ -63,75 +63,33 @@
     <div class="flex items-center justify-center min-h-screen px-4">
         <div class="fixed inset-0 bg-black opacity-50" @click="showCharacterInfo = false"></div>
         
-        <div class="relative bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full p-6 z-10">
-            <h3 class="text-2xl font-bold mb-4">⚔️ 내 캐릭터</h3>
-            
-            <div x-show="!characterData" class="text-center py-12">
-                <div class="text-6xl mb-4">🎭</div>
-                <p class="text-lg text-gray-600 dark:text-gray-400">캐릭터가 없습니다</p>
-                <button @click="showCharacterInfo = false; showCharacterModal = true"
-                        class="mt-4 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
-                    캐릭터 생성하기
+        <div class="relative bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 z-10">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-2xl font-bold">⚔️ 내 캐릭터</h3>
+                <button @click="showCharacterInfo = false" 
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
                 </button>
             </div>
             
-            <div x-show="characterData" class="space-y-6">
-                <!-- Basic Info -->
-                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <h4 class="font-semibold mb-3">📋 기본 정보</h4>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">종족:</span>
-                            <span class="ml-2 font-medium" x-text="characterData?.race || '-'"></span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">레벨:</span>
-                            <span class="ml-2 font-medium" x-text="characterData?.level || 1"></span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">경험치:</span>
-                            <span class="ml-2 font-medium" x-text="`${characterData?.exp || 0} / ${characterData?.maxExp || 100}`"></span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">생성일:</span>
-                            <span class="ml-2 font-medium" x-text="characterData?.createdAt || '-'"></span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Stats -->
-                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <h4 class="font-semibold mb-3">📊 능력치</h4>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-red-500" x-text="characterData?.str || 10">10</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">STR (힘)</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-blue-500" x-text="characterData?.wil || 10">10</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">WIL (의지)</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-purple-500" x-text="characterData?.int || 10">10</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">INT (지능)</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-green-500" x-text="characterData?.wis || 10">10</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">WIS (지혜)</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-yellow-500" x-text="characterData?.dex || 10">10</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">DEX (민첩)</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-pink-500" x-text="characterData?.luk || 10">10</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">LUK (행운)</div>
-                        </div>
-                    </div>
+            <!-- Character Info Content loaded via HTMX -->
+            <div id="character-modal-content"
+                 hx-get="/game/character/info"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <div class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                    <p class="mt-2 text-gray-500">캐릭터 정보 로딩 중...</p>
                 </div>
             </div>
             
-            <div class="flex justify-end mt-6">
+            <div class="flex justify-end mt-6 gap-3">
+                <button @click="refreshCharacterInfo()"
+                        class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+                    🔄 새로고침
+                </button>
                 <button @click="showCharacterInfo = false"
                         class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
                     닫기
