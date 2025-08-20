@@ -24,6 +24,7 @@ import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.ChatException;
+import org.com.dungeontalk.global.filter.config.ProfanityFilterProperties;
 import org.com.dungeontalk.global.redis.RedisPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -58,6 +59,9 @@ class ChatMessageServiceTest {
 
     @InjectMocks
     ChatMessageService chatMessageService;
+
+    @Mock
+    ProfanityFilterProperties profanityFilterProperties;
 
     private ChatMessageSendRequestDto talkReq(String roomId, String senderId, String content) {
         return ChatMessageSendRequestDto.builder()
