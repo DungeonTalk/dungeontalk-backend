@@ -48,3 +48,23 @@ out/
 
 ### pem ###
 .pem
+
+### Playwright E2E Testing ###
+node_modules/
+test-results/
+playwright-report/
+playwright/.cache/
+*.png
+*.jpg
+*.jpeg
+*.webm
+*.mp4
+test-result-*.png
+character-creation-page.png
+modal-not-found.png
+
+### Node.js ###
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
