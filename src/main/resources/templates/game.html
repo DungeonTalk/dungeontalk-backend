@@ -590,11 +590,14 @@ function gameApp() {
         },
         
         checkAuth() {
-            // 먼저 localStorage에서 토큰 확인 (클라이언트사이드 로그인)
+            // 페이지 접근 권한은 Spring Security가 서버 측에서 처리
+            // 토큰은 WebSocket 연결 등 API 호출 시에만 사용
+            
+            // localStorage에서 토큰 확인 (API 호출용)
             this.authToken = localStorage.getItem('authToken');
             let userInfo = localStorage.getItem('currentUser');
             
-            // localStorage에 토큰이 없으면 쿠키 확인 (서버사이드 로그인)
+            // localStorage에 토큰이 없으면 쿠키 확인
             if (!this.authToken) {
                 // 쿠키에서 accessToken과 userInfo 읽기
                 const cookies = document.cookie.split(';');
@@ -610,12 +613,8 @@ function gameApp() {
                 }
             }
             
-            // 토큰이 없으면 로그인 페이지로
-            if (!this.authToken) {
-                Alpine.store('notifications').error('로그인이 필요합니다.');
-                setTimeout(() => window.location.href = '/login', 2000);
-                return;
-            }
+            // 토큰이 없어도 페이지는 Spring Security가 처리하므로 리다이렉트하지 않음
+            // API 호출 시 토큰이 필요한 경우만 처리
             
             // 사용자 정보가 없으면 기본값 설정
             if (!userInfo) {
@@ -633,8 +632,8 @@ function gameApp() {
                 Alpine.store('notifications').success('게임 준비 완료!');
             } catch (e) {
                 console.error('사용자 정보 파싱 오류:', e);
-                localStorage.clear();
-                window.location.href = '/login';
+                // 파싱 오류 시에도 페이지 리다이렉트하지 않음
+                // Spring Security가 인증을 처리
             }
         },
         

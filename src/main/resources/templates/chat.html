@@ -278,13 +278,12 @@ function chatApp() {
             const userStr = localStorage.getItem('currentUser');
             const token = localStorage.getItem('authToken');
             
-            if (!userStr || !token) {
-                Alpine.store('notifications').error('로그인이 필요합니다.');
-                setTimeout(() => window.location.href = '/login', 2000);
-                return;
-            }
+            // 쿠키 기반 인증을 사용하므로 페이지 접근 권한은 Spring Security가 처리
+            // 토큰은 WebSocket 연결 등 API 호출 시에만 사용
             
-            this.member = JSON.parse(userStr);
+            if (userStr) {
+                this.member = JSON.parse(userStr);
+            }
             this.settings.nickname = this.member.nickname || this.member.id + '님';
             
             // Check for room ID in URL

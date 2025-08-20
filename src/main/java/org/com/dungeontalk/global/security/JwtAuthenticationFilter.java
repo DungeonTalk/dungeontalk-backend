@@ -27,44 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final SecurityConfig securityConfig;
     private final JwtProvider jwtProvider;
 
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
 
-        return securityConfig.getPublicUrls().stream()
-                .anyMatch(p -> p.endsWith("/**")
-                        ? path.startsWith(p.replace("/**",""))
-                        : path.equals(p) || path.startsWith(p));
-    }
-
-    // ======================= DEPRECATED CODE - 3일간 관찰 한 후 문제 없으면 삭제 예정 =========================
-
-//    private boolean isPublicApi(HttpServletRequest request) {
-//        String path = request.getRequestURI();
-//        List<String> publicApis = List.of(
-//                "/v1/member/register",
-//                "/v1/auth/login",
-//                "/v1/valkey/session/keys",
-//                "/v1/valkey/session/all",
-//                "/v1/auth/refresh",
-//                "/v1/valkey/session/test/save",
-//                "/v1/stat/",
-//                "/v1/characters",
-//                "/init/",
-//                "/stat-calculator.html",
-//                "/character-test.html",
-//                "/dungeon-game.html",
-//                "/ws-chat",
-//                // Swagger UI 관련 경로들
-//                "/swagger-ui",
-//                "/v3/api-docs",
-//                "/webjars",
-//                "/swagger-resources"
-//        );
-//
-//        // 요청 경로가 publicApis 목록 중 하나로 시작하면 true 반환
-//        return publicApis.stream().anyMatch(path::startsWith);
-//    }
 
     // 필터 체인
     @Override

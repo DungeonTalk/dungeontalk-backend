@@ -30,31 +30,30 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico");
     }
 
-    // 공개 API를 한 곳에서 정의
-    private static final String[] PUBLIC_URLS = {
+    // 공개 API 엔드포인트 (인증 없이 접근 가능)
+    private static final String[] PUBLIC_API_URLS = {
+            // 인증 관련
             "/v1/member/register",
             "/v1/auth/login",
+            "/v1/auth/refresh",
+            "/v1/auth/server-login",
+            "/v1/auth/server-logout",
+            
+            // 테스트 및 개발용
             "/v1/valkey/session/keys",
             "/v1/valkey/session/all",
-            "/v1/auth/refresh",
             "/v1/valkey/session/test/save",
+            
+            // 게임 데이터 조회 (읽기 전용)
             "/v1/stat/**",
-            "/v1/characters/**",
-            "/init/**",
-            "/stat-calculator.html",
-            "/character-test.html",
-            "/dungeon-game.html",
-            "/ws-chat/**",
-            // Swagger UI 관련 경로들
-            "/swagger-ui/**",
-            "/v3/api-docs/**",
-            "/webjars/**",
-            "/swagger-resources/**",
-            "/dungeontalk-heartbeat.html",
-            // 게임 관련 조회 API만 공개
+            "/v1/characters/**",  // v1은 공개, v2는 인증 필요
             "/v1/match/queue-stats",
             "/v1/aichat/rooms/available",
-            "/v1/worlds"  // 세계관 목록 조회
+            "/v1/worlds",
+            
+            // 초기화 및 WebSocket
+            "/init/**",
+            "/ws-chat/**"
     };
     
     // 인증이 필요한 API
@@ -63,7 +62,7 @@ public class SecurityConfig {
     };
 
     public List<String> getPublicUrls() {
-        return List.of(PUBLIC_URLS);
+        return List.of(PUBLIC_API_URLS);
     }
 
     @Bean
@@ -109,27 +108,25 @@ public class SecurityConfig {
                 
                 // 권한 url 설정
                 .authorizeHttpRequests(auth -> auth
-                        // 정적 리소스 허용
+                        // 1. 정적 리소스 허용
                         .requestMatchers("/", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                        .requestMatchers("/*.html", "/test-auth.html").permitAll()
+                        .requestMatchers("/*.html").permitAll()
                         
-                        // Thymeleaf 뷰 허용 (게임 페이지는 인증 필요)
-                        .requestMatchers("/login", "/test", "/error", "/chat", "/profile", "/settings").permitAll()
-                        .requestMatchers("/game", "/game/play").authenticated()
+                        // 2. Thymeleaf 뷰 페이지
+                        .requestMatchers("/login", "/test", "/error").permitAll()
+                        .requestMatchers("/chat", "/profile", "/settings").permitAll()  // 추후 인증 필요시 변경
+                        .requestMatchers("/game", "/game/play", "/game/character/**").authenticated()
                         
-                        // 서버사이드 로그인/로그아웃 추가
-                        .requestMatchers("/v1/auth/server-login", "/v1/auth/server-logout").permitAll()
-                        
-                        // Swagger UI 관련
+                        // 3. Swagger UI 문서
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                         
-                        // PUBLIC_URLS 배열 사용
-                        .requestMatchers(PUBLIC_URLS).permitAll()
+                        // 4. 공개 API 엔드포인트
+                        .requestMatchers(PUBLIC_API_URLS).permitAll()
                         
-                        // AUTHENTICATED_URLS - 인증 필요한 API
+                        // 5. 인증 필요한 API
                         .requestMatchers(AUTHENTICATED_URLS).authenticated()
                         
-                        // 나머지는 인증 필요
+                        // 6. 나머지 모든 요청은 인증 필요
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

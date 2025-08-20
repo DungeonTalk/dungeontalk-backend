@@ -4,8 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.world.dto.response.WorldResponse;
 import org.com.dungeontalk.domain.world.service.WorldService;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.com.dungeontalk.global.security.CustomUserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,11 +46,12 @@ public class ViewController {
      * Spring Security에서 인증 체크 (쿠키 기반)
      */
     @GetMapping("/game")
-    public String game(@AuthenticationPrincipal Authentication authentication, Model model) {
+    @PreAuthorize("isAuthenticated()")
+    public String game(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
         // Spring Security가 쿠키 기반 인증을 처리
-        if (authentication != null) {
-            log.info("게임 페이지 접근 - 사용자: {}", authentication.getName());
-            model.addAttribute("username", authentication.getName());
+        if (userDetails != null) {
+            log.info("게임 페이지 접근 - 사용자: {}", userDetails.getUsername());
+            model.addAttribute("username", userDetails.getUsername());
         }
         
         // 세계관 목록을 서버에서 가져와서 Model에 추가
@@ -70,11 +72,12 @@ public class ViewController {
      * 실제 게임이 진행되는 페이지
      */
     @GetMapping("/game/play")
-    public String gamePlay(@AuthenticationPrincipal Authentication authentication, Model model) {
+    @PreAuthorize("isAuthenticated()")
+    public String gamePlay(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
         // Spring Security가 쿠키 기반 인증을 처리
-        if (authentication != null) {
-            log.info("게임 플레이 페이지 접근 - 사용자: {}", authentication.getName());
-            model.addAttribute("username", authentication.getName());
+        if (userDetails != null) {
+            log.info("게임 플레이 페이지 접근 - 사용자: {}", userDetails.getUsername());
+            model.addAttribute("username", userDetails.getUsername());
         }
         
         return "game-play";
