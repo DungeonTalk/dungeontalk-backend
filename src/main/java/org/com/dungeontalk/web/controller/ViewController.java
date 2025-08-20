@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.world.dto.response.WorldResponse;
 import org.com.dungeontalk.domain.world.service.WorldService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -42,14 +44,14 @@ public class ViewController {
 
     /**
      * 게임 페이지 (로그인 필수)
+     * Spring Security 어노테이션으로 인증 체크
      */
     @GetMapping("/game")
-    public String game(Model model) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            log.info("게임 페이지 접근 성공 - 사용자: {}", authentication.getName());
-            model.addAttribute("username", authentication.getName());
-        }
+    @PreAuthorize("isAuthenticated()")
+    public String game(@AuthenticationPrincipal Authentication authentication, Model model) {
+        // 인증된 사용자 정보는 이미 @AuthenticationPrincipal로 주입됨
+        log.info("게임 페이지 접근 성공 - 사용자: {}", authentication.getName());
+        model.addAttribute("username", authentication.getName());
         
         // 세계관 목록을 서버에서 가져와서 Model에 추가
         try {
