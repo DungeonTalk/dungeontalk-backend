@@ -48,11 +48,19 @@ public class SecurityConfig {
                 // 인증 실패 시 처리
                 .exceptionHandling(exceptions -> exceptions
                     .authenticationEntryPoint((request, response, authException) -> {
-                        // 게임 페이지 접근 시 index 페이지로 리다이렉트
-                        if (request.getRequestURI().equals("/game")) {
-                            response.sendRedirect("/");
-                        } else {
+                        String requestURI = request.getRequestURI();
+                        
+                        // 페이지 요청인 경우 로그인 페이지로 리다이렉트
+                        if (requestURI.equals("/game") || 
+                            requestURI.equals("/profile") || 
+                            requestURI.equals("/settings")) {
+                            response.sendRedirect("/login");
+                        } else if (requestURI.startsWith("/v1/")) {
+                            // API 요청인 경우 401 에러 반환
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                        } else {
+                            // 기타 요청은 로그인 페이지로 리다이렉트
+                            response.sendRedirect("/login");
                         }
                     })
                 )
