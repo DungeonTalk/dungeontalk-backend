@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -24,6 +25,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @DataMongoTest
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+    // test 프로필의 exclude 무력화
+    "spring.autoconfigure.exclude="
+})
 class ChatMessageRepositoryTest {
 
     @Container
