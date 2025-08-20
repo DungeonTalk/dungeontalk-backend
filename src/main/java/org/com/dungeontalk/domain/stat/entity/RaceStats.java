@@ -24,11 +24,11 @@ public class RaceStats extends BaseEntity {
     @Column(name = "race")
     private String race;
 
-    @Column(name = "hp")
-    private String hp;
+    @Column(name = "health_points")
+    private String healthPoints;
 
-    @Column(name = "mp")
-    private String mp;
+    @Column(name = "mana_points")
+    private String manaPoints;
 
     @Column(name = "physical_attack")
     private String physicalAttack;
