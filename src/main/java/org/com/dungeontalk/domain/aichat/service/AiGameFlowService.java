@@ -23,12 +23,6 @@ import java.util.List;
 
 import static org.com.dungeontalk.domain.aichat.common.AiChatConstants.*;
 
-/**
- * 게임 관련 상수들
- */
-class AiGameFlowConstants {
-    static final int GAME_TARGET_MINUTES = 15;
-}
 
 /**
  * AI 게임 플로우 관리 서비스
@@ -82,7 +76,7 @@ public class AiGameFlowService {
                     contextMessages,
                     request.getTurnNumber(),
                     gameStartTime,
-                    AiGameFlowConstants.GAME_TARGET_MINUTES,
+                    GAME_TARGET_MINUTES,
                     request.getCharacterStats()  // 캐릭터 스탯 추가
             );
 
