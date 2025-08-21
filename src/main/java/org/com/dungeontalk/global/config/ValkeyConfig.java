@@ -1,5 +1,6 @@
 package org.com.dungeontalk.global.config;
 
+import java.time.Duration;
 import org.com.dungeontalk.global.redis.RedisSubscriber;
 import org.com.dungeontalk.global.redis.AiChatRedisSubscriber;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -35,6 +37,9 @@ public class ValkeyConfig {
     @Value("${spring.redis.cache.port}")
     private int cacheRedisPort;
 
+    // TLS on/off (기본 false)
+    @Value("${spring.data.redis.ssl.enabled:false}")
+    private boolean sessionRedisSslEnabled;
 
     // ======================= Redis Basic Config =========================
 
@@ -55,7 +60,17 @@ public class ValkeyConfig {
         config.setHostName(sessionRedisHost);
         config.setPort(sessionRedisPort);
         // config.setPassword(sessionRedisPassword);
-        return new LettuceConnectionFactory(config);
+
+        LettuceClientConfiguration.LettuceClientConfigurationBuilder builder =
+            LettuceClientConfiguration.builder()
+                .commandTimeout(Duration.ofSeconds(10));
+
+        // TLS 활성화
+        if (sessionRedisSslEnabled) {
+            builder.useSsl();
+        }
+
+        return new LettuceConnectionFactory(config, builder.build());
     }
 
     // Session(Valkey) 저장용 템플릿
