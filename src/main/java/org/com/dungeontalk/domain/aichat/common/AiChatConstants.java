@@ -43,4 +43,7 @@ public final class AiChatConstants {
     public static final int DEFAULT_MAX_PARTICIPANTS = 3;  // 기본 최대 참여자 수
     public static final int MIN_PARTICIPANTS = 1;         // 최소 참여자 수
     public static final int MAX_PARTICIPANTS_LIMIT = 5;   // 최대 참여자 수 제한
+    
+    // 게임 시간 설정
+    public static final int GAME_TARGET_MINUTES = 15;     // 게임 목표 시간(분)
 }

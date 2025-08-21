@@ -18,10 +18,9 @@ public class World {
     @Column(name = "world_id")
     private Long id;
 
-    @Column(name = "world_name")
+    @Column(name = "world_name", nullable = false)
     private String worldName;
 
     @Column(name = "clear_exp")
-    private String clearExp;
-
+    private Integer clearExp;
 }

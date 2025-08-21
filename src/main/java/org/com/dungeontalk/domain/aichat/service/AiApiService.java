@@ -209,8 +209,11 @@ public class AiApiService {
             return "HORROR";
         } else if (upperSettings.contains("서부") || upperSettings.contains("WESTERN")) {
             return "WESTERN";
-        } else if (upperSettings.contains("포스트") || upperSettings.contains("아포칼립스") || 
-                   upperSettings.contains("POST_APOCALYPTIC")) {
+        } else if (upperSettings.contains("좀비") || upperSettings.contains("ZOMBIE") || 
+                   upperSettings.contains("워커") || upperSettings.contains("아포칼립스") ||
+                   upperSettings.contains("생존자") || upperSettings.contains("바이러스")) {
+            return "ZOMBIE";
+        } else if (upperSettings.contains("포스트") || upperSettings.contains("POST_APOCALYPTIC")) {
             return "POST_APOCALYPTIC";
         }
         

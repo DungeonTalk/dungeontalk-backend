@@ -287,14 +287,9 @@
             border-color: #DAA520;
         }
         
-        .world-card.selected[data-world="SCIFI"] {
-            background: linear-gradient(135deg, #004e92, #009ffd);
-            border-color: #009ffd;
-        }
-        
-        .world-card.selected[data-world="MODERN"] {
-            background: linear-gradient(135deg, #2C3E50, #7F8C8D);
-            border-color: #7F8C8D;
+        .world-card.selected[data-world="ZOMBIE"] {
+            background: linear-gradient(135deg, #8B0000, #CD853F);
+            border-color: #CD853F;
         }
         
         .world-card h3 {
@@ -860,17 +855,11 @@
                     🌲 드래곤, 엘프, 드워프들과 함께<br>
                     ✨ 고대의 던전과 마법 아이템들</p>
                 </div>
-                <div class="world-card" onclick="selectWorld('SCIFI')" data-world="SCIFI">
-                    <h3>🚀 사이버펑크 SF</h3>
-                    <p>🤖 AI와 첨단 기술의 미래<br>
-                    🌌 네오니 도시와 우주 정거장<br>
-                    ⚡ 해킹과 사이버네틱 스릴러</p>
-                </div>
-                <div class="world-card" onclick="selectWorld('MODERN')" data-world="MODERN">
-                    <h3>🏙️ 현대 미스터리</h3>
-                    <p>🕵️‍♂️ 도시의 숨겨진 진실과 음모<br>
-                    📱 현실적인 배경과 기술<br>
-                    🏭 사건 수사와 추리 어드벤처</p>
+                <div class="world-card" onclick="selectWorld('ZOMBIE')" data-world="ZOMBIE">
+                    <h3>🧟 좀비 아포칼립스</h3>
+                    <p>🔫 생존을 위한 치열한 전투<br>
+                    🏚️ 폐허가 된 도시와 캠프<br>
+                    💊 의료품과 무기를 찾아서</p>
                 </div>
             </div>
             
@@ -1277,8 +1266,7 @@
         function getWorldName(worldType) {
             const names = {
                 'FANTASY': '🏰 판타지',
-                'SCIFI': '🚀 SF', 
-                'MODERN': '🏙️ 현대'
+                'ZOMBIE': '🧟 좀비'
             };
             return names[worldType] || worldType;
         }
@@ -1286,7 +1274,7 @@
         // 세계관 테마 적용
         function applyWorldTheme(worldType) {
             // 기존 테마 클래스 제거
-            document.body.classList.remove('theme-fantasy', 'theme-scifi', 'theme-modern');
+            document.body.classList.remove('theme-fantasy', 'theme-zombie');
             
             // 새 테마 클래스 추가
             switch(worldType) {
@@ -1295,15 +1283,10 @@
                     updateAiChatInfo('🏰 중세 판타지 세계에서의 모험이 시작됩니다! 마법과 검의 세계에서 용감한 행동을 취해보세요.');
                     updatePlaceholders('마법사에게 말을 걸어본다', '동료들과 전략을 논의해보세요');
                     break;
-                case 'SCIFI':
-                    document.body.classList.add('theme-scifi');
-                    updateAiChatInfo('🚀 미래 사이버펑크 세계에 오신 것을 환영합니다! 첨단 기술과 함께 스릴러를 경험해보세요.');
-                    updatePlaceholders('터미널을 해킹해본다', '팀원들과 미션을 계획하세요');
-                    break;
-                case 'MODERN':
-                    document.body.classList.add('theme-modern');
-                    updateAiChatInfo('🏙️ 현대 도시의 미스터리 세계입니다! 현실적인 상황에서 추리와 탐험을 즐겨보세요.');
-                    updatePlaceholders('주변을 자세히 살펴본다', '동료들과 정보를 공유하세요');
+                case 'ZOMBIE':
+                    document.body.classList.add('theme-zombie');
+                    updateAiChatInfo('🧟 좀비 아포칼립스 세계에서 살아남으세요! 생존을 위해 자원을 찾고 위험을 피하세요.');
+                    updatePlaceholders('주변에서 물품을 찾아본다', '생존자들과 계획을 세우세요');
                     break;
             }
         }
@@ -2593,17 +2576,12 @@
                 case 'FANTASY':
                     addAiMessage('system', '🌟 중세 판타지 세계에 오신 것을 환영합니다!');
                     addAiMessage('system', '⚔️ 마법과 검의 세계에서 전설적인 모험을 시작하세요!');
-                    addAiMessage('ai', '안녕하세요, 용감한 모험가들이여! 저는 여러분의 운명을 안내하는 고대의 지식을 가진 AI 오라클입니다. 이 신비로운 대륙에서 여러분의 영웅적인 여정이 시작됩니다. 먼저 자신을 소개하고, 어떤 모험을 찾고 있는지 말이어 주세요.');
+                    addAiMessage('ai', '안녕하세요, 용감한 모험가들이여! 저는 여러분의 운명을 안내하는 고대의 지식을 가진 AI 오라클입니다. 이 신비로운 대륙에서 여러분의 영웅적인 여정이 시작됩니다. 먼저 자신을 소개하고, 어떤 모험을 찾고 있는지 말해주세요.');
                     break;
-                case 'SCIFI':
-                    addAiMessage('system', '🚀 사이버펑크 2087년, 네오-토쿄 시티에 오신 것을 환영합니다!');
-                    addAiMessage('system', '🤖 첨단 기술과 AI가 지배하는 미래 세계입니다!');
-                    addAiMessage('ai', '안녕하세요, 에이전트들. 저는 네오-토쿄의 중앙 AI 시스템입니다. 여러분의 뇌랑 칩이 전닥적으로 중요한 미션에 선발되었습니다. 본 AI는 여러분의 작전을 지원하고 상황을 분석할 것입니다. 먼저 각자 자신의 코드네임과 전문분야를 보고해 주십시오.');
-                    break;
-                case 'MODERN':
-                    addAiMessage('system', '🏙️ 현대 도시의 미스터리 세계에 오신 것을 환영합니다!');
-                    addAiMessage('system', '🕵️‍♂️ 진실과 거짓이 얽혀 있는 현실 세계입니다!');
-                    addAiMessage('ai', '안녕하세요, 여러분. 저는 이 사건을 담당하게 된 전문 상담사 AI입니다. 최근 이 도시에서 발생한 기묘한 사건들을 조사하기 위해 여러분이 모인 것으로 알고 있습니다. 각자 자신의 배경과 이 사건에 관심을 갖게 된 이유를 설명해 주세요.');
+                case 'ZOMBIE':
+                    addAiMessage('system', '🧟 좀비 아포칼립스 세계에 오신 것을 환영합니다!');
+                    addAiMessage('system', '🔫 생존이 최우선인 위험한 세계입니다!');
+                    addAiMessage('ai', '안녕하세요, 생존자들이여. 저는 이 황폐한 세계에서 여러분의 생존을 도울 AI 가이드입니다. 바이러스로 인해 세상이 바뀐 지 이제 몇 개월이 흘렀습니다. 먼저 각자 자신이 누구였는지, 그리고 어떻게 여기까지 살아남았는지 말해주세요.');
                     break;
                 default:
                     addAiMessage('system', `🌟 ${getWorldName(selectedWorld)} 세계에 오신 것을 환영합니다!`);

@@ -40,4 +40,12 @@ public class AiServiceResponse {
         if (gameTimeInfo == null) return null;
         return (Integer) gameTimeInfo.get("remaining_time");
     }
+    
+    /**
+     * 게임 결과 반환 (SUCCESS, FAILURE, TIMEOUT, UNKNOWN)
+     */
+    public String getGameResult() {
+        if (gameTimeInfo == null) return "UNKNOWN";
+        return (String) gameTimeInfo.getOrDefault("game_result", "UNKNOWN");
+    }
 }

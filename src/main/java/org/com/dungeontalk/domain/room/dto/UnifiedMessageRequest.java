@@ -73,6 +73,11 @@ public class UnifiedMessageRequest {
      * 턴 번호 (AI 게임용)
      */
     private Integer turnNumber;
+    
+    /**
+     * 캐릭터 스탯 정보 (AI 게임용)
+     */
+    private Object characterStats;
 
     // === 플레이어 채팅 전용 필드 ===
     

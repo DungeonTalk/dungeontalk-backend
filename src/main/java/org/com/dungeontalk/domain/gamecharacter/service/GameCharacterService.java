@@ -2,6 +2,7 @@ package org.com.dungeontalk.domain.gamecharacter.service;
 
 import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
+import org.com.dungeontalk.domain.gamecharacter.dto.request.GameResultRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponseV2;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
@@ -12,6 +13,8 @@ import org.com.dungeontalk.domain.gamecharacter.repository.GameCharacterReposito
 import org.com.dungeontalk.domain.gamecharacter.repository.RequestExpRepository;
 import org.com.dungeontalk.domain.stat.repository.RaceStatsRepository;
 import org.com.dungeontalk.domain.stat.service.StatAggregateService;
+import org.com.dungeontalk.domain.world.entity.World;
+import org.com.dungeontalk.domain.world.repository.WorldRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,7 @@ public class GameCharacterService {
     private final RaceStatsRepository raceStatsRepository;
     private final StatAggregateService statAggregateService;
     private final RequestExpRepository requestExpRepository;
+    private final WorldRepository worldRepository;
 
     // 새로운 캐릭터 생성 (레벨 1, 모든 스탯 10으로 초기화)
     @Transactional
@@ -36,7 +40,7 @@ public class GameCharacterService {
         
         // 영문을 한글로 매핑
         String raceName = mapEnglishToKorean(request.raceId());
-        
+
         // raceId가 UUID 형식인지 종족명인지 확인하여 처리
         try {
             // UUID로 먼저 시도
@@ -133,7 +137,7 @@ public class GameCharacterService {
             RequestExp currentLevelInfo = requestExpRepository.findByLevel(currentLevel)
                     .orElseThrow(() -> new IllegalStateException("레벨 정보를 찾을 수 없습니다: " + currentLevel));
 
-            // 만렙인지 확인( getRequestNextLevelExp -> 만렙(30)인 경우 해당 컬럼이 유일하게 0)
+            // 만렙인지 확인(getRequestNextLevelExp -> 만렙(30)인 경우 해당 컬럼이 유일하게 0)
             if (currentLevelInfo.getRequestNextLevelExp() == 0) {
                 break; // 만렙이면 더 이상 레벨업하지 않음
             }
@@ -163,10 +167,10 @@ public class GameCharacterService {
     public GameCharacterDetailResponseV2 findDetailByIdV2(String id) {
         GameCharacterDetailProjection projection = gameCharacterRepository.findDetailProjectionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Character not found: " + id));
-        
+
         // 모든 스탯 계산
         Map<String, Double> calculatedStats = statAggregateService.calculateAllStats(id);
-        
+
         // Projection 데이터를 V2 DTO로 변환
         return new GameCharacterDetailResponseV2(
                 projection.getId(),
@@ -202,12 +206,12 @@ public class GameCharacterService {
         if (englishRace == null) {
             return null;
         }
-        
+
         // 이미 한글인 경우 그대로 반환
         if (englishRace.matches(".*[가-힣]+.*")) {
             return englishRace;
         }
-        
+
         // 영문을 한글로 매핑
         return switch (englishRace.toUpperCase()) {
             case "HUMAN" -> "인간";
@@ -216,6 +220,21 @@ public class GameCharacterService {
             case "ORC" -> "오크";
             default -> englishRace; // 매핑되지 않은 경우 원본 반환
         };
+    }
+
+
+    @Transactional
+    public GameCharacterResponse processGameResult(GameResultRequest request) {
+        int expToAdd = 0;
+
+        // 클리어확인 여부 -> true 이면 클리어
+        if (request.isCleared()) {
+            World world = worldRepository.findById(request.worldId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 월드: " + request.worldId()));
+            expToAdd = world.getClearExp();
+        }
+
+        return addExperience(request.characterId(), expToAdd);
     }
 
 }

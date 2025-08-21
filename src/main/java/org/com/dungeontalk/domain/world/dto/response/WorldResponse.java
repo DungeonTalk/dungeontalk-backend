@@ -13,7 +13,7 @@ import org.com.dungeontalk.domain.world.entity.World;
 public class WorldResponse {
     private Long id;
     private String worldName;
-    private String clearExp;
+    private Integer clearExp;
 
     public static WorldResponse from(World world) {
         return new WorldResponse(world.getId(), world.getWorldName(), world.getClearExp());
