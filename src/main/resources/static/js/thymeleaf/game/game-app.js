@@ -107,12 +107,22 @@ function gameApp() {
         
         getPhaseText(phase) {
             const texts = {
-                'relaxed': '시작 단계',
-                'normal': '진행 단계',
-                'urgent': '클라이맥스',
-                'critical': '최종 단계'
+                'relaxed': '🌅 도입',
+                'normal': '⚡ 전개',
+                'urgent': '🔥 클라이맥스',
+                'critical': '🎭 종료'
             };
             return texts[phase] || '준비 중';
+        },
+        
+        getGamePhaseEmoji(phase) {
+            const emojis = {
+                'relaxed': '🌱',
+                'normal': '⚡',
+                'urgent': '🔥',
+                'critical': '💥'
+            };
+            return emojis[phase] || '⏳';
         },
         
         getPressureText(phase) {
@@ -121,6 +131,26 @@ function gameApp() {
                 'normal': '보통',
                 'urgent': '긴급',
                 'critical': '위급'
+            };
+            return texts[phase] || '대기';
+        },
+        
+        getPressureEmoji(phase) {
+            const emojis = {
+                'relaxed': '😌',
+                'normal': '🤔',
+                'urgent': '😰',
+                'critical': '😱'
+            };
+            return emojis[phase] || '😐';
+        },
+        
+        getPressureMessage(phase) {
+            const messages = {
+                'relaxed': '여유롭게 탐험하세요',
+                'normal': '진행 속도를 높이세요',
+                'urgent': '서둘러 임무를 완수하세요!',
+                'critical': '마지막 기회입니다!'
             };
             return texts[phase] || '대기';
         },
@@ -246,11 +276,22 @@ function gameApp() {
                 return;
             }
             
-            // 캐릭터 확인
-            const hasCharacter = await this.checkCharacter();
-            if (!hasCharacter) {
-                this.showCharacterModal = true;
-                Alpine.store('notifications').info('게임을 시작하려면 먼저 캐릭터를 생성해주세요.');
+            // 캐릭터 존재 여부 체크
+            try {
+                const hasCharacter = await this.checkCharacterExists();
+                if (!hasCharacter) {
+                    // 캐릭터가 없으면 경고 메시지 표시
+                    Alpine.store('notifications').error('캐릭터가 없습니다. 먼저 "⚔️ 내 캐릭터" 버튼을 클릭하여 캐릭터를 생성해주세요.');
+                    
+                    // 캐릭터 모달 자동 표시 (선택사항)
+                    if (this.showCharacterModal !== undefined) {
+                        this.showCharacterModal = true;
+                    }
+                    return;
+                }
+            } catch (error) {
+                console.error('캐릭터 체크 실패:', error);
+                Alpine.store('notifications').error('캐릭터 정보 확인 중 오류가 발생했습니다.');
                 return;
             }
             
@@ -273,6 +314,39 @@ function gameApp() {
                 }
             } catch (error) {
                 console.error('캐릭터 확인 오류:', error);
+            }
+            return false;
+        },
+        
+        // 캐릭터 존재 여부만 체크하는 메서드 (dungeon-game.html 참고)
+        async checkCharacterExists() {
+            try {
+                const response = await fetch('/v2/characters/my', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('캐릭터 존재 여부 체크 결과:', result);
+                    
+                    // 캐릭터 데이터가 존재하는지 확인
+                    if (result.data && result.data.id) {
+                        this.characterData = result.data;
+                        return true;
+                    }
+                } else if (response.status === 404) {
+                    console.log('캐릭터가 존재하지 않습니다.');
+                    return false;
+                } else {
+                    console.error('캐릭터 체크 API 오류:', response.status);
+                }
+            } catch (error) {
+                console.error('캐릭터 존재 여부 체크 오류:', error);
+                throw error;
             }
             return false;
         },

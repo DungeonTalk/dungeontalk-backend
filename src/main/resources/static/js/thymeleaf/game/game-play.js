@@ -98,12 +98,22 @@ function gamePlayApp() {
         
         getPhaseText(phase) {
             const texts = {
-                'relaxed': '시작 단계',
-                'normal': '진행 단계',
-                'urgent': '클라이맥스',
-                'critical': '최종 단계'
+                'relaxed': '🌅 도입',
+                'normal': '⚡ 전개',
+                'urgent': '🔥 클라이맥스',
+                'critical': '🎭 종료'
             };
             return texts[phase] || '준비 중';
+        },
+        
+        getGamePhaseEmoji(phase) {
+            const emojis = {
+                'relaxed': '🌱',
+                'normal': '⚡',
+                'urgent': '🔥',
+                'critical': '💥'
+            };
+            return emojis[phase] || '⏳';
         },
         
         getPressureText(phase) {
@@ -114,6 +124,26 @@ function gamePlayApp() {
                 'critical': '위급'
             };
             return texts[phase] || '대기';
+        },
+        
+        getPressureEmoji(phase) {
+            const emojis = {
+                'relaxed': '😌',
+                'normal': '🤔',
+                'urgent': '😰',
+                'critical': '😱'
+            };
+            return emojis[phase] || '😐';
+        },
+        
+        getPressureMessage(phase) {
+            const messages = {
+                'relaxed': '여유롭게 탐험하세요',
+                'normal': '진행 속도를 높이세요',
+                'urgent': '서둘러 임무를 완수하세요!',
+                'critical': '마지막 기회입니다!'
+            };
+            return messages[phase] || '게임 진행 중';
         },
         
         startGameTimer() {
@@ -134,10 +164,29 @@ function gamePlayApp() {
                     this.handleGameEnd('timeout');
                 }
                 
-                if (this.gameTime === 300) {
-                    Alpine.store('notifications').warning('⏰ 5분 남았습니다! 서둘러 임무를 완수하세요!');
+                // 압박감 알림 추가
+                if (this.gameTime === 600) {
+                    Alpine.store('notifications').info('⏰ 10분 남았습니다. 본격적인 모험을 시작하세요!');
+                    this.addSystemMessage('ai', '⚡ 게임이 전개 단계로 진입했습니다.');
+                } else if (this.gameTime === 300) {
+                    Alpine.store('notifications').warning('🔥 5분 남았습니다! 클라이맥스에 도달했습니다!');
+                    this.addSystemMessage('ai', '🔥 긴장감이 최고조에 달했습니다! 서둘러 임무를 완수하세요!');
+                    // 화면 효과 추가
+                    this.triggerPressureEffect('urgent');
+                } else if (this.gameTime === 120) {
+                    Alpine.store('notifications').warning('⚠️ 2분 남았습니다! 결말을 준비하세요!');
+                    this.addSystemMessage('ai', '⚠️ 시간이 얼마 남지 않았습니다!');
                 } else if (this.gameTime === 60) {
-                    Alpine.store('notifications').error('⚠️ 1분 남았습니다! 마지막 기회입니다!');
+                    Alpine.store('notifications').error('💥 1분 남았습니다! 마지막 기회입니다!');
+                    this.addSystemMessage('ai', '💥 최후의 순간입니다! 운명을 결정하세요!');
+                    // 강한 화면 효과
+                    this.triggerPressureEffect('critical');
+                } else if (this.gameTime === 30) {
+                    Alpine.store('notifications').error('🚨 30초! 마지막 선택을 하세요!');
+                    this.addSystemMessage('ai', '🚨 30초 남았습니다!');
+                } else if (this.gameTime === 10) {
+                    // 카운트다운 시작
+                    this.startFinalCountdown();
                 }
             }, 1000);
         },
@@ -243,6 +292,10 @@ function gamePlayApp() {
             console.log('매칭 메시지:', message);
             
             switch (message.type) {
+                case 'QUEUE_STATUS_UPDATE':  // dungeon-game.html의 큐 상태 업데이트 처리
+                    this.updateQueueStatus(message.data);
+                    break;
+                    
                 case 'MATCH_WAITING':
                     this.matchingStatusText = '매칭을 찾는 중...';
                     this.queueInfo = `대기 중인 플레이어: ${message.queueSize || 0}명`;
@@ -251,6 +304,10 @@ function gamePlayApp() {
                 case 'MATCH_FOUND':
                     this.matchingStatusText = '매칭 찾기 완료! 게임을 준비 중...';
                     Alpine.store('notifications').success('매칭이 완료되었습니다!');
+                    break;
+                    
+                case 'MATCHING_COMPLETE':  // dungeon-game.html의 매칭 완료 처리
+                    this.handleMatchingComplete(message.data);
                     break;
                     
                 case 'GAME_READY':
@@ -264,13 +321,84 @@ function gamePlayApp() {
                     this.startGame(message);
                     break;
                     
+                case 'MATCHING_CANCELLED':  // dungeon-game.html의 매칭 취소 처리
+                    this.handleMatchingCancelled();
+                    break;
+                    
                 case 'MATCH_FAILED':
                     this.isMatching = false;
                     this.matchingInfo = '매칭 실패';
                     Alpine.store('notifications').error(message.reason || '매칭에 실패했습니다.');
                     setTimeout(() => window.location.href = '/game', 3000);
                     break;
+                    
+                case 'ERROR':  // dungeon-game.html의 에러 처리
+                    console.error('매칭 오류:', message.data);
+                    Alpine.store('notifications').error('매칭 오류: ' + message.data);
+                    break;
             }
+        },
+        
+        // 큐 상태 업데이트 (dungeon-game.html에서 가져온 기능)
+        updateQueueStatus(data) {
+            if (!data) return;
+            
+            const queueText = [];
+            
+            if (data.currentPosition !== undefined) {
+                queueText.push(`대기 순서: ${data.currentPosition}번째`);
+            }
+            
+            if (data.totalInQueue !== undefined) {
+                queueText.push(`총 대기자: ${data.totalInQueue}명`);
+            }
+            
+            if (data.estimatedMessage) {
+                queueText.push(`예상 시간: ${data.estimatedMessage}`);
+            } else if (data.estimatedWaitTime !== undefined) {
+                const minutes = Math.floor(data.estimatedWaitTime / 60);
+                const seconds = data.estimatedWaitTime % 60;
+                queueText.push(`예상 시간: ${minutes}분 ${seconds}초`);
+            }
+            
+            this.queueInfo = queueText.join(' | ');
+            this.matchingStatusText = '매칭 대기 중...';
+            
+            // 대기 순서에 따른 상태 메시지 업데이트
+            if (data.currentPosition === 1) {
+                this.matchingStatusText = '곧 매칭이 시작됩니다!';
+            } else if (data.currentPosition <= 3) {
+                this.matchingStatusText = '매칭이 임박했습니다...';
+            }
+        },
+        
+        // 매칭 완료 처리 (dungeon-game.html에서 가져온 기능)
+        handleMatchingComplete(data) {
+            console.log('매칭 완료 데이터:', data);
+            
+            this.isMatching = false;
+            this.currentGameSession = data;
+            
+            // 참여자 정보 설정
+            if (data.participants) {
+                this.participants = data.participants.map(p => ({
+                    id: p.id || p.userId,
+                    nickname: p.nickname || p.userName,
+                    isMe: (p.id || p.userId) === this.currentUser.id
+                }));
+            }
+            
+            // 게임 시작
+            this.startGame(data);
+        },
+        
+        // 매칭 취소 처리
+        handleMatchingCancelled() {
+            this.isMatching = false;
+            this.matchingStatusText = '매칭이 취소되었습니다.';
+            this.queueInfo = '';
+            Alpine.store('notifications').info('매칭이 취소되었습니다.');
+            setTimeout(() => window.location.href = '/game', 2000);
         },
         
         async startGame(gameSession) {
@@ -313,21 +441,32 @@ function gamePlayApp() {
                     endMessage = '⏰ 시간이 초과되었습니다! 15분 동안의 모험이 끝났습니다.';
                     break;
                 case 'victory':
+                case 'SUCCESS':
                     endMessage = '🎉 축하합니다! 임무를 성공적으로 완수했습니다!';
                     isSuccess = true;
                     break;
                 case 'defeat':
+                case 'FAILURE':
                     endMessage = '💀 안타깝습니다. 임무에 실패했습니다.';
                     break;
                 case 'leave':
                     endMessage = '👋 게임을 나갔습니다.';
                     break;
+                case 'TIMEOUT':
+                    endMessage = '⏰ 시간이 초과되어 게임이 종료되었습니다!';
+                    break;
                 default:
-                    endMessage = '게임이 종료되었습니다.';
+                    endMessage = '🎭 게임이 종료되었습니다.';
             }
+            
+            // 게임 종료 배너 표시
+            this.showGameEndBanner(reason, endMessage);
             
             this.addAiMessage('system', endMessage);
             this.addPlayerMessage('system', endMessage);
+            
+            // 입력 필드 비활성화
+            this.disableChatInputs();
             
             if (this.aiGameRoomId && reason !== 'leave') {
                 try {
@@ -348,12 +487,116 @@ function gamePlayApp() {
                 }
             }
             
-            this.gameStatus = '게임 종료';
+            this.gameStatus = '🔴 게임 종료';
+            this.roomInfo = '🎯 게임 완료';
             Alpine.store('notifications').info(endMessage);
             
             setTimeout(() => {
                 window.location.href = '/game';
-            }, 3000);
+            }, 5000);
+        },
+        
+        // [GAME_END] 키워드로 게임 종료 처리
+        handleGameEndWithResult(gameResult, message) {
+            console.log('🎮 게임 종료:', gameResult, message);
+            this.handleGameEnd(gameResult);
+        },
+        
+        // 게임 결과 분석 (dungeon-game.html에서 가져온 기능)
+        analyzeGameResult(content) {
+            if (!content) return 'UNKNOWN';
+            
+            const lowerContent = content.toLowerCase();
+            
+            // 성공 키워드들
+            const successKeywords = [
+                '성공', '승리', '완료', '클리어', '달성', '해결', '구출', '탈출',
+                'success', 'victory', 'complete', 'clear', 'achieve', 'win'
+            ];
+            
+            // 실패 키워드들
+            const failureKeywords = [
+                '실패', '패배', '전멸', '게임오버', '죽었', '쓰러졌', '불가능',
+                'failure', 'defeat', 'dead', 'died', 'game over', 'impossible'
+            ];
+            
+            // 시간 초과 키워드들
+            const timeoutKeywords = [
+                '시간', '초과', '타임', '종료', 'time', 'timeout', 'expired'
+            ];
+            
+            // 키워드 우선순위로 판단
+            if (successKeywords.some(keyword => lowerContent.includes(keyword))) {
+                return 'SUCCESS';
+            } else if (failureKeywords.some(keyword => lowerContent.includes(keyword))) {
+                return 'FAILURE';
+            } else if (timeoutKeywords.some(keyword => lowerContent.includes(keyword))) {
+                return 'TIMEOUT';
+            }
+            
+            return 'UNKNOWN';
+        },
+        
+        // 게임 종료 배너 표시
+        showGameEndBanner(gameResult, message) {
+            // 기존 배너가 있으면 제거
+            const existingBanner = document.getElementById('gameEndBanner');
+            if (existingBanner) {
+                existingBanner.remove();
+            }
+            
+            // 배너 생성
+            const banner = document.createElement('div');
+            banner.id = 'gameEndBanner';
+            banner.className = 'fixed top-0 left-0 right-0 z-50 p-6 text-center text-white font-bold text-2xl shadow-lg';
+            
+            // 결과에 따른 스타일
+            switch(gameResult) {
+                case 'victory':
+                case 'SUCCESS':
+                    banner.className += ' bg-gradient-to-r from-green-500 to-emerald-500';
+                    banner.innerHTML = '🎆 축하합니다! 임무 성공! 🎆';
+                    break;
+                case 'defeat':
+                case 'FAILURE':
+                    banner.className += ' bg-gradient-to-r from-red-500 to-pink-500';
+                    banner.innerHTML = '💀 게임 오버! 다시 도전하세요! 💀';
+                    break;
+                case 'TIMEOUT':
+                case 'timeout':
+                    banner.className += ' bg-gradient-to-r from-orange-500 to-yellow-500';
+                    banner.innerHTML = '⏰ 시간 초과! 게임이 종료되었습니다! ⏰';
+                    break;
+                default:
+                    banner.className += ' bg-gradient-to-r from-gray-500 to-slate-500';
+                    banner.innerHTML = '🎭 게임이 종료되었습니다! 🎭';
+            }
+            
+            // 배너를 페이지 상단에 추가
+            document.body.insertBefore(banner, document.body.firstChild);
+            
+            // 5초 후 배너 자동 제거
+            setTimeout(() => {
+                if (banner.parentNode) {
+                    banner.style.transition = 'opacity 0.5s';
+                    banner.style.opacity = '0';
+                    setTimeout(() => banner.remove(), 500);
+                }
+            }, 5000);
+        },
+        
+        // 채팅 입력 비활성화
+        disableChatInputs() {
+            // Alpine.js로 상태 변경
+            this.gameStarted = false;
+            
+            // DOM 요소 직접 비활성화 (폴백)
+            const inputs = document.querySelectorAll('input[type="text"], button');
+            inputs.forEach(el => {
+                if (el.id && (el.id.includes('Input') || el.id.includes('Btn'))) {
+                    el.disabled = true;
+                }
+            });
         },
         
         // WebSocket 연결 및 메시지 처리 함수들...
@@ -398,6 +641,19 @@ function gamePlayApp() {
                                 const data = JSON.parse(message.body);
                                 if (data.type === 'AI_RESPONSE') {
                                     this.addAiMessage('ai', data.content);
+                                    
+                                    // AI 메시지에서 [GAME_END] 키워드 감지 (dungeon-game.html 기능)
+                                    if (data.content && data.content.includes('[GAME_END]')) {
+                                        console.log('🎮 AI 응답에서 [GAME_END] 키워드 감지!');
+                                        // [GAME_END] 키워드를 제거한 메시지로 게임 종료 처리
+                                        const cleanContent = data.content.replace(/\[GAME_END\]/g, '').trim();
+                                        const gameResult = this.analyzeGameResult(cleanContent);
+                                        
+                                        // 약간의 지연 후 게임 종료 처리 (사용자가 AI 메시지를 읽을 시간 제공)
+                                        setTimeout(() => {
+                                            this.handleGameEndWithResult(gameResult, cleanContent);
+                                        }, 2000);
+                                    }
                                 } else if (data.type === 'TALK' && data.senderId !== this.currentUser.id) {
                                     this.addAiMessage('other', data.content, data.senderNickname);
                                 } else if (data.type === 'GAME_END') {
@@ -574,7 +830,74 @@ function gamePlayApp() {
             }
         },
         
+        // 압박감 효과 함수들
+        triggerPressureEffect(level) {
+            const body = document.body;
+            
+            if (level === 'urgent') {
+                // 화면 깜빡임 효과
+                body.style.animation = 'pulse-medium 2s ease-in-out 3';
+                setTimeout(() => {
+                    body.style.animation = '';
+                }, 6000);
+            } else if (level === 'critical') {
+                // 강한 화면 흔들림 효과
+                body.style.animation = 'shake 0.5s ease-in-out 5';
+                // 붉은 테두리 효과
+                body.style.boxShadow = '0 0 50px rgba(239, 68, 68, 0.3)';
+                setTimeout(() => {
+                    body.style.animation = '';
+                    body.style.boxShadow = '';
+                }, 2500);
+            }
+        },
+        
+        startFinalCountdown() {
+            // 마지막 10초 카운트다운
+            let countdown = 10;
+            const countdownInterval = setInterval(() => {
+                if (countdown > 0) {
+                    this.addSystemMessage('ai', `⏱️ ${countdown}초!`);
+                    // 사운드 효과나 진동 효과 추가 가능
+                    if (countdown <= 3) {
+                        this.triggerPressureEffect('critical');
+                    }
+                    countdown--;
+                } else {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+        },
+        
+        addSystemMessage(tab, content) {
+            const message = {
+                id: Date.now(),
+                content: content,
+                sender: 'SYSTEM',
+                timestamp: new Date().toISOString(),
+                isSystem: true
+            };
+            
+            if (tab === 'ai') {
+                this.aiMessages.push(message);
+            } else {
+                this.playerMessages.push(message);
+            }
+            
+            // 스크롤 최하단으로
+            this.$nextTick(() => {
+                const container = tab === 'ai' ? 
+                    document.querySelector('#ai-chat-messages') :
+                    document.querySelector('#player-chat-messages');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            });
+        },
+        
         cleanup() {
+            this.stopGameTimer();
+            
             if (this.matchingStompClient) {
                 try { this.matchingStompClient.disconnect(); } catch (e) {}
                 this.matchingStompClient = null;
