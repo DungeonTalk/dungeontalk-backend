@@ -160,8 +160,8 @@ public class GameCharacterService {
     public GameCharacterResponse processGameResult(GameResultRequest request) {
         int expToAdd = 0;
 
-        // 클리어확인 여부 -> 1 이면 클리어
-        if (request.isCleared() == 1) {
+        // 클리어확인 여부 -> true 이면 클리어
+        if (request.isCleared()) {
             World world = worldRepository.findById(request.worldId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 월드: " + request.worldId()));
             expToAdd = world.getClearExp();

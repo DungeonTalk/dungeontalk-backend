@@ -254,7 +254,7 @@ public class AiGameFlowService {
 
             // 3. AI 응답의 게임 결과를 보고 클리어 여부(1 또는 0)를 결정.
             String gameResult = aiResult.getGameResult();
-            int isCleared = "SUCCESS".equalsIgnoreCase(gameResult) ? 1 : 0;
+            boolean isCleared = "SUCCESS".equalsIgnoreCase(gameResult);
             
             log.info("🎮 게임 결과 판정: gameResult={}, isCleared={}", gameResult, isCleared);
 
