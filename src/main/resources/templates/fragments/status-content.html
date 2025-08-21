@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- Status Content Fragment -->
+    <div th:fragment="status-content" class="space-y-4">
+        <!-- User Info Card -->
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+            <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center">
+                    <span class="text-white text-2xl font-bold" 
+                          th:text="${member?.nickname != null ? #strings.substring(member.nickname, 0, 1).toUpperCase() : 'U'}">U</span>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-lg font-semibold" th:text="${member?.nickname ?: '사용자'}">사용자</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400" th:text="${member?.email ?: '이메일 없음'}">user@example.com</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 gap-4">
+            <!-- Total Games -->
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400" th:text="${stats?.totalGames ?: 0}">0</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">총 게임 수</div>
+            </div>
+            
+            <!-- Win Rate -->
+            <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-green-600 dark:text-green-400" 
+                     th:text="${stats?.winRate != null ? #numbers.formatDecimal(stats.winRate, 1, 1) + '%' : '0%'}">0%</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">승률</div>
+            </div>
+            
+            <!-- Play Time -->
+            <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-purple-600 dark:text-purple-400" 
+                     th:text="${stats?.totalPlayTime != null ? stats.totalPlayTime + '시간' : '0시간'}">0시간</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">총 플레이 시간</div>
+            </div>
+            
+            <!-- Level -->
+            <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-orange-600 dark:text-orange-400" 
+                     th:text="${stats?.level ?: 1}">1</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">레벨</div>
+            </div>
+        </div>
+        
+        <!-- Character Info -->
+        <div th:if="${character != null}" class="border-t pt-4">
+            <h5 class="font-semibold mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                캐릭터 정보
+            </h5>
+            <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">종족</span>
+                    <span class="font-medium" th:text="${character.race}">인간</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">힘</span>
+                    <span class="font-medium" th:text="${character.strength}">10</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">민첩</span>
+                    <span class="font-medium" th:text="${character.agility}">10</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">지능</span>
+                    <span class="font-medium" th:text="${character.intelligence}">10</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">체력</span>
+                    <span class="font-medium" th:text="${character.health}">100</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- No Character Message -->
+        <div th:unless="${character != null}" class="border-t pt-4">
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded">
+                <p class="text-yellow-800 dark:text-yellow-200">
+                    아직 캐릭터가 생성되지 않았습니다.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Recent Activities -->
+        <div th:if="${recentActivities != null and !recentActivities.isEmpty()}" class="border-t pt-4">
+            <h5 class="font-semibold mb-3">최근 활동</h5>
+            <div class="space-y-2 max-h-48 overflow-y-auto">
+                <div th:each="activity : ${recentActivities}" 
+                     class="flex items-center justify-between text-sm bg-gray-50 dark:bg-gray-700 rounded p-2">
+                    <span th:text="${activity.description}">활동 내용</span>
+                    <span class="text-gray-500 dark:text-gray-400" 
+                          th:text="${#temporals.format(activity.timestamp, 'MM/dd HH:mm')}">시간</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

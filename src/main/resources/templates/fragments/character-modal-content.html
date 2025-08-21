@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- Character Modal Content Fragment -->
+    <div th:fragment="character-modal-content">
+        <!-- Character Exists -->
+        <div th:if="${character != null}" class="space-y-6">
+            <!-- Character Info Card -->
+            <div class="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl p-6">
+                <div class="flex items-center space-x-6">
+                    <!-- Character Avatar -->
+                    <div class="w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                        <span class="text-white text-4xl font-bold">
+                            <span th:if="${character.race == 'HUMAN'}">👤</span>
+                            <span th:if="${character.race == 'ELF'}">🧝</span>
+                            <span th:if="${character.race == 'DWARF'}">⚒️</span>
+                            <span th:if="${character.race == 'ORC'}">👹</span>
+                        </span>
+                    </div>
+                    
+                    <!-- Character Basic Info -->
+                    <div class="flex-1">
+                        <h4 class="text-2xl font-bold text-gray-800 dark:text-gray-200" th:text="${character.name ?: '이름 없음'}">캐릭터 이름</h4>
+                        <p class="text-lg text-gray-600 dark:text-gray-400 mt-1">
+                            <span class="font-medium">종족:</span>
+                            <span th:text="${#strings.capitalize(#strings.toLowerCase(character.race))}">종족</span>
+                        </p>
+                        <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                            레벨 <span th:text="${character.level ?: 1}">1</span> | 
+                            경험치 <span th:text="${character.experience ?: 0}">0</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Character Stats -->
+            <div class="bg-white dark:bg-gray-700 rounded-xl p-6 shadow-lg">
+                <h5 class="text-lg font-semibold mb-4 flex items-center">
+                    <span class="text-xl mr-2">📊</span>
+                    능력치
+                </h5>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Strength -->
+                    <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 text-center">
+                        <div class="text-2xl mb-1">💪</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">힘</div>
+                        <div class="text-xl font-bold text-red-600 dark:text-red-400" th:text="${character.strength ?: 10}">10</div>
+                    </div>
+                    
+                    <!-- Agility -->
+                    <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
+                        <div class="text-2xl mb-1">🏃</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">민첩</div>
+                        <div class="text-xl font-bold text-green-600 dark:text-green-400" th:text="${character.agility ?: 10}">10</div>
+                    </div>
+                    
+                    <!-- Intelligence -->
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+                        <div class="text-2xl mb-1">🧠</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">지능</div>
+                        <div class="text-xl font-bold text-blue-600 dark:text-blue-400" th:text="${character.intelligence ?: 10}">10</div>
+                    </div>
+                    
+                    <!-- Health -->
+                    <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
+                        <div class="text-2xl mb-1">❤️</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">체력</div>
+                        <div class="text-xl font-bold text-purple-600 dark:text-purple-400" th:text="${character.health ?: 100}">100</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Character Description (if exists) -->
+            <div th:if="${character.description}" class="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
+                <h5 class="text-lg font-semibold mb-3 flex items-center">
+                    <span class="text-xl mr-2">📜</span>
+                    캐릭터 설명
+                </h5>
+                <p class="text-gray-700 dark:text-gray-300 leading-relaxed" th:text="${character.description}">
+                    캐릭터 설명이 여기에 표시됩니다.
+                </p>
+            </div>
+        </div>
+        
+        <!-- No Character - Creation Form -->
+        <div th:unless="${character != null}" x-data="{ selectedRace: '', creatingCharacter: false }">
+            <div class="text-center py-8">
+                <div class="text-6xl mb-4">🎭</div>
+                <h4 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    아직 캐릭터가 없습니다
+                </h4>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    게임을 시작하려면 캐릭터를 생성해주세요!
+                </p>
+            </div>
+            
+            <!-- Race Selection -->
+            <div class="space-y-4">
+                <h5 class="text-lg font-semibold flex items-center">
+                    <span class="text-xl mr-2">🎲</span>
+                    종족 선택
+                </h5>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Human -->
+                    <button @click="selectedRace = 'HUMAN'"
+                            :class="selectedRace === 'HUMAN' ? 'ring-4 ring-purple-500 bg-purple-50 dark:bg-purple-900/30' : 'bg-gray-50 dark:bg-gray-700'"
+                            class="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-500 transition-all cursor-pointer">
+                        <div class="text-3xl mb-2">👤</div>
+                        <div class="font-semibold">인간</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">균형잡힌 능력치</div>
+                    </button>
+                    
+                    <!-- Elf -->
+                    <button @click="selectedRace = 'ELF'"
+                            :class="selectedRace === 'ELF' ? 'ring-4 ring-purple-500 bg-purple-50 dark:bg-purple-900/30' : 'bg-gray-50 dark:bg-gray-700'"
+                            class="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-500 transition-all cursor-pointer">
+                        <div class="text-3xl mb-2">🧝</div>
+                        <div class="font-semibold">엘프</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">민첩과 지혜</div>
+                    </button>
+                    
+                    <!-- Dwarf -->
+                    <button @click="selectedRace = 'DWARF'"
+                            :class="selectedRace === 'DWARF' ? 'ring-4 ring-purple-500 bg-purple-50 dark:bg-purple-900/30' : 'bg-gray-50 dark:bg-gray-700'"
+                            class="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-500 transition-all cursor-pointer">
+                        <div class="text-3xl mb-2">⚒️</div>
+                        <div class="font-semibold">드워프</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">강인한 체력</div>
+                    </button>
+                    
+                    <!-- Orc -->
+                    <button @click="selectedRace = 'ORC'"
+                            :class="selectedRace === 'ORC' ? 'ring-4 ring-purple-500 bg-purple-50 dark:bg-purple-900/30' : 'bg-gray-50 dark:bg-gray-700'"
+                            class="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-500 transition-all cursor-pointer">
+                        <div class="text-3xl mb-2">👹</div>
+                        <div class="font-semibold">오크</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">압도적인 힘</div>
+                    </button>
+                </div>
+                
+                <!-- Race Description -->
+                <div x-show="selectedRace" x-transition class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mt-4">
+                    <p x-show="selectedRace === 'HUMAN'" class="text-sm text-gray-700 dark:text-gray-300">
+                        인간은 모든 능력치가 균형있게 분포되어 있어 어떤 상황에도 잘 적응합니다.
+                    </p>
+                    <p x-show="selectedRace === 'ELF'" class="text-sm text-gray-700 dark:text-gray-300">
+                        엘프는 뛰어난 민첩성과 지혜를 가지고 있으며, 마법적 감각이 뛰어납니다.
+                    </p>
+                    <p x-show="selectedRace === 'DWARF'" class="text-sm text-gray-700 dark:text-gray-300">
+                        드워프는 강인한 체력과 의지력을 자랑하며, 험난한 환경에서도 버틸 수 있습니다.
+                    </p>
+                    <p x-show="selectedRace === 'ORC'" class="text-sm text-gray-700 dark:text-gray-300">
+                        오크는 압도적인 힘을 가지고 있으며, 직접적인 전투에서 강력한 위력을 발휘합니다.
+                    </p>
+                </div>
+                
+                <!-- Create Button -->
+                <div class="flex justify-center mt-6">
+                    <button x-show="selectedRace && !creatingCharacter"
+                            @click="creatingCharacter = true"
+                            hx-post="/v2/characters"
+                            :hx-vals='JSON.stringify({race: selectedRace})'
+                            hx-target="#character-modal-content"
+                            hx-swap="innerHTML"
+                            hx-indicator="#character-creating-indicator"
+                            class="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all transform hover:scale-105">
+                        <span class="flex items-center">
+                            <span class="text-xl mr-2">🎯</span>
+                            캐릭터 생성하기
+                        </span>
+                    </button>
+                    
+                    <!-- Creating Indicator -->
+                    <div id="character-creating-indicator" class="htmx-indicator">
+                        <div class="flex items-center space-x-2">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                            <span>캐릭터 생성 중...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
