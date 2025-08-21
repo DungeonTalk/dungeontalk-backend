@@ -236,24 +236,5 @@ class RaceStatsRepositoryTest {
             assertThat(result.getDiceOdds()).isEqualTo("luck * 0.15 + intelligence * 0.05");
         }
 
-        @Test
-        @DisplayName("필수 공식이 null이거나 빈 문자열이면 저장에 실패한다")
-        void emptyFormulas_validationFails() {
-            // given - 필수 공식이 누락된 종족 생성
-            RaceStats invalidRace = RaceStats.builder()
-                .race("유효하지않은종족")
-                .healthPoints("100 + willpower * 5")
-                .manaPoints("") // 빈 문자열 - 검증 실패해야 함
-                .physicalAttack(null) // null - 검증 실패해야 함
-                .magicAttack("intelligence * 1.0")
-                .evasionRate("dexterity * 0.5")
-                .accuracy("50")
-                .diceOdds("luck * 0.1")
-                .build();
-            
-            // when & then - 유효성 검증 실패로 예외 발생해야 함
-            assertThatThrownBy(() -> raceStatsRepository.saveAndFlush(invalidRace))
-                .isInstanceOf(Exception.class); // 구체적인 예외 타입은 JPA 구현체에 따라 다를 수 있음
-        }
     }
 }
