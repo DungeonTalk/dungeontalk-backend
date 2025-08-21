@@ -7,17 +7,18 @@
 </head>
 <body>
 <div layout:fragment="content">
-    <div class="container mx-auto px-4 py-6" x-data="gameApp()" x-init="init()">
+    <div class="container mx-auto px-4 py-6" x-data="{ ...gameApp(), characterModalOpen: false }" x-init="init()">
         <!-- Game Status -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold flex items-center">
                     <span class="text-3xl mr-2">🎮</span> 게임 상태
                 </h2>
-                <button hx-get="/game/character/info"
+                <button @click="characterModalOpen = true"
+                        hx-get="/game/character/info"
                         hx-target="#character-modal-content"
+                        hx-trigger="click"
                         hx-swap="innerHTML"
-                        onclick="document.getElementById('character-modal').style.display='flex'"
                         class="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105">
                     ⚔️ 내 캐릭터
                 </button>
@@ -47,28 +48,49 @@
             <!-- World Selection (Thymeleaf 서버사이드 렌더링) -->
             <div th:if="${worlds != null && !worlds.isEmpty()}" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div th:each="world : ${worlds}" 
-                     th:data-world-id="${world.id}"
-                     th:data-world-name="${world.worldName}"
-                     onclick="selectWorld(this.dataset.worldId, this.dataset.worldName)"
-                     class="cursor-pointer bg-gray-50 dark:bg-gray-700 rounded-xl p-6 transition-all hover:transform hover:-translate-y-1 hover:shadow-xl world-card">
+                     th:data-world-id="${world.code}"
+                     th:data-world-name="${world.displayName}"
+                     th:data-world-desc="${world.description}"
+                     onclick="selectWorld(this.dataset.worldId, this.dataset.worldName, this)"
+                     class="cursor-pointer bg-gray-50 dark:bg-gray-700 rounded-xl p-6 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-xl world-card border-3 border-transparent hover:border-primary-500 relative overflow-hidden">
+                    <!-- 선택 체크마크 -->
+                    <div class="absolute top-3 right-3 w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full items-center justify-center hidden world-selected-badge">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
                     <h3 class="text-xl font-bold mb-3 flex items-center">
                         <span class="text-2xl mr-2">
-                            <span th:if="${world.id == 'FANTASY'}">🏰</span>
-                            <span th:if="${world.id == 'SCIFI'}">🚀</span>
-                            <span th:if="${world.id == 'MODERN'}">🏙️</span>
-                            <span th:if="${world.id != 'FANTASY' && world.id != 'SCIFI' && world.id != 'MODERN'}">🌍</span>
+                            <span th:if="${world.code == 'FANTASY'}">🏰</span>
+                            <span th:if="${world.code == 'SCIFI'}">🚀</span>
+                            <span th:if="${world.code == 'MODERN'}">🏙️</span>
+                            <span th:if="${world.code != 'FANTASY' && world.code != 'SCIFI' && world.code != 'MODERN'}">🌍</span>
                         </span>
-                        <span th:text="${world.worldName}">세계관 이름</span>
+                        <span th:text="${world.displayName}">세계관 이름</span>
                     </h3>
                     <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        <span class="block">경험치 보상: <strong th:text="${world.clearExp}">0</strong> EXP</span>
-                        <span class="block mt-2 text-sm">도전해보세요! 멋진 모험이 기다립니다.</span>
+                        <span class="block mb-2 text-sm" th:text="${world.description}">세계관 설명</span>
+                        <span th:if="${world.isActive}" class="inline-block mt-2 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">활성화</span>
+                        <span th:unless="${world.isActive}" class="inline-block mt-2 px-2 py-1 bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 text-xs rounded-full">비활성화</span>
                     </p>
                 </div>
             </div>
             
-            <div th:if="${worlds == null || worlds.isEmpty()}" class="text-center py-8 text-gray-600">
-                <p>현재 이용 가능한 세계관이 없습니다.</p>
+            <div th:if="${worlds == null || worlds.isEmpty()}" class="text-center py-12">
+                <div class="text-6xl mb-4">🌍</div>
+                <p class="text-gray-600 dark:text-gray-400 text-lg">현재 이용 가능한 세계관이 없습니다.</p>
+                <p class="text-gray-500 dark:text-gray-500 text-sm mt-2">잠시 후 다시 시도해주세요.</p>
+            </div>
+            
+            <!-- 선택된 세계관 정보 표시 -->
+            <div id="selectedWorldInfo" class="hidden mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border-l-4 border-purple-500">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-3">✨</span>
+                    <div>
+                        <p class="font-semibold text-purple-800 dark:text-purple-300">선택된 세계관</p>
+                        <p class="text-lg font-bold text-purple-900 dark:text-purple-200" id="selectedWorldDisplay">-</p>
+                    </div>
+                </div>
             </div>
             
             <!-- Start Game Button -->
@@ -76,29 +98,89 @@
                 <button id="gameStartButton"
                         onclick="startGame()"
                         disabled
-                        class="px-8 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-bold transition-all transform hover:scale-105 disabled:scale-100">
-                    <span class="flex items-center">
+                        class="px-8 py-3 bg-gray-400 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 disabled:opacity-60">
+                    <span class="flex items-center justify-center">
                         <span class="text-xl mr-2">🎮</span>
-                        게임 시작
+                        <span id="gameStartText">세계관을 선택하세요</span>
                     </span>
                 </button>
+                
+                <!-- 캐릭터 없음 경고 메시지 -->
+                <div id="characterWarning" style="display:none" class="mt-4 p-4 bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="text-yellow-600 dark:text-yellow-400 text-2xl mr-3">⚠️</span>
+                        <div>
+                            <p class="font-semibold text-yellow-800 dark:text-yellow-300">캐릭터가 필요합니다!</p>
+                            <p class="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
+                                게임을 시작하려면 먼저 "⚔️ 내 캐릭터" 버튼을 클릭하여 캐릭터를 생성해주세요.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <!-- HTMX Character Modal -->
-        <div id="character-modal" style="display:none" 
-             class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center">
-            <div class="fixed inset-0 bg-black opacity-50" onclick="this.parentElement.style.display='none'"></div>
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full p-6 z-10 m-4">
-                <h3 class="text-2xl font-bold mb-4">⚔️ 내 캐릭터</h3>
-                <div id="character-modal-content">
-                    <!-- HTMX로 내용이 로드됩니다 -->
-                </div>
-                <div class="flex justify-end mt-6">
-                    <button onclick="document.getElementById('character-modal').style.display='none'"
-                            class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
-                        닫기
-                    </button>
+        <!-- Alpine.js + HTMX Character Modal -->
+        <div x-show="characterModalOpen"
+             x-cloak
+             class="fixed inset-0 z-50 overflow-y-auto"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+            
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                 @click="characterModalOpen = false"></div>
+            
+            <!-- Modal Panel -->
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl"
+                     @click.stop
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                    
+                    <!-- Modal Header -->
+                    <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-semibold text-white flex items-center">
+                                <span class="text-2xl mr-2">⚔️</span>
+                                내 캐릭터
+                            </h3>
+                            <button @click="characterModalOpen = false"
+                                    class="text-white hover:text-gray-200 transition-colors">
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Modal Content -->
+                    <div class="px-6 py-4">
+                        <div id="character-modal-content" class="min-h-[200px]">
+                            <!-- Loading State -->
+                            <div class="flex justify-center items-center py-12">
+                                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Modal Footer -->
+                    <div class="bg-gray-50 dark:bg-gray-700 px-6 py-3">
+                        <div class="flex justify-end">
+                            <button @click="characterModalOpen = false"
+                                    class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                                닫기
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -107,26 +189,150 @@
 
 <th:block layout:fragment="scripts">
 <script src="/js/thymeleaf/game/game-app.js"></script>
+<style>
+    .htmx-indicator {
+        display: none;
+    }
+    .htmx-request .htmx-indicator {
+        display: flex;
+    }
+    .htmx-request.htmx-indicator {
+        display: flex;
+    }
+    
+    /* 세계관 카드 선택 스타일 */
+    .world-card {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    
+    .world-card:hover {
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2);
+    }
+    
+    .world-card.selected {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+        border-color: rgb(139, 92, 246) !important;
+        transform: scale(1.02);
+    }
+    
+    .world-selected-badge {
+        animation: fadeInScale 0.3s ease;
+    }
+    
+    @keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: scale(0);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    /* 선택된 카드 빛나는 효과 */
+    .world-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 0.75rem;
+        background: linear-gradient(45deg, transparent, rgba(139, 92, 246, 0.1), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+    
+    .world-card:hover::before {
+        opacity: 1;
+    }
+    
+    /* 게임 시작 버튼 활성화 애니메이션 */
+    #gameStartButton:not(:disabled) {
+        animation: pulseGlow 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulseGlow {
+        0%, 100% {
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+        50% {
+            box-shadow: 0 4px 25px rgba(139, 92, 246, 0.5);
+        }
+    }
+    
+    /* 다크모드 대응 */
+    @media (prefers-color-scheme: dark) {
+        .world-card.selected {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+        }
+        
+        .world-card:hover {
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        }
+    }
+</style>
 <script th:inline="javascript">
 // 전역 변수로 선택된 세계관 저장
 var selectedWorldId = null;
 var selectedWorldName = null;
 
 // selectWorld 함수 재정의
-window.selectWorld = function(worldId, worldName) {
+window.selectWorld = function(worldId, worldName, element) {
     selectedWorldId = worldId;
     selectedWorldName = worldName;
     
-    // Alpine 컴포넌트 업데이트 (있으면)
-    const element = document.querySelector('[x-data*="gameApp"]');
-    if (element && element._x_dataStack && element._x_dataStack[0]) {
-        element._x_dataStack[0].selectWorld(worldId, worldName);
+    // 모든 카드의 선택 스타일 제거
+    document.querySelectorAll('.world-card').forEach(card => {
+        card.classList.remove('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/20', 'ring-4', 'ring-purple-300', 'dark:ring-purple-700', 'transform', 'scale-105');
+        card.classList.add('border-transparent', 'bg-gray-50', 'dark:bg-gray-700');
+        // 체크마크 숨기기
+        const badge = card.querySelector('.world-selected-badge');
+        if (badge) {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+        }
+    });
+    
+    // 선택된 카드에 스타일 적용
+    if (element) {
+        element.classList.remove('border-transparent', 'bg-gray-50', 'dark:bg-gray-700');
+        element.classList.add('selected', 'border-purple-500', 'bg-gradient-to-br', 'from-purple-50', 'to-blue-50', 'dark:from-purple-900/20', 'dark:to-blue-900/20', 'ring-4', 'ring-purple-300', 'dark:ring-purple-700', 'transform', 'scale-105', 'shadow-xl');
+        // 체크마크 표시
+        const badge = element.querySelector('.world-selected-badge');
+        if (badge) {
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        }
     }
     
-    // 버튼 활성화
+    // Alpine 컴포넌트 업데이트 (있으면)
+    const alpineElement = document.querySelector('[x-data*="gameApp"]');
+    if (alpineElement && alpineElement._x_dataStack && alpineElement._x_dataStack[0]) {
+        alpineElement._x_dataStack[0].selectWorld(worldId, worldName);
+    }
+    
+    // 버튼 활성화 및 텍스트 변경
     const button = document.getElementById('gameStartButton');
+    const buttonText = document.getElementById('gameStartText');
     if (button) {
         button.removeAttribute('disabled');
+        button.classList.remove('bg-gray-400', 'opacity-60');
+        button.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-blue-600', 'hover:from-purple-700', 'hover:to-blue-700');
+    }
+    if (buttonText) {
+        buttonText.textContent = '게임 시작';
+    }
+    
+    // 선택된 세계관 정보 표시
+    const infoBox = document.getElementById('selectedWorldInfo');
+    const displayText = document.getElementById('selectedWorldDisplay');
+    if (infoBox && displayText) {
+        infoBox.classList.remove('hidden');
+        displayText.textContent = worldName;
     }
     
     // 알림 표시
@@ -135,14 +341,28 @@ window.selectWorld = function(worldId, worldName) {
     }
 };
 
-// 게임 시작 함수
-window.startGame = function() {
+// 게임 시작 함수 (캐릭터 체크 포함)
+window.startGame = async function() {
     if (!selectedWorldId) {
         if (Alpine && Alpine.store && Alpine.store('notifications')) {
             Alpine.store('notifications').warning('세계관을 먼저 선택해주세요.');
         }
         return;
     }
+    
+    // 캐릭터 존재 여부 체크
+    const hasCharacter = await checkCharacterExists();
+    if (!hasCharacter) {
+        // 경고 메시지 표시
+        document.getElementById('characterWarning').style.display = 'block';
+        if (Alpine && Alpine.store && Alpine.store('notifications')) {
+            Alpine.store('notifications').error('캐릭터가 없습니다. 먼저 캐릭터를 생성해주세요.');
+        }
+        return;
+    }
+    
+    // 경고 메시지 숨기기
+    document.getElementById('characterWarning').style.display = 'none';
     
     // Alpine 컴포넌트의 startMatching 호출 (있으면)
     const element = document.querySelector('[x-data*="gameApp"]');
@@ -153,6 +373,31 @@ window.startGame = function() {
         window.location.href = '/game/play?world=' + selectedWorldId;
     }
 };
+
+// 캐릭터 존재 여부 체크 함수
+async function checkCharacterExists() {
+    try {
+        const response = await fetch('/v2/characters/my', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('캐릭터 존재 여부:', result);
+            return result.data && result.data.id;
+        } else if (response.status === 404) {
+            console.log('캐릭터가 없습니다.');
+            return false;
+        }
+    } catch (error) {
+        console.error('캐릭터 체크 오류:', error);
+    }
+    return false;
+}
 </script>
 </th:block>
 </body>

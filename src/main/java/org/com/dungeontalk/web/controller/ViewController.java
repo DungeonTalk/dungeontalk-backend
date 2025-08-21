@@ -4,6 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.world.dto.response.WorldResponse;
 import org.com.dungeontalk.domain.world.service.WorldService;
+import org.com.dungeontalk.domain.worldtype.controller.WorldTypeController;
+import org.com.dungeontalk.domain.worldtype.dto.response.WorldTypeResponse;
+import org.com.dungeontalk.domain.worldtype.service.WorldTypeService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.com.dungeontalk.global.security.CustomUserDetails;
@@ -22,7 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ViewController {
     
-    private final WorldService worldService;
+    private final WorldTypeService worldTypeService;
 
     /**
      * 메인 홈 페이지
@@ -56,9 +59,9 @@ public class ViewController {
         
         // 세계관 목록을 서버에서 가져와서 Model에 추가
         try {
-            List<WorldResponse> worlds = worldService.getAllWorlds();
-            model.addAttribute("worlds", worlds);
-            log.info("세계관 목록 로드 성공: {} 개", worlds.size());
+            List<WorldTypeResponse> worldTypes = worldTypeService.getActiveWorldTypes();
+            model.addAttribute("worlds", worldTypes);
+            log.info("세계관 목록 로드 성공: {} 개", worldTypes.size());
         } catch (Exception e) {
             log.error("세계관 목록 로드 실패", e);
             model.addAttribute("worlds", List.of());
