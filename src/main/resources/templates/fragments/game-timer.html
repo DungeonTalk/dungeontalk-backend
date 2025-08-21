@@ -1,51 +1,101 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<!-- 15분 TRPG 타이머 Fragment -->
-<div th:fragment="timer" x-show="gameStarted" class="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl shadow-lg p-6 mb-6 border-l-4 border-primary-600">
-    <h2 class="text-2xl font-bold mb-4 flex items-center">
-        <span class="text-3xl mr-2">⏰</span> TRPG 게임 타이머
-    </h2>
-    <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
-        <div class="flex-1 w-full">
-            <div class="text-center mb-3">
-                <span class="text-4xl font-bold font-mono" 
-                      :class="{
-                          'text-green-600': gameTime >= 600,
-                          'text-yellow-600': gameTime >= 300 && gameTime < 600,
-                          'text-orange-600': gameTime >= 60 && gameTime < 300,
-                          'text-red-600': gameTime < 60
-                      }"
-                      x-text="formatTime(gameTime)">15:00</span>
-            </div>
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-1000 ease-linear"
-                     :style="`width: ${(gameTime / 900) * 100}%`"
-                     :class="{
-                         'bg-gradient-to-r from-green-400 to-green-600': gameTime >= 600,
-                         'bg-gradient-to-r from-yellow-400 to-yellow-600': gameTime >= 300 && gameTime < 600,
-                         'bg-gradient-to-r from-orange-400 to-orange-600': gameTime >= 60 && gameTime < 300,
-                         'bg-gradient-to-r from-red-400 to-red-600 animate-pulse': gameTime < 60
-                     }"></div>
-            </div>
-        </div>
-        <div class="text-center">
-            <div class="text-lg font-bold mb-2"
-                 :class="{
-                     'text-green-600': gamePhase === 'relaxed',
-                     'text-yellow-600': gamePhase === 'normal',
-                     'text-orange-600': gamePhase === 'urgent',
-                     'text-red-600': gamePhase === 'critical'
-                 }"
-                 x-text="getPhaseText(gamePhase)">시작 단계</div>
-            <div class="px-4 py-2 rounded-full text-white font-bold"
+<!-- 15분 TRPG 타이머 Fragment (압박감 표시 강화) -->
+<div th:fragment="timer" x-show="gameStarted" 
+     class="rounded-xl shadow-lg p-6 mb-6 border-l-4 transition-all duration-500 warning-border"
+     :class="{
+         'pressure-relaxed': gamePhase === 'relaxed',
+         'pressure-normal': gamePhase === 'normal',
+         'pressure-urgent': gamePhase === 'urgent',
+         'pressure-critical active': gamePhase === 'critical'
+     }">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold flex items-center">
+            <span class="text-3xl mr-2">⏰</span> TRPG 게임 타이머
+        </h2>
+        <!-- 게임 단계 표시 (상단) -->
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">현재 단계:</span>
+            <div class="px-3 py-1 rounded-full text-white font-bold text-sm"
                  :class="{
                      'bg-green-500': gamePhase === 'relaxed',
                      'bg-yellow-500': gamePhase === 'normal',
                      'bg-orange-500': gamePhase === 'urgent',
                      'bg-red-500 animate-pulse': gamePhase === 'critical'
+                 }">
+                <span x-text="getGamePhaseEmoji(gamePhase)"></span>
+                <span x-text="getPhaseText(gamePhase)">시작 단계</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+        <!-- 타이머 및 프로그레스 바 -->
+        <div class="flex-1 w-full">
+            <!-- 시간 표시 -->
+            <div class="text-center mb-3">
+                <span class="text-5xl font-bold font-mono transition-all duration-300" 
+                      :class="{
+                          'timer-relaxed': gameTime >= 600,
+                          'timer-normal': gameTime >= 300 && gameTime < 600,
+                          'timer-urgent': gameTime >= 60 && gameTime < 300,
+                          'timer-critical': gameTime < 60
+                      }"
+                      x-text="formatTime(gameTime)">15:00</span>
+            </div>
+            
+            <!-- 프로그레스 바 -->
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden shadow-inner">
+                <div class="h-full rounded-full transition-all duration-1000 ease-linear relative"
+                     :style="`width: ${(gameTime / 900) * 100}%`"
+                     :class="{
+                         'progress-bar-relaxed': gameTime >= 600,
+                         'progress-bar-normal': gameTime >= 300 && gameTime < 600,
+                         'progress-bar-urgent': gameTime >= 60 && gameTime < 300,
+                         'progress-bar-critical': gameTime < 60
+                     }">
+                    <!-- 프로그레스 바 애니메이션 효과 -->
+                    <div class="absolute inset-0 bg-white opacity-20 animate-pulse" x-show="gameTime < 60"></div>
+                </div>
+            </div>
+            
+            <!-- 단계별 시간 표시 -->
+            <div class="flex justify-between mt-2 text-xs text-gray-600 dark:text-gray-400">
+                <span>🌱 도입 (0-5분)</span>
+                <span>⚡ 전개 (5-10분)</span>
+                <span>🔥 클라이맥스 (10-14분)</span>
+                <span>🎭 종료 (14-15분)</span>
+            </div>
+        </div>
+        
+        <!-- 압박감 표시 -->
+        <div class="text-center lg:ml-6">
+            <div class="mb-2">
+                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">압박감 레벨</span>
+            </div>
+            <div class="px-6 py-3 rounded-lg text-white font-bold text-lg shadow-lg transition-all duration-300"
+                 :class="{
+                     'bg-gradient-to-r from-green-500 to-emerald-500': gamePhase === 'relaxed',
+                     'bg-gradient-to-r from-yellow-500 to-amber-500': gamePhase === 'normal',
+                     'bg-gradient-to-r from-orange-500 to-red-500': gamePhase === 'urgent',
+                     'bg-gradient-to-r from-red-600 to-pink-600 animate-pulse': gamePhase === 'critical'
+                 }">
+                <div class="text-2xl mb-1" x-text="getPressureEmoji(gamePhase)">😌</div>
+                <div x-text="getPressureText(gamePhase)">여유</div>
+            </div>
+            
+            <!-- 상태 메시지 -->
+            <div class="mt-2 text-sm font-semibold" 
+                 :class="{
+                     'text-green-600': gamePhase === 'relaxed',
+                     'text-yellow-600 pressure-message-normal': gamePhase === 'normal',
+                     'text-orange-600 pressure-message-urgent': gamePhase === 'urgent',
+                     'text-red-600 pressure-message-critical': gamePhase === 'critical'
                  }"
-                 x-text="getPressureText(gamePhase)">여유</div>
+                 x-text="getPressureMessage(gamePhase)">
+                여유롭게 탐험하세요
+            </div>
         </div>
     </div>
 </div>
