@@ -152,7 +152,7 @@ function gameApp() {
                 'urgent': '서둘러 임무를 완수하세요!',
                 'critical': '마지막 기회입니다!'
             };
-            return texts[phase] || '대기';
+            return messages[phase] || '대기';
         },
         
         startGameTimer() {
