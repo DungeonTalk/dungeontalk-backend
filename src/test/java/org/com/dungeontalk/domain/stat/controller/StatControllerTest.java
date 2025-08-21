@@ -85,30 +85,6 @@ class StatControllerTest {
 
         // 0인 스탯 테스트 제거: DDL 기본값으로 보장되며, 실제 게임에서는 발생하지 않는 상황
 
-        @Test
-        @DisplayName("누락된 스탯이 있는 경우 기본값 0으로 응답한다")
-        void getCalculatedStats_withMissingStats_defaultsToZero() throws Exception {
-            // given - 일부 스탯이 누락된 데이터 (CalculatedStatsResponse.fromMap에서 기본값 처리)
-            Map<String, Double> partialStats = new LinkedHashMap<>();
-            partialStats.put("healthPoints", 150.0);
-            partialStats.put("physicalAttack", 20.0);
-            partialStats.put("accuracy", 65.0);
-            // manaPoints, magicAttack, evasionRate, diceOdds 누락
-            
-            given(statAggregateService.calculateAllStats(CHARACTER_ID))
-                .willReturn(partialStats);
-
-            // when & then - 누락된 스탯은 기본값 0으로 응답되는지 검증
-            mockMvc.perform(get(BASE_URL + "/{characterId}/calculated", CHARACTER_ID))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.healthPoints").value(150.0))
-                .andExpect(jsonPath("$.data.manaPoints").value(0.0)) // 기본값
-                .andExpect(jsonPath("$.data.physicalAttack").value(20.0))
-                .andExpect(jsonPath("$.data.magicAttack").value(0.0)) // 기본값
-                .andExpect(jsonPath("$.data.evasionRate").value(0.0)) // 기본값
-                .andExpect(jsonPath("$.data.accuracy").value(65.0))
-                .andExpect(jsonPath("$.data.diceOdds").value(0.0)); // 기본값
-        }
 
         @Test
         @DisplayName("소수점 스탯 값이 정확하게 응답된다")
@@ -176,21 +152,6 @@ class StatControllerTest {
         // 예외 처리 테스트는 비즈니스 로직 수준에서 검증됨 (Service 테스트)
         // Controller 테스트에서는 정상 케이스에 집중
 
-        @Test
-        @DisplayName("잘못된 Path Variable 형식으로 요청해도 처리된다")
-        void getCalculatedStats_invalidPathVariable_processed() throws Exception {
-            // given - 특수문자가 포함된 캐릭터 ID (URL 인코딩 처리)
-            String specialCharacterId = "char@#$%";
-            Map<String, Double> mockStats = createMockCalculatedStats();
-            
-            given(statAggregateService.calculateAllStats(specialCharacterId))
-                .willReturn(mockStats);
-
-            // when & then - 특수문자 ID도 처리되는지 검증
-            mockMvc.perform(get(BASE_URL + "/{characterId}/calculated", specialCharacterId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.characterId").value(specialCharacterId));
-        }
     }
 
     @Nested

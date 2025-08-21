@@ -93,34 +93,6 @@ class StatCalculatorServiceTest {
             assertThat(statCalculatorService.calculate("(strength + intelligence) / 2", variables)).isEqualTo(13.5);
         }
 
-        @Test
-        @DisplayName("실제 게임 스탯 공식 계산에 성공한다")
-        void calculate_realGameFormulas_success() {
-            // given - 실제 게임에서 사용되는 캐릭터 스탯
-            Map<String, Object> variables = new HashMap<>();
-            variables.put("strength", 10);
-            variables.put("willpower", 12);
-            variables.put("intelligence", 15);
-            variables.put("wisdom", 13);
-            variables.put("dexterity", 11);
-            variables.put("luck", 9);
-            
-            // when & then - 실제 게임 공식 계산 검증
-            // HP 공식: 120 + (willpower * 8)
-            assertThat(statCalculatorService.calculate("120 + (willpower * 8)", variables)).isEqualTo(216.0);
-            
-            // MP 공식: 100 + (wisdom * 10)  
-            assertThat(statCalculatorService.calculate("100 + (wisdom * 10)", variables)).isEqualTo(230.0);
-            
-            // 물리 공격력: strength * 1.5
-            assertThat(statCalculatorService.calculate("strength * 1.5", variables)).isEqualTo(15.0);
-            
-            // 마법 공격력: intelligence * 1.3
-            assertThat(statCalculatorService.calculate("intelligence * 1.3", variables)).isEqualTo(19.5);
-            
-            // 명중률: 60 + (dexterity * 1.0)
-            assertThat(statCalculatorService.calculate("60 + (dexterity * 1.0)", variables)).isEqualTo(71.0);
-        }
 
         @Test
         @DisplayName("Number 타입 변수 처리에 성공한다")

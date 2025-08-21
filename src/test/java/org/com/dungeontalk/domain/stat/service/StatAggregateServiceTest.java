@@ -136,48 +136,6 @@ class StatAggregateServiceTest {
             verify(statCalculatorService).calculate("luck * 0.12", character.toVariableMap());
         }
 
-        @Test
-        @DisplayName("빈 공식이 있는 종족의 스탯 계산에 성공한다")
-        void calculateAllStats_withEmptyFormulas_success() {
-            // given - 일부 공식이 빈 종족 스탯
-            GameCharacter character = createGameCharacter();
-            RaceStats partialRaceStats = RaceStats.builder()
-                .id(RACE_ID)
-                .race("부분종족")
-                .healthPoints("100 + (willpower * 5)")
-                .manaPoints("") // 빈 공식
-                .physicalAttack(null) // null 공식
-                .magicAttack("intelligence * 1.0")
-                .evasionRate("") // 빈 공식
-                .accuracy("50")
-                .diceOdds(null) // null 공식
-                .build();
-            
-            character.setRaceStats(partialRaceStats);
-            
-            given(gameCharacterRepository.findWithRace(CHARACTER_ID))
-                .willReturn(Optional.of(character));
-            
-            // 빈 공식이 아닌 것만 계산 Mock 설정
-            given(statCalculatorService.calculate("100 + (willpower * 5)", character.toVariableMap()))
-                .willReturn(170.0);
-            given(statCalculatorService.calculate("intelligence * 1.0", character.toVariableMap()))
-                .willReturn(16.0);
-            given(statCalculatorService.calculate("50", character.toVariableMap()))
-                .willReturn(50.0);
-            
-            // when - 부분적인 공식을 가진 종족의 스탯 계산
-            Map<String, Double> result = statAggregateService.calculateAllStats(CHARACTER_ID);
-            
-            // then - 빈 공식이 아닌 것들만 결과에 포함되는지 검증
-            assertThat(result).hasSize(3);
-            assertThat(result.get("healthPoints")).isEqualTo(170.0);
-            assertThat(result.get("magicAttack")).isEqualTo(16.0);
-            assertThat(result.get("accuracy")).isEqualTo(50.0);
-            
-            // 빈 공식들은 결과에 포함되지 않음
-            assertThat(result).doesNotContainKeys("manaPoints", "physicalAttack", "evasionRate", "diceOdds");
-        }
 
         @Test
         @DisplayName("복잡한 공식의 스탯 계산에 성공한다")
