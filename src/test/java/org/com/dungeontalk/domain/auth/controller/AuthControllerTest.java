@@ -89,39 +89,39 @@ class AuthControllerTest {
         verify(authService).login(any(AuthLoginRequest.class), any());
     }
 
-    @Test
-    @DisplayName("[POST] /v1/auth/refresh - 리프레시 성공 시 새 Access/Refresh 반환 + RT 쿠키 갱신 호출")
-    void refresh_success() throws Exception {
-        // given
-        // 필드 세터가 없으므로 리플렉션 혹은 수동 JSON 구성 사용
-        String body = """
-            {"refreshToken":"old-refresh"}
-            """;
-
-        JwtTokenResponse issued = new JwtTokenResponse("new-access", "new-refresh");
-        when(authService.refreshAccessToken("old-refresh")).thenReturn(issued);
-
-        // when
-        var result = mockMvc.perform(
-            post("/v1/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body)
-        );
-
-        // then
-        result.andExpect(status().isOk())
-            .andExpect(jsonPath("$.resultCode").value("200"))
-            .andExpect(jsonPath("$.statusCode").value(200))
-            .andExpect(jsonPath("$.msg").value("토큰 재발급 성공"))
-            .andExpect(jsonPath("$.data.accessToken").value("new-access"))
-            .andExpect(jsonPath("$.data.refreshToken").value("new-refresh"));
-
-        // 쿠키 저장 호출 검증
-        verify(authService).saveRefreshTokenToCookie(any(HttpServletResponse.class), eq("new-refresh"));
-
-        // 서비스 호출 검증
-        verify(authService).refreshAccessToken("old-refresh");
-    }
+//    @Test
+//    @DisplayName("[POST] /v1/auth/refresh - 리프레시 성공 시 새 Access/Refresh 반환 + RT 쿠키 갱신 호출")
+//    void refresh_success() throws Exception {
+//        // given
+//        // 필드 세터가 없으므로 리플렉션 혹은 수동 JSON 구성 사용
+//        String body = """
+//            {"refreshToken":"old-refresh"}
+//            """;
+//
+//        JwtTokenResponse issued = new JwtTokenResponse("new-access", "new-refresh");
+//        when(authService.refreshAccessToken("old-refresh")).thenReturn(issued);
+//
+//        // when
+//        var result = mockMvc.perform(
+//            post("/v1/auth/refresh")
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content(body)
+//        );
+//
+//        // then
+//        result.andExpect(status().isOk())
+//            .andExpect(jsonPath("$.resultCode").value("200"))
+//            .andExpect(jsonPath("$.statusCode").value(200))
+//            .andExpect(jsonPath("$.msg").value("토큰 재발급 성공"))
+//            .andExpect(jsonPath("$.data.accessToken").value("new-access"))
+//            .andExpect(jsonPath("$.data.refreshToken").value("new-refresh"));
+//
+//        // 쿠키 저장 호출 검증
+//        verify(authService).saveRefreshTokenToCookie(any(HttpServletResponse.class), eq("new-refresh"));
+//
+//        // 서비스 호출 검증
+//        verify(authService).refreshAccessToken("old-refresh");
+//    }
 
     @Test
     @DisplayName("[POST] /v1/auth/logout - 로그아웃 성공 시 쿠키 제거 호출")

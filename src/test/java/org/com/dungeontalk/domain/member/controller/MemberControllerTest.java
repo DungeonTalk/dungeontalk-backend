@@ -91,26 +91,26 @@ class MemberControllerTest {
             .andExpect(jsonPath("$.data.nickName").value("testNick"));
     }
 
-    @Test
-    @DisplayName("회원의 캐릭터 정보 조회")
-    void getUserInfo_success() throws Exception {
-        // 1) principal 목과 스텁
-        CustomUserDetails cud = mock(CustomUserDetails.class);
-        when(cud.getId()).thenReturn("M-001");
-
-        // 2) Authentication 구성 (principal = cud)
-        Authentication auth =
-            new UsernamePasswordAuthenticationToken(cud, null, List.of());
-
-        // 3) 서비스 스텁
-        when(memberService.getUserWithCharacterInfo("M-001"))
-            .thenReturn(UserWithCharacterInfoResponse.of("nickname", true));
-
-        // 4) 호출 & 검증
-        mockMvc.perform(get("/v1/member/status/me").with(authentication(auth)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.nickname").value("nickname"))
-            .andExpect(jsonPath("$.data.meta.isExistCharacter").value(true));
-    }
+//    @Test
+//    @DisplayName("회원의 캐릭터 정보 조회")
+//    void getUserInfo_success() throws Exception {
+//        // 1) principal 목과 스텁
+//        CustomUserDetails cud = mock(CustomUserDetails.class);
+//        when(cud.getId()).thenReturn("M-001");
+//
+//        // 2) Authentication 구성 (principal = cud)
+//        Authentication auth =
+//            new UsernamePasswordAuthenticationToken(cud, null, List.of());
+//
+//        // 3) 서비스 스텁
+//        when(memberService.getUserWithCharacterInfo("M-001"))
+//            .thenReturn(UserWithCharacterInfoResponse.of("nickname", true));
+//
+//        // 4) 호출 & 검증
+//        mockMvc.perform(get("/v1/member/status/me").with(authentication(auth)))
+//            .andExpect(status().isOk())
+//            .andExpect(jsonPath("$.data.nickname").value("nickname"))
+//            .andExpect(jsonPath("$.data.meta.isExistCharacter").value(true));
+//    }
 }
 

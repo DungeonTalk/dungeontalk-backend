@@ -2,6 +2,7 @@ package org.com.dungeontalk.domain.gamecharacter.service;
 
 import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
+import org.com.dungeontalk.domain.gamecharacter.dto.request.GameResultRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
 import org.com.dungeontalk.domain.gamecharacter.entity.GameCharacter;
@@ -10,6 +11,8 @@ import org.com.dungeontalk.domain.gamecharacter.repository.GameCharacterReposito
 import org.com.dungeontalk.domain.gamecharacter.repository.RequestExpRepository;
 import org.com.dungeontalk.domain.stat.repository.RaceStatsRepository;
 import org.com.dungeontalk.domain.stat.service.StatAggregateService;
+import org.com.dungeontalk.domain.world.entity.World;
+import org.com.dungeontalk.domain.world.repository.WorldRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +29,7 @@ public class GameCharacterService {
     private final RaceStatsRepository raceStatsRepository;
     private final StatAggregateService statAggregateService;
     private final RequestExpRepository requestExpRepository;
+    private final WorldRepository worldRepository;
 
     // 새로운 캐릭터 생성 (레벨 1, 모든 스탯 10으로 초기화)
     @Transactional
@@ -128,7 +132,7 @@ public class GameCharacterService {
             RequestExp currentLevelInfo = requestExpRepository.findByLevel(currentLevel)
                     .orElseThrow(() -> new IllegalStateException("레벨 정보를 찾을 수 없습니다: " + currentLevel));
 
-            // 만렙인지 확인( getRequestNextLevelExp -> 만렙(30)인 경우 해당 컬럼이 유일하게 0)
+            // 만렙인지 확인(getRequestNextLevelExp -> 만렙(30)인 경우 해당 컬럼이 유일하게 0)
             if (currentLevelInfo.getRequestNextLevelExp() == 0) {
                 break; // 만렙이면 더 이상 레벨업하지 않음
             }
@@ -149,6 +153,21 @@ public class GameCharacterService {
         // 변경된 캐릭터 정보 저장 및 반환
         GameCharacter updatedCharacter = gameCharacterRepository.save(character);
         return GameCharacterResponse.from(updatedCharacter);
+    }
+
+
+    @Transactional
+    public GameCharacterResponse processGameResult(GameResultRequest request) {
+        int expToAdd = 0;
+
+        // 클리어확인 여부 -> true 이면 클리어
+        if (request.isCleared()) {
+            World world = worldRepository.findById(request.worldId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 월드: " + request.worldId()));
+            expToAdd = world.getClearExp();
+        }
+
+        return addExperience(request.characterId(), expToAdd);
     }
 
 }
