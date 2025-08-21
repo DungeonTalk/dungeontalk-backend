@@ -21,6 +21,7 @@ public class CorsConfig {
         ArrayList<String> allowedOriginPatterns = new ArrayList<>();
         allowedOriginPatterns.add("https://api.dt.com");
         allowedOriginPatterns.add("http://localhost:*");
+        allowedOriginPatterns.add("http://13.125.254.130:*");
         allowedOriginPatterns.add("http://127.0.0.1:*");
         allowedOriginPatterns.add("file://*");  // 로컬 HTML 파일 허용
         configuration.setAllowedOriginPatterns(allowedOriginPatterns);
