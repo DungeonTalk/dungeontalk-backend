@@ -1,0 +1,94 @@
+name: Deploy to EC2 (main, compose on EC2)
+
+on:
+  push:
+    branches: ["dev"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # EC2 내부 경로 (환경에 맞게 필요시만 수정)
+      EC2_DEPLOY_DIR: /home/ubuntu/dungeontalk
+      COMPOSE_FILE: docker-compose.prod.yml
+      APP_SRC_DIR: /home/ubuntu/dungeontalk-backend
+      PY_AI_SRC_DIR: /home/ubuntu/python-ai-model
+
+    steps:
+      - name: Start
+        run: echo "Deploy to EC2 with compose managed on server"
+
+      - name: Deploy on EC2 (build & up)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          # port: ${{ secrets.EC2_SSH_PORT }}   # 22가 아니라면 주석 해제
+          script: |
+            set -euo pipefail
+
+            echo "==> Context"
+            uname -a || true
+            docker compose version
+
+            echo "==> (optional) git pull if repos exist"
+            if [ -d "${{ env.APP_SRC_DIR }}/.git" ]; then
+              echo "Pulling app repo at ${{ env.APP_SRC_DIR }}"
+              cd "${{ env.APP_SRC_DIR }}"
+              git pull --rebase || true
+            else
+              echo "Skip app git pull (no .git at ${{ env.APP_SRC_DIR }})"
+            fi
+
+            if [ -d "${{ env.PY_AI_SRC_DIR }}/.git" ]; then
+              echo "Pulling python-ai repo at ${{ env.PY_AI_SRC_DIR }}"
+              cd "${{ env.PY_AI_SRC_DIR }}"
+              git pull --rebase || true
+            else
+              echo "Skip python-ai git pull (no .git at ${{ env.PY_AI_SRC_DIR }})"
+            fi
+
+            echo "==> Validate compose file on EC2"
+            cd "${{ env.EC2_DEPLOY_DIR }}"
+            test -f "${{ env.COMPOSE_FILE }}"
+            docker compose -f "${{ env.COMPOSE_FILE }}" config -q
+
+            echo "==> Build & up (local build on EC2)"
+            docker compose -f "${{ env.COMPOSE_FILE }}" up -d --build
+
+            echo "==> Prune dangling images"
+            docker image prune -f || true
+
+            echo "==> Done"
+
+      - name: Notify Discord (success)
+        if: success()
+        run: |
+          content="✅ **DEV 배포 성공**\
+          \n• Repo: \`${{ github.repository }}\`\
+          \n• Branch: \`${{ github.ref_name }}\`\
+          \n• Commit: \`${{ github.sha }}\`\
+          \n• Host: \`${{ secrets.EC2_HOST }}\`"
+          curl -H "Content-Type: application/json" \
+               -d "$(jq -n --arg content "$content" '{content: $content}')" \
+               "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
+      - name: Notify Discord (failure)
+        if: failure()
+        run: |
+          content="❌ **DEV 배포 실패**\
+          \n• Repo: \`${{ github.repository }}\`\
+          \n• Branch: \`${{ github.ref_name }}\`\
+          \n• Commit: \`${{ github.sha }}\`\
+          \n• Host: \`${{ secrets.EC2_HOST }}\`"
+          curl -H "Content-Type: application/json" \
+               -d "$(jq -n --arg content "$content" '{content: $content}')" \
+               "${{ secrets.DISCORD_WEBHOOK_URL }}"
