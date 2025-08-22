@@ -1486,7 +1486,8 @@
                 // 캐릭터 존재 여부 확인 및 데이터 로드
                 async checkCharacter() {
                     try {
-                        const response = await fetch(`/v1/characters?memberId=${this.currentUser.id}`, {
+                        // V2 API 사용 - memberId 자동 추출
+                        const response = await fetch('/v2/characters/me', {
                             headers: {
                                 'Authorization': 'Bearer ' + this.authToken
                             }
@@ -1524,8 +1525,8 @@
                         // 먼저 기본 캐릭터 정보 확인
                         const hasCharacter = await this.checkCharacter();
                         if (hasCharacter && this.characterData) {
-                            // 상세 정보 로드 (종족 이름 포함)
-                            const detailResponse = await fetch(`/v1/characters/${this.characterData.id}`, {
+                            // 상세 정보 로드 (종족 이름 포함) - V2 API 사용
+                            const detailResponse = await fetch('/v2/characters/me/detail', {
                                 headers: {
                                     'Authorization': 'Bearer ' + this.authToken
                                 }
@@ -1550,14 +1551,14 @@
                     }
                     
                     try {
-                        const response = await fetch('/v1/characters', {
+                        // V2 API 사용 - memberId 제거 (인증에서 자동 추출)
+                        const response = await fetch('/v2/characters', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Authorization': 'Bearer ' + this.authToken
                             },
                             body: JSON.stringify({
-                                memberId: this.currentUser.id,
                                 raceId: this.newCharacterForm.race
                             })
                         });
