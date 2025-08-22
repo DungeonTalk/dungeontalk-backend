@@ -149,7 +149,8 @@
     <form hx-post="/v2/characters"
           hx-trigger="submit"
           hx-target="#character-modal-content"
-          hx-swap="innerHTML">
+          hx-swap="innerHTML"
+          hx-ext="json-enc">
         
         <div class="mb-6">
             <label class="block text-sm font-medium mb-2">종족 선택</label>

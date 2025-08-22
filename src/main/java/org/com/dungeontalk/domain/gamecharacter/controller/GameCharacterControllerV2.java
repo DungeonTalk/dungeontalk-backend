@@ -48,7 +48,7 @@ public class GameCharacterControllerV2 {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 (이미 캐릭터가 존재하거나 잘못된 종족)"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
-    @PostMapping
+    @PostMapping(consumes = "application/json", produces = "application/json")
     @ResponseBody
     public RsData<GameCharacterResponseV2> createCharacter(
             @AuthenticationPrincipal CustomUserDetails userDetails,
