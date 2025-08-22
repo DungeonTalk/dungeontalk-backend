@@ -22,6 +22,9 @@ jobs:
       PY_AI_SRC_DIR: /home/ubuntu/python-ai-model
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Start
         run: echo "Deploy to EC2 with compose managed on server"
 
@@ -39,11 +42,13 @@ jobs:
             uname -a || true
             docker compose version
 
-            echo "==> (optional) git pull if repos exist"
+            echo "==> Force pull latest code"
             if [ -d "${{ env.APP_SRC_DIR }}/.git" ]; then
               echo "Pulling app repo at ${{ env.APP_SRC_DIR }}"
               cd "${{ env.APP_SRC_DIR }}"
-              git pull --rebase || true
+              git fetch origin
+              git reset --hard origin/dev
+              echo "Current commit: $(git rev-parse HEAD)"
             else
               echo "Skip app git pull (no .git at ${{ env.APP_SRC_DIR }})"
             fi
