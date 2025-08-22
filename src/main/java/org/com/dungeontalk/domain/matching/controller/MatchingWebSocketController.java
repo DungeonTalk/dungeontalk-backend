@@ -1,6 +1,5 @@
 package org.com.dungeontalk.domain.matching.controller;
 
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.matching.dto.request.MatchingJoinRequest;
@@ -26,7 +25,7 @@ public class MatchingWebSocketController {
      */
     @MessageMapping("/matching/join")
     @SendToUser("/sub/matching/user")
-    public void joinMatching(@Payload MatchingJoinRequest request, HttpSession session) {
+    public void joinMatching(@Payload MatchingJoinRequest request) {
         WorldType worldType = worldTypeCompatService.valueOf(request.getWorldTypeCode());
         matchingService.handleWebSocketJoinMatching(request.getMemberId(), worldType);
     }
@@ -36,7 +35,7 @@ public class MatchingWebSocketController {
      */
     @MessageMapping("/matching/cancel")
     @SendToUser("/sub/matching/user")
-    public void cancelMatching(@Payload MatchingCancelRequest request, HttpSession session) {
+    public void cancelMatching(@Payload MatchingCancelRequest request) {
         matchingService.handleWebSocketCancelMatching(request.getMemberId());
     }
 }

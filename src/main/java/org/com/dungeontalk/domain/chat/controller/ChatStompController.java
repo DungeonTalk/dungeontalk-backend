@@ -2,7 +2,6 @@ package org.com.dungeontalk.domain.chat.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +31,7 @@ public class ChatStompController {
      * 이후 ChatMessageService가 메시지의 타입에 따라 처리(JOIN, LEAVE, TALK)
      */
     @MessageMapping("/chat/send") // /pub/chat/send
-    public void sendMessage(@Valid @Payload ChatMessageSendRequestDto dto, HttpSession session) throws JsonProcessingException {
+    public void sendMessage(@Valid @Payload ChatMessageSendRequestDto dto) throws JsonProcessingException {
         if (log.isDebugEnabled()) {
             log.debug("STOMP 수신: {}", objectMapper.writeValueAsString(dto));
         }

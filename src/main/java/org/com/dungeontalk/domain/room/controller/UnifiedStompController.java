@@ -1,6 +1,5 @@
 package org.com.dungeontalk.domain.room.controller;
 
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.room.dto.UnifiedMessageRequest;
@@ -35,7 +34,7 @@ public class UnifiedStompController {
      */
     @MessageMapping("/room/{roomType}/send")
     public void sendMessage(@DestinationVariable String roomType, 
-                          @Valid @Payload UnifiedMessageRequest request, HttpSession session) {
+                          @Valid @Payload UnifiedMessageRequest request) {
         try {
             unifiedStompService.sendMessage(roomType, request);
         } catch (Exception e) {
@@ -51,7 +50,7 @@ public class UnifiedStompController {
      */
     @MessageMapping("/room/{roomType}/join")
     public void joinRoom(@DestinationVariable String roomType,
-                        @Valid @Payload UnifiedMessageRequest request, HttpSession session) {
+                        @Valid @Payload UnifiedMessageRequest request) {
         try {
             unifiedStompService.joinRoom(roomType, request);
         } catch (Exception e) {
@@ -66,7 +65,7 @@ public class UnifiedStompController {
      */
     @MessageMapping("/room/{roomType}/leave")
     public void leaveRoom(@DestinationVariable String roomType,
-                         @Valid @Payload UnifiedMessageRequest request, HttpSession session) {
+                         @Valid @Payload UnifiedMessageRequest request) {
         try {
             unifiedStompService.leaveRoom(roomType, request);
         } catch (Exception e) {
