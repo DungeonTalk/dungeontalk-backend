@@ -54,14 +54,16 @@ node_modules/
 test-results/
 playwright-report/
 playwright/.cache/
-*.png
-*.jpg
-*.jpeg
-*.webm
-*.mp4
-test-result-*.png
-character-creation-page.png
-modal-not-found.png
+# 이미지/동영상 등은 테스트 산출물 디렉토리 무시로 충분
+# 필요 시 tests/** 경로 하위에 한정하여 패턴 추가 권장:
+tests/**/__screenshots__/
+tests/**/screenshots/
+tests/**/videos/
+tests/**/*.png
+tests/**/*.jpg
+tests/**/*.jpeg
+tests/**/*.webm
+tests/**/*.mp4
 
 ### Node.js ###
 package-lock.json
