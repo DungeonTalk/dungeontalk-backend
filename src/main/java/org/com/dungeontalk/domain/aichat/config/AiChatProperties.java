@@ -1,6 +1,7 @@
 package org.com.dungeontalk.domain.aichat.config;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +37,7 @@ public class AiChatProperties {
     private MessageOrder messageOrder = new MessageOrder();
 
     @Getter
+    @Setter
     public static class Session {
         /**
          * 게임 세션 타임아웃 (초)
@@ -46,9 +48,15 @@ public class AiChatProperties {
          * 턴 락 타임아웃 (초)
          */
         private int turnLockTimeoutSeconds = 300;
+        
+        /**
+         * 하트비트 간격 (초) - AWS 환경용
+         */
+        private int heartbeatIntervalSeconds = 30;
     }
 
     @Getter
+    @Setter
     public static class Context {
         /**
          * AI 컨텍스트 메시지 개수
@@ -57,6 +65,7 @@ public class AiChatProperties {
     }
 
     @Getter
+    @Setter
     public static class Websocket {
         /**
          * WebSocket destination prefix
@@ -65,6 +74,7 @@ public class AiChatProperties {
     }
 
     @Getter
+    @Setter
     public static class MessageOrder {
         /**
          * 턴 시작 메시지 순서
