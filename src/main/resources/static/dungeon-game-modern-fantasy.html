@@ -946,6 +946,17 @@
         
         const { createApp } = Vue;
 
+        // 상수 정의
+        const CONSTANTS = {
+            GAME_DURATION: 900, // 15분 = 900초
+            TIMER_INTERVAL: 1000, // 1초
+            MESSAGE_SCROLL_DELAY: 100,
+            ANIMATION_DELAY: 300,
+            GAME_END_DELAY: 5000,
+            MAX_RECONNECT_ATTEMPTS: 3,
+            RECONNECT_DELAY: 2000
+        };
+
         createApp({
             components: {
                 'login-component': LoginComponent,
@@ -998,6 +1009,8 @@
                     matchingStompClient: null,
                     aiStompClient: null,
                     partyStompClient: null,
+                    reconnectAttempts: 0,
+                    isReconnecting: false,
                     
                     // 게임 세션
                     currentGameSession: null,
@@ -1020,6 +1033,11 @@
                 this.checkExistingLogin();
                 // 세계관 리스트 로드
                 this.loadWorldTypes();
+            },
+            
+            beforeUnmount() {
+                // 컴포넌트 언마운트 시 정리
+                this.cleanup();
             },
             
             methods: {
@@ -1052,48 +1070,34 @@
                             console.log('세계관 리스트 로드 성공:', this.worldTypes);
                         } else {
                             console.error('세계관 리스트 로드 실패:', response.status);
-                            // 실패시 기본값 사용
-                            this.worldTypes = [
-                                {
-                                    id: 1,
-                                    code: 'FANTASY',
-                                    name: 'FANTASY',
-                                    displayName: '판타지 왕국',
-                                    description: '마법과 검의 전설적 모험\n드래곤, 엘프, 드워프들과 함께\n고대의 던전과 마법 아이템들',
-                                    isActive: true
-                                },
-                                {
-                                    id: 2,
-                                    code: 'ZOMBIE',
-                                    name: 'ZOMBIE',
-                                    displayName: '좀비 아포칼립스',
-                                    description: '생존을 위한 치열한 전투\n폐허가 된 도시와 캠프\n의료품과 무기를 찾아서',
-                                    isActive: true
-                                }
-                            ];
+                            this.setDefaultWorldTypes();
                         }
                     } catch (error) {
                         console.error('세계관 리스트 로드 오류:', error);
-                        // 실패시 기본값 사용
-                        this.worldTypes = [
-                            {
-                                id: 1,
-                                code: 'FANTASY',
-                                name: 'FANTASY',
-                                display_name: '판타지 왕국',
-                                description: '마법과 검의 전설적 모험\n드래곤, 엘프, 드워프들과 함께\n고대의 던전과 마법 아이템들',
-                                isActive: true
-                            },
-                            {
-                                id: 2,
-                                code: 'ZOMBIE',
-                                name: 'ZOMBIE',
-                                display_name: '좀비 아포칼립스',
-                                description: '생존을 위한 치열한 전투\n폐허가 된 도시와 캠프\n의료품과 무기를 찾아서',
-                                isActive: true
-                            }
-                        ];
+                        this.setDefaultWorldTypes();
                     }
+                },
+                
+                // 기본 세계관 설정
+                setDefaultWorldTypes() {
+                    this.worldTypes = [
+                        {
+                            id: 1,
+                            code: 'FANTASY',
+                            name: 'FANTASY',
+                            displayName: '판타지 왕국',
+                            description: '마법과 검의 전설적 모험\n드래곤, 엘프, 드워프들과 함께\n고대의 던전과 마법 아이템들',
+                            isActive: true
+                        },
+                        {
+                            id: 2,
+                            code: 'ZOMBIE',
+                            name: 'ZOMBIE',
+                            displayName: '좀비 아포칼립스',
+                            description: '생존을 위한 치열한 전투\n폐허가 된 도시와 캠프\n의료품과 무기를 찾아서',
+                            isActive: true
+                        }
+                    ];
                 },
                 
                 // 기존 로그인 확인
@@ -1386,7 +1390,7 @@
                         setTimeout(() => {
                             bgElement.classList.add('active');
                         }, 50);
-                    }, 300); // 페이드아웃이 완료된 후 이미지 변경
+                    }, CONSTANTS.ANIMATION_DELAY);
                 },
                 
                 // 세계관별 플레이스홀더 텍스트만 변경
@@ -1583,6 +1587,7 @@
                         
                         this.matchingStompClient.connect({}, (frame) => {
                             console.log('매칭 WebSocket 연결 성공');
+                            this.reconnectAttempts = 0;
                             
                             // 매칭 알림 구독
                             this.matchingStompClient.subscribe(`/sub/matching/user/${this.currentUser.id}`, (message) => {
@@ -1590,9 +1595,11 @@
                             });
                         }, (error) => {
                             console.error('매칭 WebSocket 연결 실패:', error);
+                            this.reconnectWebSocket('matching');
                         });
                     } catch (error) {
                         console.error('매칭 WebSocket 오류:', error);
+                        this.reconnectWebSocket('matching');
                     }
                 },
                 
@@ -1684,6 +1691,7 @@
                         
                         this.aiStompClient.connect({}, (frame) => {
                             console.log('AI 채팅 WebSocket 연결 성공');
+                            this.reconnectAttempts = 0;
                             
                             // AI 채팅방 구독
                             this.aiStompClient.subscribe(`/sub/aichat/room/${this.aiGameRoomId}`, (message) => {
@@ -1692,9 +1700,11 @@
                             });
                         }, (error) => {
                             console.error('AI 채팅 WebSocket 연결 실패:', error);
+                            this.reconnectWebSocket('ai');
                         });
                     } catch (error) {
                         console.error('AI WebSocket 오류:', error);
+                        this.reconnectWebSocket('ai');
                     }
                 },
                 
@@ -1708,6 +1718,7 @@
                         
                         this.partyStompClient.connect({}, (frame) => {
                             console.log('파티 채팅 WebSocket 연결 성공');
+                            this.reconnectAttempts = 0;
                             
                             // 파티 채팅방 구독
                             this.partyStompClient.subscribe(`/sub/chat/room/${this.partyRoomId}`, (message) => {
@@ -1716,9 +1727,11 @@
                             });
                         }, (error) => {
                             console.error('파티 채팅 WebSocket 연결 실패:', error);
+                            this.reconnectWebSocket('party');
                         });
                     } catch (error) {
                         console.error('파티 WebSocket 오류:', error);
+                        this.reconnectWebSocket('party');
                     }
                 },
                 
@@ -1766,11 +1779,7 @@
                         time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
                     });
                     
-                    this.$nextTick(() => {
-                        if (this.$refs.aiMessages) {
-                            this.$refs.aiMessages.scrollTop = this.$refs.aiMessages.scrollHeight;
-                        }
-                    });
+                    this.scrollToBottom('aiMessages');
                 },
                 
                 // 플레이어 메시지 추가
@@ -1783,10 +1792,17 @@
                         time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
                     });
                     
+                    this.scrollToBottom('playerMessages');
+                },
+                
+                // 채팅창 스크롤 처리
+                scrollToBottom(refName) {
                     this.$nextTick(() => {
-                        if (this.$refs.playerMessages) {
-                            this.$refs.playerMessages.scrollTop = this.$refs.playerMessages.scrollHeight;
-                        }
+                        setTimeout(() => {
+                            if (this.$refs[refName]) {
+                                this.$refs[refName].scrollTop = this.$refs[refName].scrollHeight;
+                            }
+                        }, CONSTANTS.MESSAGE_SCROLL_DELAY);
                     });
                 },
                 
@@ -1846,32 +1862,37 @@
                     this.gameStartTime = Date.now();
                     this.timerInterval = setInterval(() => {
                         this.updateTimer();
-                    }, 1000);
+                    }, CONSTANTS.TIMER_INTERVAL);
                 },
                 
                 // 타이머 업데이트
                 updateTimer() {
                     const elapsed = Math.floor((Date.now() - this.gameStartTime) / 1000);
-                    const remaining = Math.max(0, 900 - elapsed); // 15분 = 900초
+                    const remaining = Math.max(0, CONSTANTS.GAME_DURATION - elapsed);
                     
                     const minutes = Math.floor(remaining / 60);
                     const seconds = remaining % 60;
                     this.timerDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                     
-                    this.timerProgress = (remaining / 900) * 100;
+                    this.timerProgress = (remaining / CONSTANTS.GAME_DURATION) * 100;
                     
                     // 게임 단계 업데이트
-                    if (remaining > 720) {
-                        this.gamePhase = '🌅 도입';
-                    } else if (remaining > 540) {
-                        this.gamePhase = '⚡ 전개';
-                    } else if (remaining > 360) {
-                        this.gamePhase = '🔥 중반';
-                    } else if (remaining > 180) {
-                        this.gamePhase = '💥 클라이맥스';
-                    } else if (remaining > 0) {
-                        this.gamePhase = '🎭 종료 임박';
-                    } else {
+                    const phases = [
+                        { threshold: 720, phase: '🌅 도입' },
+                        { threshold: 540, phase: '⚡ 전개' },
+                        { threshold: 360, phase: '🔥 중반' },
+                        { threshold: 180, phase: '💥 클라이맥스' },
+                        { threshold: 0, phase: '🎭 종료 임박' }
+                    ];
+                    
+                    for (const { threshold, phase } of phases) {
+                        if (remaining > threshold) {
+                            this.gamePhase = phase;
+                            break;
+                        }
+                    }
+                    
+                    if (remaining === 0) {
                         this.gamePhase = '⏰ 시간 종료';
                         this.handleGameEnd();
                     }
@@ -1890,7 +1911,7 @@
                     
                     setTimeout(() => {
                         this.leaveGame();
-                    }, 5000);
+                    }, CONSTANTS.GAME_END_DELAY);
                 },
                 
                 // 게임 나가기
@@ -1921,6 +1942,48 @@
                     if (this.partyStompClient) {
                         this.partyStompClient.disconnect();
                         this.partyStompClient = null;
+                    }
+                },
+                
+                // 정리 작업
+                cleanup() {
+                    if (this.timerInterval) {
+                        clearInterval(this.timerInterval);
+                        this.timerInterval = null;
+                    }
+                    this.disconnectWebSockets();
+                },
+                
+                // WebSocket 재연결 로직
+                async reconnectWebSocket(type) {
+                    if (this.isReconnecting || this.reconnectAttempts >= CONSTANTS.MAX_RECONNECT_ATTEMPTS) {
+                        console.error(`${type} WebSocket 재연결 실패`);
+                        return;
+                    }
+                    
+                    this.isReconnecting = true;
+                    this.reconnectAttempts++;
+                    
+                    await new Promise(resolve => setTimeout(resolve, CONSTANTS.RECONNECT_DELAY));
+                    
+                    try {
+                        switch(type) {
+                            case 'matching':
+                                this.connectMatchingWebSocket();
+                                break;
+                            case 'ai':
+                                this.connectAiWebSocket();
+                                break;
+                            case 'party':
+                                this.connectPartyWebSocket();
+                                break;
+                        }
+                        this.reconnectAttempts = 0;
+                    } catch (error) {
+                        console.error(`${type} WebSocket 재연결 오류:`, error);
+                        this.reconnectWebSocket(type);
+                    } finally {
+                        this.isReconnecting = false;
                     }
                 }
             }
