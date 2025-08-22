@@ -21,7 +21,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         // 메시지를 받을 경로
         registry.enableSimpleBroker("/sub")
-            .setHeartbeatValue(new long[]{10_000, 10_000})
+            .setHeartbeatValue(new long[]{30_000, 30_000})
             .setTaskScheduler(stompTaskScheduler);
 
         // 메시지를 보낼 경로
@@ -39,7 +39,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             .addInterceptors(jwtHandshakeInterceptor)
             .setAllowedOriginPatterns("*")
             .withSockJS()                       // SockJS 지원
-            .setHeartbeatTime(10_000);          // SockJS 전송층 heartbeat
+            .setHeartbeatTime(30_000);          // SockJS 전송층 heartbeat
     }
 
     //  전송 채널 튜닝 — 느린 네트워크/탭 슬립 시 안정성 개선
