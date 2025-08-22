@@ -1,5 +1,6 @@
 package org.com.dungeontalk.domain.aichat.controller;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.aichat.common.AiMessageType;
@@ -26,7 +27,7 @@ public class AiChatStompController {
      * AI 채팅은 턴제로 동작하므로 AI 응답 중에는 메시지 전송이 차단된다.
      */
     @MessageMapping("/aichat/send")
-    public RsData<String> sendMessage(@Payload AiGameMessageSendRequest request) {
+    public RsData<String> sendMessage(@Payload AiGameMessageSendRequest request, HttpSession session) {
         return aiGameMessageService.handleWebSocketMessage(request);
     }
 
@@ -34,7 +35,7 @@ public class AiChatStompController {
      * 게임방 입장을 위한 엔드포인트
      */
     @MessageMapping("/aichat/join")
-    public RsData<String> joinRoom(@Payload AiGameMessageSendRequest request) {
+    public RsData<String> joinRoom(@Payload AiGameMessageSendRequest request, HttpSession session) {
         return aiGameMessageService.handleJoinRoom(request);
     }
 
@@ -42,7 +43,7 @@ public class AiChatStompController {
      * 게임방 퇴장을 위한 엔드포인트
      */
     @MessageMapping("/aichat/leave")
-    public RsData<String> leaveRoom(@Payload AiGameMessageSendRequest request) {
+    public RsData<String> leaveRoom(@Payload AiGameMessageSendRequest request, HttpSession session) {
         return aiGameMessageService.handleLeaveRoom(request);
     }
 
@@ -53,7 +54,7 @@ public class AiChatStompController {
      * 일반적으로 게임 로직에서 호출되며, 플레이어에게 턴 시작을 알린다.
      */
     @MessageMapping("/aichat/turn/start")
-    public RsData<String> startTurn(@Payload AiGameMessageSendRequest request) {
+    public RsData<String> startTurn(@Payload AiGameMessageSendRequest request, HttpSession session) {
         return aiGameMessageService.handleStartTurn(request);
     }
 
@@ -64,7 +65,7 @@ public class AiChatStompController {
      * AI 서비스에서 응답 생성 완료 후 호출된다.
      */
     @MessageMapping("/aichat/turn/end")
-    public RsData<String> endTurn(@Payload AiGameMessageSendRequest request) {
+    public RsData<String> endTurn(@Payload AiGameMessageSendRequest request, HttpSession session) {
         return aiGameMessageService.handleEndTurn(request);
     }
 
@@ -75,7 +76,7 @@ public class AiChatStompController {
      * 파이썬 AI 서비스에서 게임 종료 조건을 감지하면 호출된다.
      */
     @MessageMapping("/aichat/game/end")
-    public RsData<String> endGame(@Payload AiGameMessageSendRequest request) {
+    public RsData<String> endGame(@Payload AiGameMessageSendRequest request, HttpSession session) {
         return aiGameMessageService.handleGameEnd(request);
     }
 }
