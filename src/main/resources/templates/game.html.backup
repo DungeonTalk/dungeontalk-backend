@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <title>게임 - DungeonTalk</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mx-auto px-4 py-6" x-data="gameApp()" x-init="init()">
+        <!-- Game Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                <span class="text-3xl mr-2">🎮</span> 게임 상태
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-primary-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">현재 상태</div>
+                    <div class="text-lg font-bold mt-1" x-text="gameStatus">대기 중</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-secondary-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">사용자</div>
+                    <div class="text-lg font-bold mt-1" x-text="currentUser?.nickname || '-'">-</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-dungeon-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">매칭 정보</div>
+                    <div class="text-lg font-bold mt-1" x-text="matchingInfo">대기 중</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center border-l-4 border-green-500">
+                    <div class="text-sm font-medium text-gray-600 dark:text-gray-400">게임방</div>
+                    <div class="text-lg font-bold mt-1" x-text="roomInfo">미연결</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matching Section -->
+        <div x-show="!gameStarted" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-6 flex items-center">
+                <span class="text-3xl mr-2">🌍</span> 세계관 선택 & 매칭
+            </h2>
+            
+            <!-- World Selection (Thymeleaf 서버사이드 렌더링) -->
+            <div th:if="${worlds != null && !worlds.isEmpty()}" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div th:each="world : ${worlds}" 
+                     @click="selectWorld(/*[[${world.id}]]*/ '')" 
+                     :class="{'ring-4 ring-primary-500 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20': selectedWorld === /*[[${world.id}]]*/ ''}"
+                     class="cursor-pointer bg-gray-50 dark:bg-gray-700 rounded-xl p-6 transition-all hover:transform hover:-translate-y-1 hover:shadow-xl">
+                    <h3 class="text-xl font-bold mb-3 flex items-center">
+                        <span class="text-2xl mr-2">🌍</span>
+                        <span th:text="${world.worldName}">세계관 이름</span>
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <span class="block">경험치 보상: <strong th:text="${world.clearExp}">0</strong> EXP</span>
+                        <span class="block mt-2 text-sm">도전해보세요! 멋진 모험이 기다립니다.</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div th:if="${worlds == null || worlds.isEmpty()}" class="text-center py-8 text-gray-600">
+                <p>현재 이용 가능한 세계관이 없습니다.</p>
+            </div>
+            
+            <!-- Matching Controls -->
+            <div class="text-center">
+                <button @click="startMatching()" 
+                        :disabled="!selectedWorld || isMatching"
+                        class="px-8 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-bold transition-all transform hover:scale-105 disabled:scale-100">
+                    <span x-show="!isMatching">매칭 시작</span>
+                    <span x-show="isMatching" class="flex items-center">
+                        <svg class="animate-spin h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        매칭 중...
+                    </span>
+                </button>
+                
+                <button @click="cancelMatching()" 
+                        x-show="isMatching"
+                        class="ml-4 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold transition-all transform hover:scale-105">
+                    매칭 취소
+                </button>
+            </div>
+            
+            <!-- Matching Status -->
+            <div x-show="isMatching" class="mt-8 text-center bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+                <div class="text-lg font-medium mb-2" x-text="matchingStatusText">매칭을 찾는 중...</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                    <span x-text="queueInfo"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Play Section -->
+        <div x-show="gameStarted" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Chat Panel -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden h-[700px] flex flex-col">
+                <!-- Chat Tabs -->
+                <div class="flex border-b border-gray-200 dark:border-gray-700">
+                    <button @click="activeTab = 'ai'" 
+                            :class="{'bg-primary-600 text-white': activeTab === 'ai', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300': activeTab !== 'ai'}"
+                            class="flex-1 px-4 py-3 font-medium transition-colors">
+                        🤖 AI 게임 마스터
+                    </button>
+                    <button @click="activeTab = 'player'" 
+                            :class="{'bg-primary-600 text-white': activeTab === 'player', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300': activeTab !== 'player'}"
+                            class="flex-1 px-4 py-3 font-medium transition-colors">
+                        👥 플레이어 채팅
+                    </button>
+                </div>
+                
+                <!-- AI Chat -->
+                <div x-show="activeTab === 'ai'" class="flex flex-col flex-1">
+                    <div class="p-4 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
+                        <p class="text-sm text-green-800 dark:text-green-300">
+                            🎲 AI 게임 마스터와 RPG를 진행하세요. 행동을 입력하면 AI가 결과를 알려줍니다.
+                        </p>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3" id="aiMessages">
+                        <template x-for="message in aiMessages" :key="message.id">
+                            <div class="flex"
+                                 :class="{
+                                     'justify-end': message.sender === 'user',
+                                     'justify-start': message.sender === 'ai',
+                                     'justify-center': message.sender === 'system'
+                                 }">
+                                <div class="max-w-[75%] rounded-lg px-4 py-2"
+                                     :class="{
+                                         'bg-blue-500 text-white': message.sender === 'user',
+                                         'bg-green-500 text-white': message.sender === 'ai',
+                                         'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm italic': message.sender === 'system'
+                                     }">
+                                    <div x-html="formatMessage(message.content)"></div>
+                                    <div class="text-xs mt-1 opacity-70" x-text="message.time"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex gap-2">
+                            <input type="text" 
+                                   x-model="aiInput"
+                                   @keyup.enter="sendAiMessage()"
+                                   placeholder="AI에게 행동이나 질문을 입력하세요... (예: 주변을 둘러본다)"
+                                   class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                                   :disabled="!gameStarted">
+                            <button @click="sendAiMessage()"
+                                    :disabled="!gameStarted || !aiInput.trim()"
+                                    class="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-medium transition-colors">
+                                🎮 행동
+                            </button>
+                            <button @click="requestAiResponse()"
+                                    :disabled="!gameStarted"
+                                    class="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-medium transition-colors">
+                                🤖 AI 응답
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Player Chat -->
+                <div x-show="activeTab === 'player'" class="flex flex-col flex-1">
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
+                        <p class="text-sm text-blue-800 dark:text-blue-300">
+                            💬 다른 플레이어들과 자유롭게 대화하세요. 전략을 논의하거나 잡담을 나눠보세요!
+                        </p>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3" id="playerMessages">
+                        <template x-for="message in playerMessages" :key="message.id">
+                            <div class="flex"
+                                 :class="{
+                                     'justify-end': message.isMe,
+                                     'justify-start': !message.isMe && message.sender !== 'system',
+                                     'justify-center': message.sender === 'system'
+                                 }">
+                                <div class="max-w-[75%] rounded-lg px-4 py-2"
+                                     :class="{
+                                         'bg-blue-500 text-white': message.isMe,
+                                         'bg-gray-500 text-white': !message.isMe && message.sender !== 'system',
+                                         'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm italic': message.sender === 'system'
+                                     }">
+                                    <div class="text-xs font-semibold mb-1" x-show="!message.isMe && message.sender !== 'system'" x-text="message.senderName"></div>
+                                    <div x-text="message.content"></div>
+                                    <div class="text-xs mt-1 opacity-70" x-text="message.time"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex gap-2">
+                            <input type="text" 
+                                   x-model="playerInput"
+                                   @keyup.enter="sendPlayerMessage()"
+                                   placeholder="다른 플레이어들과 채팅하세요..."
+                                   class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                                   :disabled="!gameStarted">
+                            <button @click="sendPlayerMessage()"
+                                    :disabled="!gameStarted || !playerInput.trim()"
+                                    class="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full font-medium transition-colors">
+                                💬 전송
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Info Panel -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-6 flex items-center">
+                    <span class="text-2xl mr-2">🎯</span> 게임 정보
+                </h3>
+                
+                <!-- Participants -->
+                <div class="mb-6">
+                    <h4 class="font-semibold mb-3">참여자</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="participant in participants" :key="participant.id">
+                            <div class="px-4 py-2 rounded-full text-sm font-medium"
+                                 :class="participant.isMe ? 'bg-green-500 text-white' : 'bg-primary-500 text-white'">
+                                <span x-text="participant.nickname"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Game Session Info -->
+                <div class="space-y-4">
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-600 dark:text-gray-400">세계관</div>
+                        <div class="text-lg font-bold" x-text="selectedWorld || '-'"></div>
+                    </div>
+                    
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-600 dark:text-gray-400">세션 ID</div>
+                        <div class="text-sm font-mono" x-text="currentGameSession?.sessionId || '-'"></div>
+                    </div>
+                    
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-600 dark:text-gray-400">현재 턴</div>
+                        <div class="text-lg font-bold" x-text="currentTurnNumber"></div>
+                    </div>
+                </div>
+                
+                <!-- Leave Game Button -->
+                <button @click="leaveGame()"
+                        class="w-full mt-6 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+                    게임 나가기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+<!-- SockJS and Stomp -->
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+<script>
+function gameApp() {
+    return {
+        // Auth & User
+        authToken: null,
+        currentUser: null,
+        
+        // Game Status
+        gameStatus: '대기 중',
+        matchingInfo: '대기 중',
+        roomInfo: '미연결',
+        gameStarted: false,
+        
+        // Matching
+        selectedWorld: null,
+        isMatching: false,
+        matchingStatusText: '매칭을 찾는 중...',
+        queueInfo: '',
+        
+        // WebSocket Clients
+        matchingStompClient: null,
+        aiStompClient: null,
+        partyStompClient: null,
+        
+        // Game Session
+        currentGameSession: null,
+        currentTurnNumber: 1,
+        aiGameRoomId: null,
+        partyRoomId: null,
+        
+        // Chat
+        activeTab: 'ai',
+        aiInput: '',
+        playerInput: '',
+        aiMessages: [],
+        playerMessages: [],
+        
+        // Participants
+        participants: [],
+        
+        init() {
+            this.checkAuth();
+            
+            // Handle page unload
+            window.addEventListener('beforeunload', () => this.cleanup());
+        },
+        
+        checkAuth() {
+            // 먼저 localStorage에서 토큰 확인 (클라이언트사이드 로그인)
+            this.authToken = localStorage.getItem('authToken');
+            let userInfo = localStorage.getItem('currentUser');
+            
+            // localStorage에 토큰이 없으면 쿠키 확인 (서버사이드 로그인)
+            if (!this.authToken) {
+                // 쿠키에서 accessToken과 userInfo 읽기
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const [name, value] = cookie.trim().split('=');
+                    if (name === 'accessToken') {
+                        this.authToken = value;
+                    } else if (name === 'userInfo' && !userInfo) {
+                        // URL 디코딩 후 localStorage에 저장
+                        userInfo = decodeURIComponent(value);
+                        localStorage.setItem('currentUser', userInfo);
+                    }
+                }
+            }
+            
+            // 토큰이 없으면 로그인 페이지로
+            if (!this.authToken) {
+                Alpine.store('notifications').error('로그인이 필요합니다.');
+                setTimeout(() => window.location.href = '/login', 2000);
+                return;
+            }
+            
+            // 사용자 정보가 없으면 기본값 설정
+            if (!userInfo) {
+                // 서버사이드 로그인의 경우 기본 사용자 정보 생성
+                userInfo = JSON.stringify({
+                    id: 'user_' + Date.now(),
+                    nickname: '플레이어'
+                });
+                localStorage.setItem('currentUser', userInfo);
+            }
+            
+            try {
+                this.currentUser = JSON.parse(userInfo);
+                this.gameStatus = '로그인됨';
+                Alpine.store('notifications').success('게임 준비 완료!');
+            } catch (e) {
+                console.error('사용자 정보 파싱 오류:', e);
+                localStorage.clear();
+                window.location.href = '/login';
+            }
+        },
+        
+        selectWorld(world) {
+            this.selectedWorld = world;
+            Alpine.store('notifications').success(`${world} 세계관이 선택되었습니다.`);
+        },
+        
+        async startMatching() {
+            if (!this.selectedWorld) {
+                Alpine.store('notifications').warning('세계관을 먼저 선택해주세요.');
+                return;
+            }
+            
+            this.isMatching = true;
+            this.matchingInfo = '매칭 시작';
+            
+            try {
+                // Connect to matching WebSocket
+                await this.connectMatchingWebSocket();
+                
+                // Send matching request
+                const message = {
+                    type: 'MATCH_REQUEST',
+                    userId: this.currentUser.id,
+                    userName: this.currentUser.nickname || this.currentUser.id,
+                    worldType: this.selectedWorld
+                };
+                
+                this.matchingStompClient.send('/pub/matching/request', {}, JSON.stringify(message));
+                Alpine.store('notifications').info('매칭을 시작합니다...');
+                
+            } catch (error) {
+                console.error('매칭 시작 오류:', error);
+                Alpine.store('notifications').error('매칭 시작에 실패했습니다.');
+                this.isMatching = false;
+            }
+        },
+        
+        async connectMatchingWebSocket() {
+            return new Promise((resolve, reject) => {
+                const socket = new SockJS('/ws-matching');
+                this.matchingStompClient = Stomp.over(socket);
+                
+                this.matchingStompClient.connect(
+                    { Authorization: 'Bearer ' + this.authToken },
+                    () => {
+                        // Subscribe to personal matching updates
+                        this.matchingStompClient.subscribe(
+                            `/user/${this.currentUser.id}/queue/matching`,
+                            (message) => this.handleMatchingMessage(JSON.parse(message.body))
+                        );
+                        
+                        console.log('매칭 WebSocket 연결 성공');
+                        resolve();
+                    },
+                    (error) => {
+                        console.error('매칭 WebSocket 연결 실패:', error);
+                        reject(error);
+                    }
+                );
+            });
+        },
+        
+        handleMatchingMessage(message) {
+            console.log('매칭 메시지:', message);
+            
+            switch (message.type) {
+                case 'MATCH_WAITING':
+                    this.matchingStatusText = '매칭을 찾는 중...';
+                    this.queueInfo = `대기 중인 플레이어: ${message.queueSize || 0}명`;
+                    break;
+                    
+                case 'MATCH_FOUND':
+                    this.matchingStatusText = '매칭 찾기 완료! 게임을 준비 중...';
+                    Alpine.store('notifications').success('매칭이 완료되었습니다!');
+                    break;
+                    
+                case 'GAME_READY':
+                    this.isMatching = false;
+                    this.currentGameSession = message;
+                    this.participants = message.players.map(p => ({
+                        id: p.userId,
+                        nickname: p.userName,
+                        isMe: p.userId === this.currentUser.id
+                    }));
+                    this.startGame(message);
+                    break;
+                    
+                case 'MATCH_FAILED':
+                    this.isMatching = false;
+                    this.matchingInfo = '매칭 실패';
+                    Alpine.store('notifications').error(message.reason || '매칭에 실패했습니다.');
+                    break;
+            }
+        },
+        
+        async startGame(gameSession) {
+            this.gameStarted = true;
+            this.gameStatus = '게임 진행 중';
+            this.roomInfo = `게임 ID: ${gameSession.sessionId}`;
+            
+            // Create AI game room
+            await this.createAiGameRoom(gameSession);
+            
+            // Connect to AI WebSocket
+            await this.connectAiWebSocket();
+            
+            // Connect to party chat
+            await this.connectPartyWebSocket(gameSession.chatRoomId);
+            
+            // Add initial AI message
+            this.addAiMessage('system', '🎮 게임이 시작되었습니다! AI 게임 마스터가 준비되었습니다.');
+            this.addPlayerMessage('system', '플레이어 채팅방이 연결되었습니다.');
+            
+            Alpine.store('notifications').success('게임이 시작되었습니다!');
+        },
+        
+        async createAiGameRoom(gameSession) {
+            try {
+                const response = await fetch('/v1/ai-game-room', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + this.authToken
+                    },
+                    body: JSON.stringify({
+                        sessionId: gameSession.sessionId,
+                        worldType: this.selectedWorld,
+                        players: gameSession.players
+                    })
+                });
+                
+                if (!response.ok) throw new Error('AI 게임방 생성 실패');
+                
+                const result = await response.json();
+                this.aiGameRoomId = result.data.roomId;
+                console.log('AI 게임방 생성:', this.aiGameRoomId);
+                
+            } catch (error) {
+                console.error('AI 게임방 생성 오류:', error);
+                Alpine.store('notifications').error('AI 게임방 생성에 실패했습니다.');
+            }
+        },
+        
+        async connectAiWebSocket() {
+            return new Promise((resolve, reject) => {
+                const socket = new SockJS('/ws-ai-chat');
+                this.aiStompClient = Stomp.over(socket);
+                
+                this.aiStompClient.connect(
+                    { Authorization: 'Bearer ' + this.authToken },
+                    () => {
+                        // Subscribe to AI room
+                        this.aiStompClient.subscribe(
+                            `/sub/ai-chat/room/${this.aiGameRoomId}`,
+                            (message) => {
+                                const data = JSON.parse(message.body);
+                                if (data.type === 'AI_RESPONSE') {
+                                    this.addAiMessage('ai', data.content);
+                                } else if (data.type === 'TALK' && data.senderId !== this.currentUser.id) {
+                                    this.addAiMessage('other', data.content, data.senderNickname);
+                                }
+                            }
+                        );
+                        
+                        console.log('AI WebSocket 연결 성공');
+                        resolve();
+                    },
+                    (error) => {
+                        console.error('AI WebSocket 연결 실패:', error);
+                        reject(error);
+                    }
+                );
+            });
+        },
+        
+        async connectPartyWebSocket(chatRoomId) {
+            this.partyRoomId = chatRoomId;
+            
+            return new Promise((resolve, reject) => {
+                const socket = new SockJS('/ws-chat');
+                this.partyStompClient = Stomp.over(socket);
+                
+                this.partyStompClient.connect(
+                    { Authorization: 'Bearer ' + this.authToken },
+                    () => {
+                        // Subscribe to party chat
+                        this.partyStompClient.subscribe(
+                            `/sub/chat/room/${chatRoomId}`,
+                            (message) => {
+                                const data = JSON.parse(message.body);
+                                if (data.type === 'TALK') {
+                                    this.addPlayerMessage(
+                                        data.senderId === this.currentUser.id ? 'me' : 'other',
+                                        data.content,
+                                        data.senderNickname
+                                    );
+                                }
+                            }
+                        );
+                        
+                        console.log('파티 채팅 WebSocket 연결 성공');
+                        resolve();
+                    },
+                    (error) => {
+                        console.error('파티 채팅 WebSocket 연결 실패:', error);
+                        reject(error);
+                    }
+                );
+            });
+        },
+        
+        sendAiMessage() {
+            if (!this.aiInput.trim() || !this.aiStompClient) return;
+            
+            const message = {
+                roomId: this.aiGameRoomId,
+                senderId: this.currentUser.id,
+                senderNickname: this.currentUser.nickname,
+                content: this.aiInput,
+                type: 'TALK',
+                turnNumber: this.currentTurnNumber++
+            };
+            
+            this.aiStompClient.send('/pub/ai-chat/send', {}, JSON.stringify(message));
+            this.addAiMessage('user', this.aiInput);
+            this.aiInput = '';
+        },
+        
+        requestAiResponse() {
+            if (!this.aiStompClient) return;
+            
+            const message = {
+                roomId: this.aiGameRoomId,
+                type: 'REQUEST_AI_RESPONSE',
+                turnNumber: this.currentTurnNumber
+            };
+            
+            this.aiStompClient.send('/pub/ai-chat/request', {}, JSON.stringify(message));
+            this.addAiMessage('system', '🤖 AI 응답을 요청했습니다...');
+        },
+        
+        sendPlayerMessage() {
+            if (!this.playerInput.trim() || !this.partyStompClient) return;
+            
+            const message = {
+                roomId: this.partyRoomId,
+                senderId: this.currentUser.id,
+                content: this.playerInput,
+                type: 'TALK'
+            };
+            
+            this.partyStompClient.send('/pub/chat/send', {}, JSON.stringify(message));
+            this.playerInput = '';
+        },
+        
+        addAiMessage(sender, content, senderName = null) {
+            this.aiMessages.push({
+                id: Date.now() + Math.random(),
+                sender,
+                content,
+                senderName,
+                time: new Date().toLocaleTimeString()
+            });
+            
+            this.$nextTick(() => {
+                const container = document.getElementById('aiMessages');
+                if (container) container.scrollTop = container.scrollHeight;
+            });
+        },
+        
+        addPlayerMessage(sender, content, senderName = null) {
+            this.playerMessages.push({
+                id: Date.now() + Math.random(),
+                sender,
+                content,
+                senderName,
+                isMe: sender === 'me',
+                time: new Date().toLocaleTimeString()
+            });
+            
+            this.$nextTick(() => {
+                const container = document.getElementById('playerMessages');
+                if (container) container.scrollTop = container.scrollHeight;
+            });
+        },
+        
+        formatMessage(content) {
+            // Simple markdown-like formatting
+            return content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">$1</code>')
+                .replace(/\n/g, '<br>');
+        },
+        
+        cancelMatching() {
+            if (this.matchingStompClient) {
+                const message = {
+                    type: 'MATCH_CANCEL',
+                    userId: this.currentUser.id
+                };
+                
+                this.matchingStompClient.send('/pub/matching/cancel', {}, JSON.stringify(message));
+            }
+            
+            this.isMatching = false;
+            this.matchingInfo = '매칭 취소됨';
+            Alpine.store('notifications').info('매칭이 취소되었습니다.');
+        },
+        
+        async leaveGame() {
+            if (confirm('정말로 게임을 나가시겠습니까?')) {
+                await this.cleanup();
+                this.gameStarted = false;
+                this.gameStatus = '로그인됨';
+                this.roomInfo = '미연결';
+                this.currentGameSession = null;
+                this.aiMessages = [];
+                this.playerMessages = [];
+                this.participants = [];
+                Alpine.store('notifications').info('게임을 나갔습니다.');
+            }
+        },
+        
+        async cleanup() {
+            // Disconnect all WebSocket connections
+            if (this.matchingStompClient) {
+                try { this.matchingStompClient.disconnect(); } catch (e) {}
+                this.matchingStompClient = null;
+            }
+            
+            if (this.aiStompClient) {
+                try { this.aiStompClient.disconnect(); } catch (e) {}
+                this.aiStompClient = null;
+            }
+            
+            if (this.partyStompClient) {
+                try { this.partyStompClient.disconnect(); } catch (e) {}
+                this.partyStompClient = null;
+            }
+        }
+    }
+}
+</script>
+</th:block>
+</body>
+</html>

@@ -52,7 +52,7 @@
 
   const API_LOGIN    = '/v1/auth/login';
   const API_REGISTER = '/v1/member/register';
-  const API_ME       = '/v1/member/me';
+  // API_ME 제거됨 - 서버사이드에서 직접 처리
   const NEXT_PAGE    = '/chat-ssr-test.html';
 
   function show(msg, type='success'){
@@ -108,19 +108,9 @@
 
       localStorage.setItem('authToken', token);
 
+      // 사용자 정보는 서버사이드에서 처리
       let profileNick = null, profileId = memberId;
-      try{
-        const me = await fetch(API_ME, { headers: { Authorization: 'Bearer ' + token }});
-        if(me.ok){
-          const meBody = await me.json();
-          const meData = meBody.data || meBody;
-          profileId   = meData.id || meData.memberId || memberId;
-          profileNick = meData.nickName || meData.nickname || null;
-          log('GET /me →', me.status, meData);
-        }else{
-          log('GET /me skipped', me.status);
-        }
-      }catch(e){ log('GET /me error', e); }
+      log('사용자 정보는 서버에서 직접 처리됨');
 
       localStorage.setItem('currentUser', JSON.stringify({
         id: profileId,

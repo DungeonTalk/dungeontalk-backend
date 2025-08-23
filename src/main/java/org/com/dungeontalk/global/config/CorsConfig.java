@@ -41,6 +41,17 @@ public class CorsConfig {
         
         // 인증, 인가를 위한 credentials 를 TRUE로 설정
         configuration.setAllowCredentials(true);
+        
+        // 허용할 헤더 설정
+        ArrayList<String> allowedHeaders = new ArrayList<>();
+        allowedHeaders.add("*");
+        configuration.setAllowedHeaders(allowedHeaders);
+        
+        // 노출할 헤더 설정
+        ArrayList<String> exposedHeaders = new ArrayList<>();
+        exposedHeaders.add("Authorization");
+        exposedHeaders.add("Content-Type");
+        configuration.setExposedHeaders(exposedHeaders);
 
         //  URL 패턴별 CORS 등록
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
