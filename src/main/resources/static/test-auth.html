@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>인증 테스트</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        input { padding: 5px; margin: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>DungeonTalk 인증 테스트</h1>
+    
+    <div class="section">
+        <h2>1. 회원가입</h2>
+        <input type="text" id="reg-name" placeholder="사용자 ID" value="testuser1">
+        <input type="text" id="reg-nickname" placeholder="닉네임" value="테스트유저1">
+        <input type="password" id="reg-password" placeholder="비밀번호" value="password123">
+        <button onclick="register()">회원가입</button>
+        <div id="reg-result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. 로그인</h2>
+        <input type="text" id="login-name" placeholder="사용자 ID" value="testuser1">
+        <input type="password" id="login-password" placeholder="비밀번호" value="password123">
+        <button onclick="login()">로그인</button>
+        <div id="login-result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. 인증 테스트</h2>
+        <button onclick="testAuth()">내 정보 조회</button>
+        <div id="auth-result"></div>
+    </div>
+
+    <script>
+        async function register() {
+            const data = {
+                name: document.getElementById('reg-name').value,
+                nickName: document.getElementById('reg-nickname').value,
+                password: document.getElementById('reg-password').value
+            };
+            
+            try {
+                const response = await fetch('/v1/member/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.text();
+                const resultDiv = document.getElementById('reg-result');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<p class="success">회원가입 성공!</p><pre>' + result + '</pre>';
+                } else {
+                    resultDiv.innerHTML = '<p class="error">회원가입 실패: ' + response.status + '</p><pre>' + result + '</pre>';
+                }
+            } catch (error) {
+                document.getElementById('reg-result').innerHTML = '<p class="error">오류: ' + error.message + '</p>';
+            }
+        }
+        
+        async function login() {
+            const data = {
+                name: document.getElementById('login-name').value,
+                password: document.getElementById('login-password').value
+            };
+            
+            try {
+                const response = await fetch('/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.text();
+                const resultDiv = document.getElementById('login-result');
+                
+                if (response.ok) {
+                    const jsonResult = JSON.parse(result);
+                    // 토큰 저장
+                    if (jsonResult.data && jsonResult.data.accessToken) {
+                        localStorage.setItem('authToken', jsonResult.data.accessToken);
+                        localStorage.setItem('currentUser', JSON.stringify({
+                            id: jsonResult.data.memberId,
+                            nickname: document.getElementById('login-name').value + '님'
+                        }));
+                    }
+                    resultDiv.innerHTML = '<p class="success">로그인 성공!</p><pre>' + result + '</pre>';
+                } else {
+                    resultDiv.innerHTML = '<p class="error">로그인 실패: ' + response.status + '</p><pre>' + result + '</pre>';
+                }
+            } catch (error) {
+                document.getElementById('login-result').innerHTML = '<p class="error">오류: ' + error.message + '</p>';
+            }
+        }
+        
+        async function testAuth() {
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                document.getElementById('auth-result').innerHTML = '<p class="error">먼저 로그인하세요!</p>';
+                return;
+            }
+            
+            // JWT 토큰이 있으면 인증 성공으로 간주
+            const resultDiv = document.getElementById('auth-result');
+            resultDiv.innerHTML = '<p class="success">인증 토큰 확인 완료!</p><p>토큰: ' + token + '</p>';
+        }
+        
+        // 테스트 계정 생성
+        async function createTestAccounts() {
+            const accounts = [
+                { name: 'testuser1', nickName: '테스트유저1', password: 'password123' },
+                { name: 'testuser2', nickName: '테스트유저2', password: 'password123' },
+                { name: 'gm', nickName: '게임마스터', password: 'gmpassword' }
+            ];
+            
+            for (const account of accounts) {
+                try {
+                    const response = await fetch('/v1/member/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(account)
+                    });
+                    console.log(`${account.name} 생성 시도:`, response.status);
+                } catch (error) {
+                    console.error(`${account.name} 생성 실패:`, error);
+                }
+            }
+        }
+        
+        // 페이지 로드 시 테스트 계정 생성 시도
+        window.onload = function() {
+            console.log('테스트 계정 생성을 시도합니다...');
+            createTestAccounts();
+        };
+    </script>
+</body>
+</html>

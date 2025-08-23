@@ -1,0 +1,18 @@
+{
+  "name": "dungeontalk-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for DungeonTalk application",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.0"
+  },
+  "dependencies": {
+    "playwright": "^1.55.0"
+  }
+}

@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.CreateCharacterRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.request.GameResultRequest;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponse;
+import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterDetailResponseV2;
 import org.com.dungeontalk.domain.gamecharacter.dto.response.GameCharacterResponse;
+import org.com.dungeontalk.domain.gamecharacter.dto.projection.GameCharacterDetailProjection;
 import org.com.dungeontalk.domain.gamecharacter.entity.GameCharacter;
 import org.com.dungeontalk.domain.gamecharacter.entity.RequestExp;
 import org.com.dungeontalk.domain.gamecharacter.repository.GameCharacterRepository;
@@ -36,10 +38,13 @@ public class GameCharacterService {
     public GameCharacterResponse createCharacter(CreateCharacterRequest request) {
         RaceStats raceStats;
         
+        // 영문을 한글로 매핑
+        String raceName = mapEnglishToKorean(request.raceId());
+
         // raceId가 UUID 형식인지 종족명인지 확인하여 처리
         try {
             // UUID로 먼저 시도
-            raceStats = raceStatsRepository.findById(request.raceId())
+            raceStats = raceStatsRepository.findById(raceName)
                     .orElse(null);
         } catch (Exception e) {
             raceStats = null;
@@ -47,7 +52,7 @@ public class GameCharacterService {
         
         // UUID로 찾지 못한 경우 종족명으로 조회
         if (raceStats == null) {
-            raceStats = raceStatsRepository.findByRace(request.raceId())
+            raceStats = raceStatsRepository.findByRace(raceName)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종족: " + request.raceId()));
         }
 
@@ -153,6 +158,68 @@ public class GameCharacterService {
         // 변경된 캐릭터 정보 저장 및 반환
         GameCharacter updatedCharacter = gameCharacterRepository.save(character);
         return GameCharacterResponse.from(updatedCharacter);
+    }
+
+    /**
+     * 캐릭터 상세 정보 조회 V2 (N+1 문제 해결 버전)
+     * Projection을 사용하여 단일 쿼리로 필요한 모든 데이터를 가져옴
+     */
+    public GameCharacterDetailResponseV2 findDetailByIdV2(String id) {
+        GameCharacterDetailProjection projection = gameCharacterRepository.findDetailProjectionById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Character not found: " + id));
+
+        // 모든 스탯 계산
+        Map<String, Double> calculatedStats = statAggregateService.calculateAllStats(id);
+
+        // Projection 데이터를 V2 DTO로 변환
+        return new GameCharacterDetailResponseV2(
+                projection.getId(),
+                projection.getNickname(),
+                projection.getRaceId(),
+                projection.getRaceName(),
+                projection.getPlayerLevel(),
+                projection.getTotalExp(),
+                projection.getUnspentPoints(),
+                projection.getStrength(),
+                projection.getWillpower(),
+                projection.getIntelligence(),
+                projection.getWisdom(),
+                projection.getDexterity(),
+                projection.getLuck(),
+                calculatedStats.getOrDefault("healthPoints", 0.0),
+                calculatedStats.getOrDefault("manaPoints", 0.0),
+                calculatedStats.getOrDefault("physicalAttack", 0.0),
+                calculatedStats.getOrDefault("magicAttack", 0.0),
+                calculatedStats.getOrDefault("evasionRate", 0.0),
+                calculatedStats.getOrDefault("accuracy", 0.0),
+                calculatedStats.getOrDefault("diceOdds", 0.0),
+                projection.getCreatedAt(),
+                projection.getUpdatedAt()
+        );
+    }
+
+    /**
+     * 영문 종족명을 한글로 매핑
+     * API 호환성을 위해 영문 입력을 받아 한글로 변환
+     */
+    private String mapEnglishToKorean(String englishRace) {
+        if (englishRace == null) {
+            return null;
+        }
+
+        // 이미 한글인 경우 그대로 반환
+        if (englishRace.matches(".*[가-힣]+.*")) {
+            return englishRace;
+        }
+
+        // 영문을 한글로 매핑
+        return switch (englishRace.toUpperCase()) {
+            case "HUMAN" -> "인간";
+            case "ELF" -> "엘프";
+            case "DWARF" -> "드워프";
+            case "ORC" -> "오크";
+            default -> englishRace; // 매핑되지 않은 경우 원본 반환
+        };
     }
 
 
