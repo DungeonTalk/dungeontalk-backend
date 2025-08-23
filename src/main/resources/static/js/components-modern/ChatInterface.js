@@ -84,7 +84,7 @@ export default {
                          :key="msg.id"
                          class="mb-3 p-3 rounded-lg glass"
                          :class="getMessageClass(msg.type)">
-                        <div v-html="msg.content"></div>
+                        <div class="whitespace-pre-wrap">{{ msg.content }}</div>
                     </div>
                 </transition-group>
             </div>

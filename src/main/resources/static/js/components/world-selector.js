@@ -16,8 +16,7 @@ export default {
                         <span>{{ getWorldEmoji(worldType.code) }}</span>
                     </div>
                     <h3 class="text-xl font-bold mb-3 text-center">{{ worldType.displayName || worldType.name }}</h3>
-                    <p class="text-light-darker text-sm text-center mb-4" v-html="worldType.description.replace(/\\n/g, '<br>')">
-                    </p>
+                    <p class="text-light-darker text-sm text-center mb-4 whitespace-pre-line">{{ worldType.description }}</p>
                     <div class="flex justify-center gap-2">
                         <span v-for="tag in getWorldTags(worldType.code)" :key="tag" class="status-badge">
                             <span>{{ tag }}</span>
