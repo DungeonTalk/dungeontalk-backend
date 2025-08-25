@@ -889,9 +889,9 @@
                     </div>
                     
                     <div class="chat-messages" ref="playerMessages">
-                        <div v-for="msg in playerMessages" :key="msg.id" class="message" :class="msg.sender === currentUser?.name ? 'user' : ''">
-                            <div class="message-bubble" :class="msg.sender === currentUser?.name ? 'user' : msg.type === 'system' ? 'system' : 'other'">
-                                <p v-if="msg.sender !== currentUser?.name && msg.type !== 'system'" class="text-xs font-semibold mb-1">{{ msg.sender }}</p>
+                        <div v-for="msg in playerMessages" :key="msg.id" class="message" :class="String(msg.senderId) === String(currentUser?.id) ? 'user' : ''">
+                            <div class="message-bubble" :class="String(msg.senderId) === String(currentUser?.id) ? 'user' : msg.type === 'system' ? 'system' : 'other'">
+                                <p v-if="String(msg.senderId) !== String(currentUser?.id) && msg.type !== 'system'" class="text-xs font-semibold mb-1">{{ msg.sender }}</p>
                                 <p class="text-sm">{{ msg.content }}</p>
                                 <span class="text-xs opacity-70">{{ msg.time }}</span>
                             </div>
@@ -1738,12 +1738,28 @@
                 
                 // AI 메시지 처리
                 handleAiMessage(message) {
-                    // 자신의 메시지는 필터링
-                    if (message.messageType === 'USER' && message.senderId === this.currentUser.id) {
+                    // 디버깅 로그 추가
+                    console.log('=== AI 메시지 디버깅 ===');
+                    console.log('message.senderId:', message.senderId);
+                    console.log('message.senderId type:', typeof message.senderId);
+                    console.log('currentUser.id:', this.currentUser.id);
+                    console.log('currentUser.id type:', typeof this.currentUser.id);
+                    console.log('ID 비교 결과:', message.senderId === this.currentUser.id);
+                    console.log('message.messageType:', message.messageType);
+                    console.log('==========================');
+                    
+                    // 자신의 메시지는 필터링 (타입 변환 추가)
+                    const isMyMessage = message.messageType === 'USER' && 
+                                      String(message.senderId) === String(this.currentUser.id);
+                    if (isMyMessage) {
+                        console.log('✅ 자신의 메시지 필터링 - 화면에 추가 안 함');
                         return;
                     }
                     
+                    console.log('✅ 다른 사람 메시지 처리 - messageType:', message.messageType);
+                    
                     if (message.messageType === 'AI') {
+                        console.log('AI 메시지 추가:', message.content);
                         this.addAiMessage('ai', message.content);
                         
                         // 게임 종료 체크
@@ -1753,8 +1769,10 @@
                             }, 2000);
                         }
                     } else if (message.messageType === 'USER') {
+                        console.log('다른 사용자 메시지 추가:', message.senderNickname, message.content);
                         this.addAiMessage('other', `${message.senderNickname}: ${message.content}`);
                     } else if (message.messageType === 'SYSTEM') {
+                        console.log('시스템 메시지 추가:', message.content);
                         this.addAiMessage('system', message.content);
                     } else if (message.messageType === 'GAME_END') {
                         this.handleGameEnd();
@@ -1763,12 +1781,24 @@
                 
                 // 사용자 메시지 처리
                 handleUserMessage(message) {
-                    // 자신의 메시지는 필터링
-                    if (message.senderId === this.currentUser.id) {
+                    // 디버깅 로그 추가
+                    console.log('=== 파티 메시지 디버깅 ===');
+                    console.log('message.senderId:', message.senderId);
+                    console.log('currentUser.id:', this.currentUser.id);
+                    console.log('ID 비교 결과:', message.senderId === this.currentUser.id);
+                    console.log('message 전체:', message);
+                    console.log('==========================');
+                    
+                    // 자신의 메시지는 필터링 (타입 변환 추가)
+                    const isMyMessage = String(message.senderId) === String(this.currentUser.id);
+                    if (isMyMessage) {
+                        console.log('✅ 자신의 파티 메시지 필터링 - 화면에 추가 안 함');
                         return;
                     }
                     
-                    this.addPlayerMessage(message.senderNickname || 'Unknown', message.content);
+                    console.log('✅ 다른 플레이어 메시지 추가:', message.senderNickname, message.content);
+                    // senderId를 함께 전달
+                    this.addPlayerMessageWithId(message.senderId, message.senderNickname || 'Unknown', message.content);
                 },
                 
                 // AI 메시지 추가
@@ -1789,6 +1819,21 @@
                         id: Date.now(),
                         type: sender === 'system' ? 'system' : 'player',
                         sender: sender,
+                        senderId: null, // 시스템 메시지용
+                        content: content,
+                        time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+                    });
+                    
+                    this.scrollToBottom('playerMessages');
+                },
+                
+                // 플레이어 메시지 추가 (ID 포함)
+                addPlayerMessageWithId(senderId, sender, content) {
+                    this.playerMessages.push({
+                        id: Date.now(),
+                        type: 'player',
+                        sender: sender,
+                        senderId: senderId,
                         content: content,
                         time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
                     });
@@ -1843,8 +1888,8 @@
                 sendPlayerMessage() {
                     if (!this.playerInput.trim() || !this.partyStompClient) return;
                     
-                    // 자신의 메시지 표시
-                    this.addPlayerMessage(this.currentUser.name, this.playerInput);
+                    // 자신의 메시지 표시 (senderId 포함)
+                    this.addPlayerMessageWithId(this.currentUser.id, this.currentUser.name, this.playerInput);
                     
                     // WebSocket으로 전송
                     this.partyStompClient.send(`/pub/chat/message`, {}, JSON.stringify({
