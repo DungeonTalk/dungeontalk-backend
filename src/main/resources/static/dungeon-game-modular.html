@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>🏰 던전톡 - 랜덤 매칭 RPG (모듈화)</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            transition: background 0.8s ease;
+        }
+        
+        /* 세계관별 배경 테마 */
+        body.theme-fantasy {
+            background: linear-gradient(135deg, #8B4513 0%, #DAA520 50%, #2E8B57 100%);
+        }
+        
+        body.theme-zombie {
+            background: linear-gradient(135deg, #2C1810 0%, #8B0000 50%, #000000 100%);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* 헤더 */
+        .header {
+            color: white;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .header h1 {
+            text-align: center;
+            font-size: 3rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .header-actions {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: none;
+        }
+        
+        .header-actions button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .header-actions button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        /* 카드 스타일 */
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        
+        /* 폼 요소 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 600;
+        }
+        
+        .form-group input[type="text"],
+        .form-group input[type="password"],
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+        
+        /* 버튼 */
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        /* 세계관 선택 */
+        .world-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .world-card {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+        
+        .world-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .world-card.selected {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.1);
+        }
+        
+        .world-card h3 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .world-card p {
+            color: #7f8c8d;
+            line-height: 1.6;
+        }
+        
+        /* 게임 레이아웃 */
+        .game-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .chat-panel {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 25px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            max-height: 450px;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .message.system {
+            background: #e3f2fd;
+            color: #1565c0;
+            font-style: italic;
+            text-align: center;
+            max-width: 100%;
+        }
+        
+        .message.ai {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            margin-right: auto;
+        }
+        
+        .message.user {
+            background: #e8f5e8;
+            color: #388e3c;
+            margin-left: auto;
+        }
+        
+        .message.other {
+            background: #fff3e0;
+            color: #f57c00;
+            margin-right: auto;
+        }
+        
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 14px;
+        }
+        
+        .chat-input button {
+            padding: 12px 20px;
+            border-radius: 25px;
+        }
+        
+        /* 타이머 스타일 */
+        .timer-display {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .timer-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+        
+        .phase-text {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            color: #34495e;
+        }
+        
+        .pressure-text {
+            font-size: 1rem;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .pressure-relaxed { background: #d4edda; color: #155724; }
+        .pressure-normal { background: #fff3cd; color: #856404; }
+        .pressure-urgent { background: #f8d7da; color: #721c24; }
+        .pressure-critical { background: #f5c6cb; color: #721c24; }
+        
+        .timer-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .timer-progress::before {
+            content: '';
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+            border-radius: 4px;
+        }
+        
+        /* 상태 정보 */
+        .status-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status-item label {
+            display: block;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .status-item span {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        
+        /* 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            margin: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .modal-header h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #95a5a6;
+        }
+        
+        .close-btn:hover {
+            color: #e74c3c;
+        }
+        
+        /* 캐릭터 스탯 표시 */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .calculated-stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #e8f4f8;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        /* 유틸리티 클래스 */
+        .hidden {
+            display: none !important;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .game-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .chat-panel {
+                height: 400px;
+            }
+            
+            .world-selection {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-actions {
+                position: relative;
+                margin-top: 20px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <div class="header-actions" id="headerActions">
+                <button onclick="showMyCharacterModal()" class="btn">⚔️ 내 캐릭터</button>
+                <button onclick="logout()" class="btn btn-danger">🚪 로그아웃</button>
+            </div>
+            <h1>🏰 던전톡</h1>
+            <div class="subtitle">실시간 멀티플레이 TRPG</div>
+        </div>
+
+        <!-- 상태 정보 -->
+        <div class="status-info">
+            <div class="status-item">
+                <label>현재 상태</label>
+                <span id="currentStatus">로그인 필요</span>
+            </div>
+            <div class="status-item">
+                <label>사용자</label>
+                <span id="currentUser">-</span>
+            </div>
+            <div class="status-item">
+                <label>매칭 정보</label>
+                <span id="matchingInfo">-</span>
+            </div>
+            <div class="status-item">
+                <label>방 정보</label>
+                <span id="roomInfo">-</span>
+            </div>
+        </div>
+
+        <!-- 로그인 섹션 -->
+        <div class="card" id="loginSection">
+            <h2>🔐 로그인 / 회원가입</h2>
+            <div class="form-group">
+                <label for="userId">사용자 ID</label>
+                <input type="text" id="userId" placeholder="ID를 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="password">비밀번호</label>
+                <input type="password" id="password" placeholder="비밀번호를 입력하세요">
+            </div>
+            <div>
+                <button onclick="login()" class="btn">🔑 로그인</button>
+                <button onclick="register()" class="btn btn-secondary">📝 회원가입</button>
+            </div>
+        </div>
+
+        <!-- 매칭 섹션 -->
+        <div id="matchingSection" class="hidden">
+            <!-- 세계관 선택 -->
+            <div class="card">
+                <h2>🌍 세계관 선택</h2>
+                <div class="world-selection">
+                    <div class="world-card" data-world="FANTASY" onclick="selectWorld('FANTASY')">
+                        <h3>🏰</h3>
+                        <h4>판타지</h4>
+                        <p>마법과 검의 세계에서 펼쳐지는 모험. 용사가 되어 악을 물리치는 클래식한 판타지 세계관입니다.</p>
+                    </div>
+                    <div class="world-card" data-world="ZOMBIE" onclick="selectWorld('ZOMBIE')">
+                        <h3>🧟</h3>
+                        <h4>좀비</h4>
+                        <p>좀비 아포칼립스 세계에서의 생존 이야기. 자원을 모으고 안전한 곳을 찾아 살아남으세요.</p>
+                    </div>
+                </div>
+                
+                <!-- 선택된 세계관 정보 -->
+                <div id="worldInfoCard" style="display: none;" class="mb-20">
+                    <div style="text-align: center; margin-top: 20px; padding: 15px; background: rgba(102,126,234,0.1); border-radius: 10px;">
+                        <strong>선택된 세계관: <span id="selectedWorldInfo"></span></strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 매칭 -->
+            <div class="card">
+                <h2>🎮 매칭</h2>
+                <div class="text-center">
+                    <button id="startMatchingBtn" onclick="startMatching()" class="btn" disabled>
+                        🔍 매칭 시작
+                    </button>
+                    <button id="cancelMatchingBtn" onclick="cancelMatching()" class="btn btn-danger hidden">
+                        ❌ 매칭 취소
+                    </button>
+                </div>
+                
+                <div id="matchingStatus" class="hidden" style="margin-top: 20px; text-align: center;">
+                    <div id="queueInfo" style="color: #667eea; font-weight: 600;"></div>
+                    <div style="margin-top: 10px;">
+                        <div style="width: 100%; height: 4px; background: #e1e8ed; border-radius: 2px;">
+                            <div style="width: 50%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 2px; animation: pulse 1.5s ease-in-out infinite alternate;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 게임 섹션 -->
+        <div id="gameSection" class="hidden">
+            <!-- 타이머 표시 -->
+            <div class="timer-display" id="timerDisplay">
+                <div class="timer-text">15:00</div>
+                <div class="phase-text">준비 중...</div>
+                <div class="pressure-text pressure-relaxed">여유</div>
+                <div class="timer-progress"></div>
+            </div>
+
+            <!-- 게임 나가기 -->
+            <div class="card" id="leaveGameCard" style="display: none;">
+                <div class="text-center">
+                    <button onclick="leaveGame()" class="btn btn-danger">🚪 게임 나가기</button>
+                </div>
+            </div>
+
+            <!-- 채팅 레이아웃 -->
+            <div class="game-layout">
+                <!-- AI 채팅 -->
+                <div class="chat-panel">
+                    <h3>🤖 AI 마스터</h3>
+                    <div id="aiChatInfo" style="margin-bottom: 10px; color: #667eea; font-size: 0.9rem;">
+                        세계관을 선택하고 게임을 시작하세요!
+                    </div>
+                    <div class="chat-messages" id="aiMessages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="aiMessageInput" placeholder="행동을 입력하세요" disabled>
+                        <button onclick="sendAiMessage()" id="aiSendBtn" class="btn" disabled>전송</button>
+                        <button onclick="requestAiResponse()" id="aiRequestBtn" class="btn btn-secondary" disabled>AI 응답</button>
+                    </div>
+                </div>
+
+                <!-- 유저 채팅 -->
+                <div class="chat-panel">
+                    <h3>👥 파티 채팅</h3>
+                    <div class="chat-messages" id="rightUserMessages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="rightUserMessageInput" placeholder="동료들과 대화하세요" disabled>
+                        <button onclick="sendRightUserMessage()" id="rightUserSendBtn" class="btn" disabled>전송</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 캐릭터 생성 모달 -->
+    <div id="characterCreationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="hideCharacterCreationModal()">&times;</span>
+            <div class="modal-header">
+                <h2>⚔️ 캐릭터 생성</h2>
+                <p>모험을 시작할 캐릭터의 종족을 선택하세요</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="raceSelect">종족 선택</label>
+                <select id="raceSelect">
+                    <option value="">-- 종족을 선택하세요 --</option>
+                </select>
+            </div>
+            
+            <div id="raceDescription" style="display: none;" class="mb-20">
+                <h4 id="raceDescTitle"></h4>
+                <p id="raceDescContent"></p>
+            </div>
+            
+            <div class="text-center">
+                <button onclick="createCharacter()" id="createCharacterBtn" class="btn" disabled>캐릭터 생성</button>
+                <button onclick="hideCharacterCreationModal()" class="btn btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 내 캐릭터 모달 -->
+    <div id="myCharacterModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="hideMyCharacterModal()">&times;</span>
+            <div class="modal-header">
+                <h2>⚔️ 내 캐릭터</h2>
+            </div>
+            
+            <!-- 캐릭터가 없을 때 -->
+            <div id="noCharacterSection" style="display: none;">
+                <div class="text-center mb-20">
+                    <p>아직 캐릭터가 없습니다.</p>
+                    <p>새로운 캐릭터를 생성해주세요.</p>
+                </div>
+                <div class="text-center">
+                    <button onclick="hideMyCharacterModal(); showCharacterCreationModal();" class="btn">캐릭터 생성하기</button>
+                </div>
+            </div>
+            
+            <!-- 캐릭터가 있을 때 -->
+            <div id="hasCharacterSection" style="display: none;">
+                <!-- 기본 정보 -->
+                <div class="mb-20">
+                    <h4>기본 정보</h4>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-name">종족</span>
+                            <span class="stat-value" id="charRace">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-name">레벨</span>
+                            <span class="stat-value" id="charLevel">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-name">총 경험치</span>
+                            <span class="stat-value" id="charExp">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-name">미사용 포인트</span>
+                            <span class="stat-value" id="charUnspentPoints">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 기본 스탯 -->
+                <div class="mb-20">
+                    <h4>기본 스탯</h4>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-name">힘</span>
+                            <span class="stat-value" id="charStrength">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-name">의지력</span>
+                            <span class="stat-value" id="charWillpower">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-name">지능</span>
+                            <span class="stat-value" id="charIntelligence">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-name">지혜</span>
+                            <span class="stat-value" id="charWisdom">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-name">민첩</span>
+                            <span class="stat-value" id="charDexterity">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-name">행운</span>
+                            <span class="stat-value" id="charLuck">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 계산된 스탯 -->
+                <div class="mb-20">
+                    <h4>계산된 스탯</h4>
+                    <div id="calculatedStats"></div>
+                </div>
+                
+                <div class="text-center">
+                    <button onclick="changeCharacterRace()" class="btn btn-secondary">종족 변경</button>
+                    <button onclick="hideMyCharacterModal()" class="btn">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모듈화된 JavaScript -->
+    <script type="module" src="./js/dungeon-game-modular.js"></script>
+    
+    <style>
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</body>
+</html>
