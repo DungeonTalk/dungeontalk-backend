@@ -17,6 +17,8 @@ import org.com.dungeontalk.domain.aichat.util.AiChatErrorHandler;
 import org.com.dungeontalk.domain.aichat.util.AiChatLogUtils;
 import org.com.dungeontalk.domain.aichat.util.AiGameValidator;
 import org.com.dungeontalk.domain.aichat.service.AiGameRoomService;
+import org.com.dungeontalk.domain.member.entity.Member;
+import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.domain.aichat.event.AiTurnProcessEvent;
 import org.com.dungeontalk.domain.aichat.dto.request.AiGenerateRequest;
 import org.springframework.context.ApplicationEventPublisher;
@@ -49,6 +51,7 @@ public class AiGameMessageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final AiGameMessageRepository aiGameMessageRepository;
     private final AiGameRoomRepository aiGameRoomRepository;
+    private final MemberRepository memberRepository;
     private final AiGameValidator aiGameValidator;
     private final AiGameRoomService aiGameRoomService;
     private final ProfanityFilterService profanityFilterService;
@@ -149,13 +152,25 @@ public class AiGameMessageService {
     @Transactional
     public RsData<String> handleJoinRoom(AiGameMessageSendRequest request) {
         try {
+            // 실제 사용자 닉네임 조회
+            String actualNickname = request.getSenderNickname();
+            try {
+                Member sender = memberRepository.findById(request.getSenderId()).orElse(null);
+                if (sender != null) {
+                    actualNickname = sender.getNickName();
+                }
+            } catch (Exception e) {
+                log.warn("입장 메시지 - 사용자 닉네임 조회 실패: senderId={}, error={}", 
+                         request.getSenderId(), e.getMessage());
+            }
+
             // 입장 시스템 메시지 생성
             AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
                     .aiGameRoomId(request.getAiGameRoomId())
                     .gameId(request.getGameId())
                     .senderId(request.getSenderId())
-                    .senderNickname(request.getSenderNickname())
-                    .content(request.getSenderNickname() + "님이 AI 게임에 참여했습니다.")
+                    .senderNickname(actualNickname)
+                    .content(actualNickname + "님이 AI 게임에 참여했습니다.")
                     .messageType(AiMessageType.SYSTEM)
                     .turnNumber(request.getTurnNumber())
                     .messageOrder(request.getMessageOrder())
@@ -185,13 +200,25 @@ public class AiGameMessageService {
     @Transactional
     public RsData<String> handleLeaveRoom(AiGameMessageSendRequest request) {
         try {
+            // 실제 사용자 닉네임 조회
+            String actualNickname = request.getSenderNickname();
+            try {
+                Member sender = memberRepository.findById(request.getSenderId()).orElse(null);
+                if (sender != null) {
+                    actualNickname = sender.getNickName();
+                }
+            } catch (Exception e) {
+                log.warn("퇴장 메시지 - 사용자 닉네임 조회 실패: senderId={}, error={}", 
+                         request.getSenderId(), e.getMessage());
+            }
+
             // 퇴장 시스템 메시지 생성
             AiGameMessageSendRequest systemMessage = AiGameMessageSendRequest.builder()
                     .aiGameRoomId(request.getAiGameRoomId())
                     .gameId(request.getGameId())
                     .senderId(request.getSenderId())
-                    .senderNickname(request.getSenderNickname())
-                    .content(request.getSenderNickname() + "님이 AI 게임에서 나갔습니다.")
+                    .senderNickname(actualNickname)
+                    .content(actualNickname + "님이 AI 게임에서 나갔습니다.")
                     .messageType(AiMessageType.SYSTEM)
                     .turnNumber(request.getTurnNumber())
                     .messageOrder(request.getMessageOrder())
@@ -381,12 +408,24 @@ public class AiGameMessageService {
         // 다음 메시지 순서 계산
         int nextMessageOrder = getNextMessageOrder(request.getAiGameRoomId(), request.getTurnNumber());
 
+        // 실제 사용자 닉네임 조회
+        String actualNickname = request.getSenderNickname();
+        try {
+            Member sender = memberRepository.findById(request.getSenderId()).orElse(null);
+            if (sender != null) {
+                actualNickname = sender.getNickName();
+            }
+        } catch (Exception e) {
+            log.warn("사용자 닉네임 조회 실패, 요청값 사용: senderId={}, error={}", 
+                     request.getSenderId(), e.getMessage());
+        }
+
         AiGameMessage message = AiGameMessage.builder()
                 .id(UuidV7Creator.create())
                 .aiGameRoomId(request.getAiGameRoomId())
                 .gameId(request.getGameId())
                 .senderId(request.getSenderId())
-                .senderNickname(request.getSenderNickname())
+                .senderNickname(actualNickname)
                 .content(request.getContent())
                 .messageType(AiMessageType.USER)
                 .turnNumber(request.getTurnNumber())
