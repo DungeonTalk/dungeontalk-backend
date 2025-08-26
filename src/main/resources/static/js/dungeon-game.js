@@ -749,34 +749,19 @@
                 addAiMessage('ai', message.content);
             }
             
-            // 타이머 정지
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-                handleGameTimeEnd();
-            }
+            // 타이머 상태 변경 (정지하지 않고 게임 완료 상태로 표시)
+            updateTimerToGameCompleteState();
             
-            // 입력 비활성화
-            disableChatInputs();
+            // AI 채팅만 비활성화 (플레이어 채팅은 활성 유지)
+            disableAiChatOnly();
+            
+            // AI 채팅 패널에 종료 안내 메시지 추가
+            updateAiChatInfo();
             
             // 상태 업데이트
             updateStatus('currentStatus', '🔴 게임 종료');
             updateStatus('roomInfo', '🎯 게임 완료');
             
-            // 타이머 영역에 게임 종료 표시
-            const timerElement = document.getElementById('timerDisplay');
-            if (timerElement) {
-                timerElement.innerHTML = '⏹️ 게임 종료';
-                timerElement.style.cssText = `
-                    color: #ff4757;
-                    font-weight: bold;
-                    font-size: 18px;
-                    background: linear-gradient(135deg, #ff6b6b, #ff4757);
-                    background-clip: text;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                `;
-            }
             
             // 매칭 버튼들 숨기기
             const startMatchingBtn = document.getElementById('startMatchingBtn');
@@ -928,8 +913,8 @@
                         50% { transform: scale(1.05); }
                     }
                     .game-ended-overlay {
-                        background: rgba(0, 0, 0, 0.7) !important;
-                        pointer-events: none;
+                        /* 오버레이 효과는 유지하되 클릭은 허용 */
+                        filter: brightness(0.9);
                     }
                 `;
                 document.head.appendChild(styles);
@@ -938,7 +923,7 @@
             // 배너를 페이지 상단에 추가
             document.body.insertBefore(banner, document.body.firstChild);
             
-            // 전체 페이지에 게임 종료 오버레이 효과
+            // 전체 페이지에 게임 종료 효과 적용 (클릭은 허용)
             document.body.classList.add('game-ended-overlay');
             
             // 5초 후 배너 자동 제거 (선택사항)
@@ -1521,13 +1506,51 @@
             document.getElementById('rightUserSendBtn').disabled = false;
         }
         
-        // 채팅 입력 비활성화
+        // 채팅 입력 비활성화 (모든 채팅)
         function disableChatInputs() {
             document.getElementById('aiMessageInput').disabled = true;
             document.getElementById('aiSendBtn').disabled = true;
             document.getElementById('aiRequestBtn').disabled = true;
             document.getElementById('rightUserMessageInput').disabled = true;
             document.getElementById('rightUserSendBtn').disabled = true;
+        }
+
+        // AI 채팅만 비활성화 (플레이어 채팅은 활성 상태 유지)
+        function disableAiChatOnly() {
+            // AI 채팅 비활성화
+            const aiInput = document.getElementById('aiMessageInput');
+            const aiSendBtn = document.getElementById('aiSendBtn');
+            const aiRequestBtn = document.getElementById('aiRequestBtn');
+            
+            if (aiInput) {
+                aiInput.disabled = true;
+                aiInput.placeholder = "게임이 종료되었습니다. AI 채팅을 사용할 수 없습니다.";
+            }
+            if (aiSendBtn) aiSendBtn.disabled = true;
+            if (aiRequestBtn) aiRequestBtn.disabled = true;
+            
+            // 플레이어 채팅은 활성 상태 유지
+            const playerInput = document.getElementById('rightUserMessageInput');
+            const playerSendBtn = document.getElementById('rightUserSendBtn');
+            
+            if (playerInput) {
+                playerInput.disabled = false;
+                playerInput.placeholder = "게임이 끝났습니다! 자유롭게 채팅하세요...";
+            }
+            if (playerSendBtn) playerSendBtn.disabled = false;
+            
+            console.log('✅ AI 채팅 비활성화, 플레이어 채팅 활성 유지');
+        }
+
+        // AI 채팅 정보 업데이트 (게임 종료 후)
+        function updateAiChatInfo() {
+            const aiChatInfo = document.getElementById('aiChatInfo');
+            if (aiChatInfo) {
+                aiChatInfo.innerHTML = '🎭 게임이 완료되었습니다! AI와의 채팅은 종료되었지만, 플레이어들과는 자유롭게 대화할 수 있습니다.';
+                aiChatInfo.style.background = 'rgba(16, 185, 129, 0.1)';
+                aiChatInfo.style.borderLeft = '4px solid #10b981';
+                aiChatInfo.style.color = '#10b981';
+            }
         }
         
         // 메시지 추가 함수들
@@ -2150,5 +2173,38 @@
             // 모달들 닫기
             hideMyCharacterModal();
             hideCharacterCreationModal();
+        }
+
+        // 게임 종료 시 타이머를 게임 완료 상태로 변경
+        function updateTimerToGameCompleteState() {
+            const timerText = document.querySelector('.timer-text');
+            const phaseText = document.querySelector('.phase-text');
+            const pressureText = document.querySelector('.pressure-text');
+            const timerProgress = document.querySelector('.timer-progress');
+            
+            if (timerText) {
+                timerText.textContent = '🎭 게임 완료';
+                timerText.style.color = '#d4af37';
+                timerText.style.fontSize = '1.8em';
+            }
+            
+            if (phaseText) {
+                phaseText.textContent = '🎉 자유 채팅';
+                phaseText.className = 'phase-text';
+                phaseText.style.background = 'rgba(16, 185, 129, 0.2)';
+                phaseText.style.color = '#10b981';
+            }
+            
+            if (pressureText) {
+                pressureText.textContent = '여유롭게';
+                pressureText.className = 'pressure-text pressure-relaxed';
+            }
+            
+            if (timerProgress) {
+                timerProgress.style.width = '0%';
+                timerProgress.style.background = 'linear-gradient(90deg, #10b981 0%, #34d399 100%)';
+            }
+            
+            console.log('✅ 타이머가 게임 완료 상태로 변경됨');
         }
         
