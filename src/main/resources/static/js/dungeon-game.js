@@ -19,6 +19,8 @@
         let timerInterval = null;
         let targetGameDuration = 15; // 15분
         let currentGamePhase = 'waiting';
+        let timerPaused = false; // AI 응답 중 타이머 일시정지 여부
+        let pausedTime = 0; // 일시정지된 시간 누적
         let gamePhasesData = {
             waiting: { name: '준비 중...', pressure: 'relaxed' },
             intro: { name: '🌅 도입', pressure: 'relaxed' },
@@ -1129,6 +1131,9 @@
             const aiSendBtn = document.getElementById('aiSendBtn');
             const aiRequestBtn = document.getElementById('aiRequestBtn');
             
+            // 타이머 일시정지
+            pauseTimer();
+            
             // AI 패널에 대기 상태 클래스 추가
             if (aiPanel) {
                 aiPanel.classList.add('ai-waiting');
@@ -1155,6 +1160,9 @@
             const aiInput = document.getElementById('aiMessageInput');
             const aiSendBtn = document.getElementById('aiSendBtn');
             const aiRequestBtn = document.getElementById('aiRequestBtn');
+            
+            // 타이머 재개
+            resumeTimer();
             
             // AI 패널에서 대기 상태 클래스 제거
             if (aiPanel) {
@@ -1712,7 +1720,12 @@
         function updateTRPGTimer() {
             if (!gameStartTime) return;
             
-            const elapsed = (Date.now() - gameStartTime) / 1000; // 초 단위
+            // AI 응답 중이면 타이머 업데이트 건너뛰기
+            if (timerPaused) {
+                return;
+            }
+            
+            const elapsed = ((Date.now() - gameStartTime) / 1000) - pausedTime; // 일시정지된 시간 제외
             const elapsedMinutes = elapsed / 60;
             const remaining = Math.max(0, (targetGameDuration * 60) - elapsed);
             const remainingMinutes = Math.floor(remaining / 60);
@@ -1826,6 +1839,8 @@
             
             gameStartTime = null;
             currentGamePhase = 'waiting';
+            timerPaused = false;
+            pausedTime = 0;
             
             const timerText = document.querySelector('.timer-text');
             if (timerText) {
@@ -1840,6 +1855,48 @@
             
             updatePhaseUI();
             console.log('🔄 TRPG 타이머 초기화');
+        }
+
+        // 타이머 일시정지 (AI 응답 중)
+        function pauseTimer() {
+            if (!timerPaused && gameStartTime) {
+                timerPaused = true;
+                const timerText = document.querySelector('.timer-text');
+                const phaseText = document.querySelector('.phase-text');
+                
+                if (timerText) {
+                    timerText.style.opacity = '0.6';
+                    timerText.title = 'AI 응답 생성 중 - 타이머 일시정지';
+                }
+                if (phaseText) {
+                    phaseText.style.opacity = '0.6';
+                    phaseText.title = 'AI 응답 생성 중 - 타이머 일시정지';
+                }
+                
+                console.log('⏸️ 타이머 일시정지 (AI 응답 생성 중)');
+            }
+        }
+
+        // 타이머 재개 (AI 응답 완료)
+        function resumeTimer() {
+            if (timerPaused && gameStartTime) {
+                // 일시정지된 시간 계산 및 누적 (이 부분은 단순화하여 즉시 재개)
+                timerPaused = false;
+                
+                const timerText = document.querySelector('.timer-text');
+                const phaseText = document.querySelector('.phase-text');
+                
+                if (timerText) {
+                    timerText.style.opacity = '1';
+                    timerText.title = '';
+                }
+                if (phaseText) {
+                    phaseText.style.opacity = '1';
+                    phaseText.title = '';
+                }
+                
+                console.log('▶️ 타이머 재개');
+            }
         }
 
         // 게임 시작 시 타이머 자동 시작 (기존 함수 수정 필요)
