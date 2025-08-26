@@ -107,7 +107,7 @@
                 return;
             }
             
-            console.log('회원가입 시도:', { name: userId, nickName: userId + '님' });
+            console.log('회원가입 시도:', { name: userId, nickName: userId });
             
             try {
                 const response = await fetch('/v1/member/register', {
@@ -115,7 +115,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name: userId,
-                        nickName: userId + '님',
+                        nickName: userId,
                         password: password
                     })
                 });
@@ -246,13 +246,10 @@
             }
         }
         
-        // 세계관 정보 업데이트
+        // 세계관 정보 업데이트 (게임상태 창이 제거되어 빈 함수로 유지)
         function updateWorldInfo(worldType) {
-            const worldInfoCard = document.getElementById('worldInfoCard');
-            const selectedWorldInfo = document.getElementById('selectedWorldInfo');
-            
-            worldInfoCard.style.display = 'block';
-            selectedWorldInfo.textContent = getWorldName(worldType);
+            // 게임상태 창이 제거되어 더 이상 표시할 곳이 없음
+            console.log(`세계관 선택됨: ${getWorldName(worldType)}`);
         }
         
         // AI 채팅 정보 업데이트
@@ -467,8 +464,8 @@
             updateStatus('matchingInfo', '매칭 완료');
             updateStatus('roomInfo', `AI: ${aiGameRoomId.substring(0, 8)}... | 파티: ${partyRoomId.substring(0, 8)}...`);
             
-            // 퇴장 버튼 표시
-            document.getElementById('leaveGameCard').style.display = 'block';
+            // 헤더에 퇴장 버튼 표시
+            document.getElementById('leaveGameHeaderBtn').classList.remove('hidden');
             
             // 참여자 표시 제거됨
             
@@ -698,6 +695,8 @@
             console.log('==========================');
             
             if (message.messageType === 'AI') {
+                // AI 응답이 도착하면 대기 상태 해제
+                endAiWaiting();
                 addAiMessage('ai', message.content);
                 
                 // AI 메시지에서 [GAME_END] 키워드 감지
@@ -718,6 +717,20 @@
                 addAiMessage('other', `${message.senderNickname}: ${message.content}`);
             } else if (message.messageType === 'SYSTEM') {
                 addAiMessage('system', message.content);
+                
+                // AI 요청 시작 메시지를 받으면 모든 플레이어 대기 상태 시작
+                if (message.content && message.content.includes('🤖 AI가 응답을 생성하고 있습니다')) {
+                    startAiWaiting();
+                }
+                // 실패/에러 메시지만 대기 상태 해제 (완료 메시지는 AI 응답이 올 때까지 대기)
+                else if (message.content && (
+                    message.content.includes('❌ AI 응답 요청에 실패했습니다') ||
+                    message.content.includes('❌ AI 응답 요청 중 오류가 발생했습니다')
+                )) {
+                    setTimeout(() => {
+                        endAiWaiting();
+                    }, 3000);
+                }
             } else if (message.messageType === 'GAME_END') {
                 handleGameEndMessage(message);
             }
@@ -1039,12 +1052,15 @@
             input.value = '';
         }
         
-        // AI 응답 요청 (REST API 호출)
+
+        // AI 응답 요청 (REST API 호출) - 기존 방식
         function requestAiResponse() {
             if (!aiGameRoomId || !currentUser || !currentGameSession) {
                 alert('게임 세션이 유효하지 않습니다.');
                 return;
             }
+            
+            // AI 응답 대기 상태는 WebSocket 메시지를 받을 때 시작됨
             
             const requestData = {
                 gameId: currentGameSession.gameSessionId,
@@ -1057,6 +1073,19 @@
             };
             
             console.log('AI 응답 요청 시작:', requestData);
+            
+            // 모든 플레이어에게 AI 응답 요청 시작 알림 (WebSocket으로 브로드캐스트)
+            if (aiStompClient && aiStompClient.connected) {
+                aiStompClient.send('/pub/room/ai/send', {}, JSON.stringify({
+                    roomId: aiGameRoomId,
+                    roomType: 'AI_GAME',
+                    senderId: 'SYSTEM',
+                    messageType: 'SYSTEM',
+                    content: '🤖 AI가 응답을 생성하고 있습니다... 잠시만 기다려주세요.',
+                    aiGameRoomId: aiGameRoomId,
+                    gameActionType: 'AI_REQUEST_START'
+                }));
+            }
             
             fetch(`/v1/rooms/ai/${aiGameRoomId}/ai/generate`, {
                 method: 'POST',
@@ -1071,14 +1100,92 @@
                 console.log('AI 응답 요청 완료:', data);
                 if (data.resultCode !== '200-1') {
                     alert('AI 응답 요청 실패: ' + data.msg);
+                    // 실패 메시지를 모든 플레이어에게 브로드캐스트
+                    if (aiStompClient && aiStompClient.connected) {
+                        aiStompClient.send('/pub/room/ai/send', {}, JSON.stringify({
+                            roomId: aiGameRoomId,
+                            roomType: 'AI_GAME',
+                            senderId: 'SYSTEM',
+                            messageType: 'SYSTEM',
+                            content: '❌ AI 응답 요청에 실패했습니다.',
+                            aiGameRoomId: aiGameRoomId,
+                            gameActionType: 'AI_REQUEST_FAILED'
+                        }));
+                    }
                 } else {
                     console.log('✅ AI 응답 생성 성공');
+                    // AI 응답 요청 성공 시 별도 메시지 없이 AI 응답 자체를 기다림
+                    // (실제 AI 응답이 도착하면 그것이 완료 신호가 됨)
                 }
             })
             .catch(error => {
                 console.error('AI 응답 요청 오류:', error);
                 alert('AI 응답 요청 중 오류가 발생했습니다.');
+                // 에러 메시지를 모든 플레이어에게 브로드캐스트
+                if (aiStompClient && aiStompClient.connected) {
+                    aiStompClient.send('/pub/room/ai/send', {}, JSON.stringify({
+                        roomId: aiGameRoomId,
+                        roomType: 'AI_GAME',
+                        senderId: 'SYSTEM',
+                        messageType: 'SYSTEM',
+                        content: '❌ AI 응답 요청 중 오류가 발생했습니다.',
+                        aiGameRoomId: aiGameRoomId,
+                        gameActionType: 'AI_REQUEST_ERROR'
+                    }));
+                }
             });
+            // 대기 상태 해제는 WebSocket 메시지를 통해 처리됨
+        }
+        
+        // AI 응답 대기 상태 시작
+        function startAiWaiting() {
+            const aiPanel = document.querySelector('.chat-panel:first-child');
+            const aiInput = document.getElementById('aiMessageInput');
+            const aiSendBtn = document.getElementById('aiSendBtn');
+            const aiRequestBtn = document.getElementById('aiRequestBtn');
+            
+            // AI 패널에 대기 상태 클래스 추가
+            if (aiPanel) {
+                aiPanel.classList.add('ai-waiting');
+                
+                // 로딩 인디케이터 추가
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.className = 'ai-loading-indicator';
+                loadingIndicator.innerHTML = `
+                    <div class="ai-loading-spinner"></div>
+                    <span>AI 응답 생성 중...</span>
+                `;
+                aiPanel.appendChild(loadingIndicator);
+            }
+            
+            // 입력 요소들 비활성화
+            if (aiInput) aiInput.disabled = true;
+            if (aiSendBtn) aiSendBtn.disabled = true;
+            if (aiRequestBtn) aiRequestBtn.disabled = true;
+        }
+        
+        // AI 응답 대기 상태 종료
+        function endAiWaiting() {
+            const aiPanel = document.querySelector('.chat-panel:first-child');
+            const aiInput = document.getElementById('aiMessageInput');
+            const aiSendBtn = document.getElementById('aiSendBtn');
+            const aiRequestBtn = document.getElementById('aiRequestBtn');
+            
+            // AI 패널에서 대기 상태 클래스 제거
+            if (aiPanel) {
+                aiPanel.classList.remove('ai-waiting');
+                
+                // 로딩 인디케이터 제거
+                const loadingIndicator = aiPanel.querySelector('.ai-loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+            }
+            
+            // 입력 요소들 활성화
+            if (aiInput) aiInput.disabled = false;
+            if (aiSendBtn) aiSendBtn.disabled = false;
+            if (aiRequestBtn) aiRequestBtn.disabled = false;
         }
         
         
@@ -1387,12 +1494,10 @@
             // UI 전환
             document.getElementById('gameSection').classList.add('hidden');
             document.getElementById('matchingSection').classList.remove('hidden');
-            document.getElementById('leaveGameCard').style.display = 'none';
+            document.getElementById('leaveGameHeaderBtn').classList.add('hidden');
             
-            // 상태 업데이트
-            updateStatus('currentStatus', '매칭 대기');
-            updateStatus('matchingInfo', '대기 중');
-            updateStatus('roomInfo', '미연결');
+            // 상태 업데이트는 게임상태 창이 제거되어 더 이상 필요 없음
+            console.log('매칭 화면으로 복귀');
             
             // 매칭 버튼 상태 초기화
             document.getElementById('startMatchingBtn').classList.remove('hidden');
@@ -1449,7 +1554,12 @@
             
             messageDiv.innerHTML = formattedContent;
             messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // 사용자가 맨 아래 근처에 있을 때만 자동 스크롤 (스마트 스크롤)
+            const isNearBottom = messagesDiv.scrollTop >= messagesDiv.scrollHeight - messagesDiv.clientHeight - 100;
+            if (isNearBottom) {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
         }
         
         
@@ -1476,7 +1586,12 @@
             
             messageDiv.innerHTML = formattedContent;
             messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // 사용자가 맨 아래 근처에 있을 때만 자동 스크롤 (스마트 스크롤)
+            const isNearBottom = messagesDiv.scrollTop >= messagesDiv.scrollHeight - messagesDiv.clientHeight - 100;
+            if (isNearBottom) {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
         }
         
         // 참여자 목록 업데이트 함수 제거됨
@@ -1484,7 +1599,10 @@
         
         // 유틸리티 함수들
         function updateStatus(elementId, value) {
-            document.getElementById(elementId).textContent = value;
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value;
+            }
         }
         
         function getCurrentTurnNumber() {
