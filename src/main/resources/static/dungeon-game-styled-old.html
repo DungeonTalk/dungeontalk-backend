@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>⚔️ 던전톡 - 모던 판타지 RPG</title>
+    
+    <!-- WebSocket 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    
+    <!-- 프리텐다드 폰트 -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* =====================================================
+           1. CSS Variables & Reset
+           ===================================================== */
+        :root {
+            /* Gold Theme Colors */
+            --primary-gold: #d4af37;
+            --bright-gold: #f4d03f;
+            --dark-gold: #b8941f;
+            --accent-gold: #ffd700;
+            --light-gold: #ffed4e;
+            --shadow-gold: #e6c200;
+            --magic-gold: #daa520;
+            --warm-gold: #f1c232;
+            --ancient-gold: #b8860b;
+            
+            /* Dark Theme */
+            --bg-dark: #0a0a0f;
+            --bg-dark-secondary: #15151f;
+            --bg-dark-tertiary: #1a1a25;
+            --surface-dark: rgba(26, 26, 37, 0.8);
+            
+            /* Text Colors */
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.85);
+            --text-tertiary: rgba(255, 255, 255, 0.65);
+            
+            /* UI States */
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+            
+            /* Border Radius */
+            --radius-sm: 0.375rem;
+            --radius-md: 0.625rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
+            --radius-full: 9999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+            --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.25);
+            --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.5);
+            
+            /* Animations */
+            --transition-fast: 150ms ease;
+            --transition-base: 300ms ease;
+            --transition-slow: 500ms ease;
+            
+            /* Z-index Layers */
+            --z-background: 1;
+            --z-content: 10;
+            --z-overlay: 100;
+            --z-modal: 1000;
+            --z-notification: 2000;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #15151f 50%, #1a1a25 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* =====================================================
+           2. Background Effects
+           ===================================================== */
+        .magic-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: var(--z-background);
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: radial-gradient(circle, var(--primary-gold) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+            opacity: 0.6;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+        
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-xl);
+        }
+        
+        /* =====================================================
+           3. Header / Hero Section
+           ===================================================== */
+        .header {
+            background: linear-gradient(135deg, 
+                rgba(212, 175, 55, 0.1) 0%, 
+                rgba(244, 208, 63, 0.05) 50%, 
+                rgba(184, 148, 31, 0.1) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl) var(--spacing-2xl);
+            margin-bottom: var(--spacing-xl);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-gold), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+        
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-gold), var(--bright-gold));
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--bg-dark);
+            box-shadow: var(--shadow-glow);
+            animation: glow-pulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.8); }
+        }
+        
+        .logo-text h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--bright-gold), var(--primary-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo-text p {
+            color: var(--text-tertiary);
+            font-size: 0.9rem;
+            margin-top: var(--spacing-xs);
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            align-items: center;
+        }
+        
+        /* =====================================================
+           4. Buttons
+           ===================================================== */
+        .btn {
+            padding: var(--spacing-md) var(--spacing-xl);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            text-decoration: none;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+            color: var(--bg-dark);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(26, 26, 37, 0.8);
+            color: var(--primary-gold);
+            border: 1px solid var(--primary-gold);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn-sm {
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.875rem;
+        }
+        
+        .btn-lg {
+            padding: var(--spacing-lg) var(--spacing-2xl);
+            font-size: 1.1rem;
+        }
+        
+        .btn-full {
+            width: 100%;
+        }
+        
+        /* =====================================================
+           5. Cards
+           ===================================================== */
+        .card {
+            background: linear-gradient(135deg, 
+                rgba(26, 26, 37, 0.8) 0%, 
+                rgba(26, 26, 37, 0.6) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-base);
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary-gold), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(212, 175, 55, 0.4);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+        }
+        
+        .card:hover::before {
+            opacity: 1;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--bright-gold);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .card-badge {
+            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+            color: var(--bg-dark);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* =====================================================
+           6. Game Layout
+           ===================================================== */
+        .game-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: var(--spacing-xl);
+            margin-top: var(--spacing-xl);
+        }
+        
+        /* =====================================================
+           7. Login Section
+           ===================================================== */
+        .login-section {
+            text-align: center;
+            max-width: 450px;
+            margin: var(--spacing-xl) auto;
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+            text-align: left;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: rgba(10, 10, 15, 0.5);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all var(--transition-base);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+            background: rgba(10, 10, 15, 0.7);
+        }
+        
+        .form-input::placeholder {
+            color: var(--text-tertiary);
+        }
+        
+        /* =====================================================
+           8. Game Status & Timer
+           ===================================================== */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .status-item {
+            background: rgba(26, 26, 37, 0.5);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(212, 175, 55, 0.1);
+        }
+        
+        .status-label {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-xs);
+            display: block;
+        }
+        
+        .status-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-gold);
+        }
+        
+        .timer-container {
+            text-align: center;
+            margin: var(--spacing-xl) 0;
+        }
+        
+        .timer-display {
+            font-size: 3rem;
+            font-weight: 600;
+            color: var(--bright-gold);
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .timer-label {
+            color: var(--text-tertiary);
+            font-size: 1rem;
+        }
+        
+        /* =====================================================
+           9. Chat
+           ===================================================== */
+        .chat-container {
+            background: rgba(26, 26, 37, 0.5);
+            border: 1px solid rgba(212, 175, 55, 0.1);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: rgba(212, 175, 55, 0.1);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            font-weight: 600;
+            color: var(--bright-gold);
+        }
+        
+        .chat-messages {
+            height: 300px;
+            padding: var(--spacing-md);
+            overflow-y: auto;
+        }
+        
+        .chat-message {
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: rgba(26, 26, 37, 0.6);
+            border-radius: var(--radius-md);
+            border-left: 3px solid var(--primary-gold);
+            animation: slideInLeft var(--transition-base);
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .chat-username {
+            font-weight: 600;
+            color: var(--primary-gold);
+            font-size: 0.875rem;
+            margin-bottom: var(--spacing-xs);
+            display: block;
+        }
+        
+        .chat-content {
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        .chat-input-area {
+            padding: var(--spacing-md);
+            background: rgba(10, 10, 15, 0.3);
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: rgba(26, 26, 37, 0.8);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: var(--radius-full);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all var(--transition-base);
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+        
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+            color: var(--bg-dark);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        }
+        
+        /* =====================================================
+           10. Info Sections
+           ===================================================== */
+        .info-section {
+            background: rgba(26, 26, 37, 0.5);
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .info-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--bright-gold);
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .info-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .participant-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+        
+        .participant-tag {
+            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+            color: var(--bg-dark);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* =====================================================
+           11. Loading & Spinner
+           ===================================================== */
+        .loading {
+            text-align: center;
+            padding: var(--spacing-xl);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(212, 175, 55, 0.2);
+            border-top-color: var(--primary-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--spacing-md);
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* =====================================================
+           12. Modal Styles
+           ===================================================== */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: var(--z-modal);
+        }
+        
+        /* =====================================================
+           12. Character Display Styles
+           ===================================================== */
+        .character-display {
+            text-align: center;
+            padding: var(--spacing-lg) 0;
+        }
+        
+        .character-avatar {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .character-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--bright-gold);
+            margin-top: var(--spacing-sm);
+        }
+        
+        .character-stats {
+            background: rgba(10, 10, 15, 0.3);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            font-size: 0.875rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+        
+        .stat-bar {
+            position: relative;
+            width: 120px;
+            height: 16px;
+            background: rgba(26, 26, 37, 0.8);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        
+        .stat-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, var(--success), #22c55e);
+            transition: width var(--transition-base);
+            border-radius: inherit;
+        }
+        
+        .stat-bar-fill.mp-bar {
+            background: linear-gradient(135deg, var(--info), #60a5fa);
+        }
+        
+        .stat-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .character-equipment {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+        
+        .equipment-slot {
+            background: rgba(26, 26, 37, 0.6);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm);
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all var(--transition-base);
+        }
+        
+        .equipment-slot:hover {
+            border-color: var(--primary-gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+        
+        .equipment-slot.equipped {
+            border-color: var(--primary-gold);
+            background: rgba(212, 175, 55, 0.15);
+            color: var(--text-secondary);
+        }
+        
+        /* Character Creation Styles */
+        .class-option {
+            background: rgba(26, 26, 37, 0.6);
+            border: 2px solid rgba(212, 175, 55, 0.2);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            color: var(--text-secondary);
+        }
+        
+        .class-option:hover {
+            border-color: var(--primary-gold);
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .class-option.selected {
+            border-color: var(--bright-gold);
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--text-primary);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+        
+        .class-option i {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-xs);
+            color: var(--primary-gold);
+        }
+        
+        .class-option div {
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .class-option small {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+        
+        .stat-allocation {
+            background: rgba(10, 10, 15, 0.3);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+        }
+        
+        .stat-alloc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-secondary);
+        }
+        
+        .stat-alloc-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .stat-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .stat-controls button {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-gold);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all var(--transition-base);
+        }
+        
+        .stat-controls button:hover {
+            background: var(--bright-gold);
+            transform: scale(1.1);
+        }
+        
+        .stat-controls button:disabled {
+            background: rgba(212, 175, 55, 0.3);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .stat-controls span {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--accent-gold);
+        }
+        
+        .character-preview {
+            background: rgba(26, 26, 37, 0.5);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+        }
+        
+        .preview-avatar {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .preview-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--bright-gold);
+            margin-top: var(--spacing-sm);
+        }
+        
+        .preview-class {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            margin-top: var(--spacing-xs);
+        }
+        
+        .preview-stats h4 {
+            color: var(--primary-gold);
+            margin-bottom: var(--spacing-md);
+            font-size: 1rem;
+        }
+        
+        .preview-stat-list {
+            text-align: left;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        
+        .preview-stat-list div {
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .preview-stat-list span {
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+        
+        /* =====================================================
+           13. Utility Classes
+           ===================================================== */
+        .hidden {
+            display: none !important;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-gold {
+            color: var(--primary-gold);
+        }
+        
+        .mt-1 { margin-top: var(--spacing-sm); }
+        .mt-2 { margin-top: var(--spacing-md); }
+        .mt-3 { margin-top: var(--spacing-lg); }
+        
+        .mb-1 { margin-bottom: var(--spacing-sm); }
+        .mb-2 { margin-bottom: var(--spacing-md); }
+        .mb-3 { margin-bottom: var(--spacing-lg); }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        /* =====================================================
+           13. Responsive Design
+           ===================================================== */
+        @media (max-width: 968px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-lg);
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: var(--spacing-md);
+                text-align: center;
+            }
+            
+            .logo-text h1 {
+                font-size: 2rem;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .container {
+                padding: var(--spacing-md);
+            }
+            
+            .card {
+                padding: var(--spacing-lg);
+            }
+            
+            .user-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style></head>
+<body>
+    <!-- Magic Particles Background -->
+    <div class="magic-particles" id="particles"></div>
+    
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Hero Section -->
+        <header class="hero-section">
+            <div class="hero-content">
+                <div class="logo-container">
+                    <div class="logo">
+                        <i class="fas fa-dungeon"></i>
+                    </div>
+                    <div>
+                        <h1 class="hero-title">던전톡</h1>
+                        <p class="hero-subtitle">실시간 던전 탐험 게임</p>
+                    </div>
+                </div>
+                <div class="hero-actions" id="headerActions" style="display: none;">
+                    <button class="btn btn-secondary btn-sm" onclick="showMyCharacterModal()">
+                        <i class="fas fa-user"></i>
+                        캐릭터
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        로그아웃
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Login Section (shown initially) -->
+            <div id="loginSection" class="content-section">
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-sign-in-alt"></i>
+                            로그인
+                        </h2>
+                        <span class="card-badge">필수</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">사용자 ID</label>
+                        <input type="text" class="form-input" id="userId" placeholder="사용자 ID를 입력하세요" value="player1" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">비밀번호</label>
+                        <input type="password" class="form-input" id="password" placeholder="비밀번호를 입력하세요" value="password123" />
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-md);">
+                        <button class="btn btn-secondary" onclick="register()">
+                            <i class="fas fa-user-plus"></i>
+                            회원가입
+                        </button>
+                        <button class="btn btn-primary" onclick="login()">
+                            <i class="fas fa-sign-in-alt"></i>
+                            로그인
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- World Selection Section (shown after login) -->
+            <div id="matchingSection" class="content-section hidden">
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-globe"></i>
+                            세계관 선택 & 매칭
+                        </h2>
+                        <span class="card-badge">필수</span>
+                    </div>
+                    <p style="text-align: center; color: var(--text-tertiary); margin-bottom: var(--spacing-2xl);">
+                        모험을 시작할 세계관을 선택하세요
+                    </p>
+                    
+                    <div class="world-selection-container">
+                        <div class="world-card" onclick="selectWorld('FANTASY')" data-world="FANTASY">
+                            <h3>🏰 판타지 세계</h3>
+                            <p>⚔️ 마법과 검의 전설적 모험<br>
+                            🌲 드래곤, 엘프, 드워프들과 함께<br>
+                            ✨ 고대의 던전과 마법 아이템들</p>
+                        </div>
+                        <div class="world-card" onclick="selectWorld('ZOMBIE')" data-world="ZOMBIE">
+                            <h3>🧟 좀비 아포칼립스</h3>
+                            <p>🔫 생존을 위한 치열한 전투<br>
+                            🏚️ 폐허가 된 도시와 캠프<br>
+                            💊 의료품과 무기를 찾아서</p>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: var(--spacing-2xl);">
+                        <button class="btn btn-primary" id="startMatchingBtn" onclick="startMatching()" disabled>
+                            <i class="fas fa-play"></i>
+                            매칭 시작
+                        </button>
+                        <button class="btn btn-secondary hidden" id="cancelMatchingBtn" onclick="cancelMatching()">
+                            <i class="fas fa-stop"></i>
+                            매칭 취소
+                        </button>
+                        <div class="mt-2 hidden" id="matchingStatus">
+                            <div class="spinner" style="margin: 0 auto;"></div>
+                            <p style="color: var(--text-tertiary); margin-top: var(--spacing-sm);" id="matchingText">
+                                다른 플레이어를 찾는 중...
+                            </p>
+                            <div id="queueInfo" style="margin-top: 10px; font-size: 14px; color: var(--text-tertiary);"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Game Status Info -->
+                    <div class="glass-card mt-3" style="background: rgba(26, 26, 37, 0.3);">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-info-circle"></i>
+                                게임 정보
+                            </h3>
+                        </div>
+                        <div class="status-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="status-item">
+                                <span class="status-label">현재 상태:</span>
+                                <span class="status-value" id="currentStatus">대기 중</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">사용자:</span>
+                                <span class="status-value" id="currentUser">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">매칭 정보:</span>
+                                <span class="status-value" id="matchingInfo">대기 중</span>
+                            </div>
+                            <div class="status-item" id="worldInfoCard" style="display: none;">
+                                <span class="status-label">선택된 세계관:</span>
+                                <span class="status-value" id="selectedWorldInfo">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Section (shown after matching) -->
+            <div id="gameSection" class="content-section hidden">
+                <div class="content-grid">
+                <!-- My Character Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-user-ninja"></i>
+                            내 캐릭터
+                        </h2>
+                        <span class="card-badge" id="characterStatus">준비중</span>
+                    </div>
+                    <div class="character-display">
+                        <div class="character-avatar" id="characterAvatar">
+                            <i class="fas fa-user-circle" style="font-size: 4rem; color: var(--primary-gold);"></i>
+                            <div class="character-name" id="characterName">캐릭터 없음</div>
+                        </div>
+                        <div class="character-stats">
+                            <div class="stat-row">
+                                <span class="stat-label">레벨:</span>
+                                <span class="stat-value" id="characterLevel">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">HP:</span>
+                                <div class="stat-bar">
+                                    <div class="stat-bar-fill" id="hpBar" style="width: 100%;"></div>
+                                    <span class="stat-text" id="hpText">0/0</span>
+                                </div>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">MP:</span>
+                                <div class="stat-bar">
+                                    <div class="stat-bar-fill mp-bar" id="mpBar" style="width: 100%;"></div>
+                                    <span class="stat-text" id="mpText">0/0</span>
+                                </div>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">공격력:</span>
+                                <span class="stat-value" id="characterAttack">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">방어력:</span>
+                                <span class="stat-value" id="characterDefense">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: var(--spacing-md);">
+                        <button class="btn btn-secondary btn-sm" onclick="showMyCharacterModal()">
+                            <i class="fas fa-cog"></i>
+                            상세 정보
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Game Status Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-gamepad"></i>
+                            게임 상태
+                        </h2>
+                        <span class="card-badge">진행중</span>
+                    </div>
+                    <div class="timer-container">
+                        <div class="timer-display">
+                            <div class="timer-value" id="timer">15:00</div>
+                            <div class="timer-label">남은 시간</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="status-item">
+                            <span class="status-label">게임 상태:</span>
+                            <span class="status-value" id="currentStatus">대기 중</span>
+                        </div>
+                        <div class="status-item mt-1">
+                            <span class="status-label">사용자:</span>
+                            <span class="status-value" id="currentUser">-</span>
+                        </div>
+                        <div class="status-item mt-1">
+                            <span class="status-label">매칭 정보:</span>
+                            <span class="status-value" id="matchingInfo">대기 중</span>
+                        </div>
+                        <div class="status-item mt-1">
+                            <span class="status-label">게임방:</span>
+                            <span class="status-value" id="roomInfo">미연결</span>
+                        </div>
+                        <div class="status-item mt-1" id="worldInfoCard" style="display: none;">
+                            <span class="status-label">선택된 세계관:</span>
+                            <span class="status-value" id="selectedWorldInfo">-</span>
+                        </div>
+                        <div class="status-item mt-1" id="leaveGameCard" style="display: none;">
+                            <button class="btn btn-danger btn-sm" id="leaveGameBtn" onclick="leaveGame()">
+                                <i class="fas fa-door-open"></i>
+                                게임 나가기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI Chat Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-robot"></i>
+                            AI 게임 마스터
+                        </h2>
+                    </div>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="aiMessages">
+                            <div class="chat-message">
+                                <div class="chat-message-header">
+                                    <span class="chat-username">AI 게임 마스터</span>
+                                </div>
+                                <div class="chat-message-content">
+                                    🎲 AI 게임 마스터와 RPG를 진행하세요. 행동을 입력하면 AI가 결과를 알려줍니다.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" class="chat-input" id="aiMessageInput" 
+                                   placeholder="AI에게 행동이나 질문을 입력하세요..."
+                                   onkeypress="if(event.key==='Enter') sendAiMessage()" disabled />
+                            <button class="btn btn-primary btn-icon" id="aiSendBtn" onclick="sendAiMessage()" disabled>
+                                <i class="fas fa-gamepad"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Player Chat Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-users"></i>
+                            플레이어 채팅
+                        </h2>
+                    </div>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="rightUserMessages">
+                            <div class="chat-message">
+                                <div class="chat-message-header">
+                                    <span class="chat-username">시스템</span>
+                                </div>
+                                <div class="chat-message-content">
+                                    💬 다른 플레이어들과 자유롭게 대화하세요. 전략을 논의하거나 잡담을 나눠보세요!
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" class="chat-input" id="rightUserMessageInput" 
+                                   placeholder="다른 플레이어들과 채팅하세요..."
+                                   onkeypress="if(event.key==='Enter') sendRightUserMessage()" disabled />
+                            <button class="btn btn-primary btn-icon" id="rightUserSendBtn" onclick="sendRightUserMessage()" disabled>
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </main>
+    
+    <!-- Character Creation Modal -->
+    <div class="modal hidden" id="characterCreationModal">
+        <div class="glass-card" style="width: 800px; max-width: 95%; margin: 5% auto;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-user-plus"></i>
+                    새 캐릭터 생성
+                </h2>
+                <button class="btn btn-sm btn-secondary" onclick="hideCharacterCreationModal()" style="padding: 0.25rem 0.5rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl); margin: var(--spacing-lg) 0;">
+                <!-- Character Creation Form -->
+                <div>
+                    <div class="form-group">
+                        <label class="form-label">캐릭터 이름</label>
+                        <input type="text" class="form-input" id="newCharacterName" placeholder="캐릭터 이름을 입력하세요" maxlength="20">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">클래스 선택</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
+                            <div class="class-option" onclick="selectClass('WARRIOR')" data-class="WARRIOR">
+                                <i class="fas fa-sword"></i>
+                                <div>전사</div>
+                                <small>근접 전투 특화</small>
+                            </div>
+                            <div class="class-option" onclick="selectClass('MAGE')" data-class="MAGE">
+                                <i class="fas fa-magic"></i>
+                                <div>마법사</div>
+                                <small>마법 공격 특화</small>
+                            </div>
+                            <div class="class-option" onclick="selectClass('ARCHER')" data-class="ARCHER">
+                                <i class="fas fa-bow-arrow"></i>
+                                <div>궁수</div>
+                                <small>원거리 공격 특화</small>
+                            </div>
+                            <div class="class-option" onclick="selectClass('THIEF')" data-class="THIEF">
+                                <i class="fas fa-user-ninja"></i>
+                                <div>도적</div>
+                                <small>민첩성 & 암살</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">능력치 분배 (포인트: <span id="remainingPoints">20</span>)</label>
+                        <div class="stat-allocation">
+                            <div class="stat-alloc-row">
+                                <span>공격력:</span>
+                                <div class="stat-controls">
+                                    <button onclick="adjustStat('attack', -1)">-</button>
+                                    <span id="allocAttack">5</span>
+                                    <button onclick="adjustStat('attack', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="stat-alloc-row">
+                                <span>방어력:</span>
+                                <div class="stat-controls">
+                                    <button onclick="adjustStat('defense', -1)">-</button>
+                                    <span id="allocDefense">5</span>
+                                    <button onclick="adjustStat('defense', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="stat-alloc-row">
+                                <span>민첩성:</span>
+                                <div class="stat-controls">
+                                    <button onclick="adjustStat('agility', -1)">-</button>
+                                    <span id="allocAgility">5</span>
+                                    <button onclick="adjustStat('agility', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="stat-alloc-row">
+                                <span>지능:</span>
+                                <div class="stat-controls">
+                                    <button onclick="adjustStat('intelligence', -1)">-</button>
+                                    <span id="allocIntelligence">5</span>
+                                    <button onclick="adjustStat('intelligence', 1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Character Preview -->
+                <div style="text-align: center;">
+                    <h3 style="color: var(--bright-gold); margin-bottom: var(--spacing-md);">미리보기</h3>
+                    <div class="character-preview">
+                        <div class="preview-avatar">
+                            <i class="fas fa-user-circle" id="previewIcon" style="font-size: 4rem; color: var(--primary-gold);"></i>
+                            <div class="preview-name" id="previewName">캐릭터 이름</div>
+                            <div class="preview-class" id="previewClass">클래스 미선택</div>
+                        </div>
+                        <div class="preview-stats">
+                            <h4>예상 능력치</h4>
+                            <div class="preview-stat-list">
+                                <div>레벨: 1</div>
+                                <div>HP: <span id="previewHP">50</span></div>
+                                <div>MP: <span id="previewMP">30</span></div>
+                                <div>공격력: <span id="previewAttack">5</span></div>
+                                <div>방어력: <span id="previewDefense">5</span></div>
+                                <div>민첩성: <span id="previewAgility">5</span></div>
+                                <div>지능: <span id="previewIntelligence">5</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: var(--spacing-xl); display: flex; gap: var(--spacing-md); justify-content: center;">
+                <button class="btn btn-primary" onclick="createCharacter()" id="finalCreateBtn" disabled>
+                    <i class="fas fa-check"></i>
+                    캐릭터 생성
+                </button>
+                <button class="btn btn-secondary" onclick="resetCharacterCreation()">
+                    <i class="fas fa-redo"></i>
+                    초기화
+                </button>
+                <button class="btn btn-danger" onclick="hideCharacterCreationModal()">
+                    <i class="fas fa-times"></i>
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Character Modal -->
+    <div class="modal hidden" id="myCharacterModal">
+        <div class="glass-card" style="width: 700px; max-width: 95%; margin: 5% auto;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-user-ninja"></i>
+                    내 캐릭터 상세 정보
+                </h2>
+                <button class="btn btn-sm btn-secondary" onclick="hideMyCharacterModal()" style="padding: 0.25rem 0.5rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- 캐릭터가 없는 경우 -->
+            <div id="noCharacterSection" style="display: none;">
+                <div style="text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">🎭</div>
+                    <h3 style="color: var(--bright-gold); margin-bottom: var(--spacing-md);">캐릭터가 없습니다</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: var(--spacing-lg);">던전 게임을 시작하려면 먼저 캐릭터를 생성해주세요.</p>
+                    <button class="btn btn-primary" onclick="showCharacterCreationModal(); hideMyCharacterModal();">
+                        <i class="fas fa-user-plus"></i>
+                        캐릭터 생성하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 캐릭터가 있는 경우 -->
+            <div id="hasCharacterSection" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: var(--spacing-xl); margin: var(--spacing-lg) 0;">
+                <!-- Character Avatar & Basic Info -->
+                <div style="text-align: center;">
+                    <div class="character-avatar" style="margin-bottom: var(--spacing-md);">
+                        <i class="fas fa-user-circle" style="font-size: 6rem; color: var(--primary-gold);"></i>
+                        <div class="character-name" id="modalCharacterName">캐릭터 없음</div>
+                        <div style="font-size: 0.875rem; color: var(--text-tertiary); margin-top: var(--spacing-xs);" id="modalCharacterClass">클래스 미정</div>
+                    </div>
+                    
+                    <div class="character-equipment">
+                        <div class="equipment-slot" id="weaponSlot">
+                            <i class="fas fa-sword" style="margin-bottom: 4px;"></i>
+                            <div>무기</div>
+                        </div>
+                        <div class="equipment-slot" id="armorSlot">
+                            <i class="fas fa-shield-alt" style="margin-bottom: 4px;"></i>
+                            <div>방어구</div>
+                        </div>
+                        <div class="equipment-slot" id="accessorySlot">
+                            <i class="fas fa-gem" style="margin-bottom: 4px;"></i>
+                            <div>장신구</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Stats -->
+                <div>
+                    <h3 style="color: var(--bright-gold); margin-bottom: var(--spacing-md); font-size: 1.1rem;">
+                        <i class="fas fa-chart-bar"></i> 능력치
+                    </h3>
+                    <div class="character-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">종족:</span>
+                            <span class="stat-value" id="charRace">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">레벨:</span>
+                            <span class="stat-value" id="charLevel">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">경험치:</span>
+                            <span class="stat-value" id="charExp">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">미사용 포인트:</span>
+                            <span class="stat-value" id="charUnspentPoints">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">체력 (HP):</span>
+                            <div class="stat-bar">
+                                <div class="stat-bar-fill" id="modalHpBar" style="width: 100%;"></div>
+                                <span class="stat-text" id="modalHpText">0/0</span>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">마나 (MP):</span>
+                            <div class="stat-bar">
+                                <div class="stat-bar-fill mp-bar" id="modalMpBar" style="width: 100%;"></div>
+                                <span class="stat-text" id="modalMpText">0/0</span>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">공격력:</span>
+                            <span class="stat-value" id="modalCharacterAttack">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">방어력:</span>
+                            <span class="stat-value" id="modalCharacterDefense">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">민첩성:</span>
+                            <span class="stat-value" id="modalCharacterAgility">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">지능:</span>
+                            <span class="stat-value" id="modalCharacterIntelligence">-</span>
+                        </div>
+                    </div>
+                    
+                    <h3 style="color: var(--bright-gold); margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1.1rem;">
+                        <i class="fas fa-dumbbell"></i> 기본 능력치
+                    </h3>
+                    <div class="character-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">힘:</span>
+                            <span class="stat-value" id="charStrength">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">의지력:</span>
+                            <span class="stat-value" id="charWillpower">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">지능:</span>
+                            <span class="stat-value" id="charIntelligence">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">지혜:</span>
+                            <span class="stat-value" id="charWisdom">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">민첩성:</span>
+                            <span class="stat-value" id="charDexterity">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">운:</span>
+                            <span class="stat-value" id="charLuck">-</span>
+                        </div>
+                    </div>
+
+                    <h3 style="color: var(--bright-gold); margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1.1rem;">
+                        <i class="fas fa-calculator"></i> 계산된 스탯
+                    </h3>
+                    <div id="calculatedStats" class="character-stats">
+                        <!-- 계산된 스탯이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                    
+                    <h3 style="color: var(--bright-gold); margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1.1rem;">
+                        <i class="fas fa-magic"></i> 스킬 & 특성
+                    </h3>
+                    <div id="characterSkills" style="background: rgba(10, 10, 15, 0.3); border-radius: var(--radius-md); padding: var(--spacing-md); color: var(--text-tertiary); text-align: center;">
+                        캐릭터를 생성하면 스킬 정보가 표시됩니다.
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/js/dungeon-game.js"></script>
+    
+    <script>
+        // Generate magic particles
+        function generateParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // Initialize particles on load
+        generateParticles();
+        
+        // Character creation state
+        let characterCreationData = {
+            name: '',
+            selectedClass: '',
+            stats: {
+                attack: 5,
+                defense: 5,
+                agility: 5,
+                intelligence: 5
+            },
+            remainingPoints: 20
+        };
+        
+        // Modal helper functions
+        function hideCharacterCreationModal() {
+            document.getElementById('characterCreationModal').style.display = 'none';
+        }
+        
+        async function showCharacterCreationModal() {
+            await loadRaces();
+            document.getElementById('characterCreationModal').style.display = 'flex';
+        }
+        
+        function hideMyCharacterModal() {
+            document.getElementById('myCharacterModal').style.display = 'none';
+        }
+
+        async function showMyCharacterModal() {
+            try {
+                const hasCharacter = await checkCharacterExists(currentUser.id);
+                
+                if (hasCharacter) {
+                    // 캐릭터 상세 정보 로드
+                    await loadMyCharacterDetails();
+                    document.getElementById('noCharacterSection').style.display = 'none';
+                    document.getElementById('hasCharacterSection').style.display = 'block';
+                } else {
+                    // 캐릭터 없음 섹션 표시
+                    document.getElementById('hasCharacterSection').style.display = 'none';
+                    document.getElementById('noCharacterSection').style.display = 'block';
+                }
+                
+                document.getElementById('myCharacterModal').style.display = 'flex';
+            } catch (error) {
+                console.error('내 캐릭터 모달 표시 오류:', error);
+                alert('캐릭터 정보를 불러오는데 실패했습니다.');
+            }
+        }
+        
+        // Character creation functions
+        function selectClass(className) {
+            // Remove previous selection
+            document.querySelectorAll('.class-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selection to clicked class
+            document.querySelector(`[data-class="${className}"]`).classList.add('selected');
+            characterCreationData.selectedClass = className;
+            
+            // Update preview
+            updatePreview();
+            
+            // Update icon based on class
+            const previewIcon = document.getElementById('previewIcon');
+            const icons = {
+                'WARRIOR': 'fa-sword',
+                'MAGE': 'fa-magic',
+                'ARCHER': 'fa-bow-arrow',
+                'THIEF': 'fa-user-ninja'
+            };
+            previewIcon.className = `fas ${icons[className]}`;
+            
+            // Check if character can be created
+            validateCharacterCreation();
+        }
+        
+        function adjustStat(statName, change) {
+            const currentValue = characterCreationData.stats[statName];
+            const newValue = currentValue + change;
+            const remainingPoints = characterCreationData.remainingPoints;
+            
+            // Check constraints
+            if (newValue < 1 || newValue > 20) return;
+            if (change > 0 && remainingPoints <= 0) return;
+            if (change < 0 && currentValue <= 1) return;
+            
+            // Update values
+            characterCreationData.stats[statName] = newValue;
+            characterCreationData.remainingPoints -= change;
+            
+            // Update UI
+            document.getElementById(`alloc${statName.charAt(0).toUpperCase() + statName.slice(1)}`).textContent = newValue;
+            document.getElementById('remainingPoints').textContent = characterCreationData.remainingPoints;
+            
+            // Update buttons state
+            updateStatButtons();
+            updatePreview();
+            validateCharacterCreation();
+        }
+        
+        function updateStatButtons() {
+            Object.keys(characterCreationData.stats).forEach(stat => {
+                const value = characterCreationData.stats[stat];
+                const remaining = characterCreationData.remainingPoints;
+                
+                // Find + and - buttons for this stat
+                const buttons = document.querySelectorAll(`#alloc${stat.charAt(0).toUpperCase() + stat.slice(1)}`).parentNode?.children || [];
+                
+                // This is a simplified approach - you might need to adjust the selector
+                // based on your exact HTML structure
+            });
+        }
+        
+        function updatePreview() {
+            const name = document.getElementById('newCharacterName').value || '캐릭터 이름';
+            const className = characterCreationData.selectedClass;
+            
+            document.getElementById('previewName').textContent = name;
+            document.getElementById('previewClass').textContent = className ? getClassKoreanName(className) : '클래스 미선택';
+            
+            // Update stats in preview
+            const stats = characterCreationData.stats;
+            document.getElementById('previewHP').textContent = 40 + (stats.defense * 2);
+            document.getElementById('previewMP').textContent = 20 + (stats.intelligence * 2);
+            document.getElementById('previewAttack').textContent = stats.attack;
+            document.getElementById('previewDefense').textContent = stats.defense;
+            document.getElementById('previewAgility').textContent = stats.agility;
+            document.getElementById('previewIntelligence').textContent = stats.intelligence;
+        }
+        
+        function getClassKoreanName(className) {
+            const names = {
+                'WARRIOR': '전사',
+                'MAGE': '마법사', 
+                'ARCHER': '궁수',
+                'THIEF': '도적'
+            };
+            return names[className] || className;
+        }
+        
+        function validateCharacterCreation() {
+            const name = document.getElementById('newCharacterName').value.trim();
+            const hasClass = characterCreationData.selectedClass;
+            const validPoints = characterCreationData.remainingPoints >= 0;
+            
+            const canCreate = name.length >= 2 && hasClass && validPoints;
+            document.getElementById('finalCreateBtn').disabled = !canCreate;
+        }
+        
+        function resetCharacterCreation() {
+            // Reset data
+            characterCreationData = {
+                name: '',
+                selectedClass: '',
+                stats: {
+                    attack: 5,
+                    defense: 5,
+                    agility: 5,
+                    intelligence: 5
+                },
+                remainingPoints: 20
+            };
+            
+            // Reset UI
+            document.getElementById('newCharacterName').value = '';
+            document.querySelectorAll('.class-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Reset stat displays
+            Object.keys(characterCreationData.stats).forEach(stat => {
+                document.getElementById(`alloc${stat.charAt(0).toUpperCase() + stat.slice(1)}`).textContent = '5';
+            });
+            document.getElementById('remainingPoints').textContent = '20';
+            
+            // Reset preview
+            document.getElementById('previewIcon').className = 'fas fa-user-circle';
+            updatePreview();
+            validateCharacterCreation();
+        }
+        
+        function createCharacter() {
+            const characterData = {
+                name: document.getElementById('newCharacterName').value.trim(),
+                class: characterCreationData.selectedClass,
+                stats: characterCreationData.stats
+            };
+            
+            // Here you would normally send this data to your backend
+            console.log('Creating character:', characterData);
+            
+            // For now, just update the UI to show the character was created
+            updateCharacterDisplay(characterData);
+            hideCharacterCreationModal();
+            
+            // Show success message (you can implement this)
+            alert('캐릭터가 생성되었습니다!');
+        }
+        
+        function updateCharacterDisplay(characterData) {
+            // Update main character card
+            document.getElementById('characterName').textContent = characterData.name;
+            document.getElementById('characterLevel').textContent = '1';
+            document.getElementById('characterStatus').textContent = '활성';
+            document.getElementById('characterAttack').textContent = characterData.stats.attack;
+            document.getElementById('characterDefense').textContent = characterData.stats.defense;
+            
+            const hp = 40 + (characterData.stats.defense * 2);
+            const mp = 20 + (characterData.stats.intelligence * 2);
+            document.getElementById('hpText').textContent = `${hp}/${hp}`;
+            document.getElementById('mpText').textContent = `${mp}/${mp}`;
+            
+            // Update modal display
+            document.getElementById('modalCharacterName').textContent = characterData.name;
+            document.getElementById('modalCharacterClass').textContent = getClassKoreanName(characterData.class);
+            document.getElementById('modalCharacterLevel').textContent = '1';
+            document.getElementById('modalCharacterAttack').textContent = characterData.stats.attack;
+            document.getElementById('modalCharacterDefense').textContent = characterData.stats.defense;
+            document.getElementById('modalCharacterAgility').textContent = characterData.stats.agility;
+            document.getElementById('modalCharacterIntelligence').textContent = characterData.stats.intelligence;
+            document.getElementById('modalHpText').textContent = `${hp}/${hp}`;
+            document.getElementById('modalMpText').textContent = `${mp}/${mp}`;
+            
+            // Hide create character button in modal
+            document.getElementById('createCharacterBtn').style.display = 'none';
+            
+            // Update character icon
+            const icons = {
+                'WARRIOR': 'fa-sword',
+                'MAGE': 'fa-magic',
+                'ARCHER': 'fa-bow-arrow',
+                'THIEF': 'fa-user-ninja'
+            };
+            document.querySelector('#characterAvatar i').className = `fas ${icons[characterData.class]}`;
+        }
+        
+        // Event listeners for character creation
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('newCharacterName').addEventListener('input', function() {
+                characterCreationData.name = this.value;
+                updatePreview();
+                validateCharacterCreation();
+            });
+        });
+        
+    </script>
+</body>
+</html>
