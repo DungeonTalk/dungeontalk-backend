@@ -53,6 +53,24 @@
       <br />
       <sub>DevOps</sub>
     </td>
+        <td align="center" width="150px">
+      <a href="#">
+        <img src="https://github.com/github.png" width="100px;" alt=""/>
+      </a>
+      <br />
+      <sub><b>팀원 4</b></sub>
+      <br />
+      <sub>DevOps</sub>
+    </td>
+        <td align="center" width="150px">
+      <a href="#">
+        <img src="https://github.com/github.png" width="100px;" alt=""/>
+      </a>
+      <br />
+      <sub><b>팀원 4</b></sub>
+      <br />
+      <sub>DevOps</sub>
+    </td>
   </tr>
 </table>
 
