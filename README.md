@@ -20,33 +20,57 @@
 
 ## 📸 프로젝트 이미지
 
-<!-- 여기에 프로젝트 스크린샷, 데모 이미지, 또는 아키텍처 다이어그램을 추가하세요 -->
-
+### DungeonTalk 로그인 화면
 <div align="center">
 
-![프로젝트 메인 이미지](https://via.placeholder.com/800x400/1e1e2e/cdd6f4?text=DungeonTalk+Main+Image)
-
-*DungeonTalk 메인 화면*
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/b717d001-94ad-4825-a55d-f42098a766f7" />
 
 </div>
 
-<details>
-<summary>📱 더 많은 이미지 보기</summary>
+<br/>
 
+### DungeonTalk 메인 화면
 <div align="center">
 
-![게임 화면 1](https://via.placeholder.com/600x300/313244/f5c2e7?text=Game+Screen+1)
-*AI와의 TRPG 게임 진행 화면*
-
-![게임 화면 2](https://via.placeholder.com/600x300/313244/a6e3a1?text=Game+Screen+2)
-*캐릭터 생성 및 관리 화면*
-
-![매칭 화면](https://via.placeholder.com/600x300/313244/fab387?text=Matching+Screen)
-*세계관별 매칭 시스템*
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/d8ec8baf-30b0-44ef-ab05-f44578f3ed6d" />
 
 </div>
 
-</details>
+<br/>
+
+### AI와의 게임 진행 화면
+
+<div align="center">
+
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/f59fb092-6f33-452a-b6c9-da1e302116e8" />
+
+</div>
+
+<br/>
+
+### 캐릭터 생성 및 관리 화면
+
+<div align="center">
+
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/404390e7-dd57-4170-b22a-4da094481dff" />
+
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/bbca9ea7-112c-4b32-9449-acab8ba4ab66" />
+
+<img width="1436" height="787" alt="image" src="https://github.com/user-attachments/assets/750fcdd4-582a-4d34-872c-5554b745bac2" />
+
+</div>
+
+<br/>
+
+### 세계관별 매칭 화면
+
+<div align="center">
+
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/258777ca-35c2-4be6-be82-7612d121350e" />
+
+</div>
+
+<br/>
 
 ## 🏗️ 시스템 아키텍처
 
