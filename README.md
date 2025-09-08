@@ -1,90 +1,21 @@
 # 🎲 DungeonTalk Backend
 
-> **실시간 AI 기반 TRPG 플랫폼 - 백엔드 서버**  
-> Spring Boot 기반의 고성능 실시간 게임 서버
-
-<div align="center">
-
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/Valkey-7.0-red.svg)](https://valkey.io/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green.svg)](https://www.mongodb.com/)
-
-</div>
-
-## 👥 팀 소개
-
-<table>
-  <tr>
-    <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 1</b></sub>
-      <br />
-      <sub>Backend Developer</sub>
-    </td>
-    <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 2</b></sub>
-      <br />
-      <sub>Frontend Developer</sub>
-    </td>
-    <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 3</b></sub>
-      <br />
-      <sub>AI Developer</sub>
-    </td>
-    <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 4</b></sub>
-      <br />
-      <sub>DevOps</sub>
-    </td>
-        <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 4</b></sub>
-      <br />
-      <sub>DevOps</sub>
-    </td>
-        <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 4</b></sub>
-      <br />
-      <sub>DevOps</sub>
-    </td>
-  </tr>
-</table>
-
 ## 📖 프로젝트 소개
 
-DungeonTalk는 AI와 함께하는 혁신적인 TRPG(테이블탑 롤플레잉 게임) 플랫폼입니다. 실시간 채팅을 통해 AI 게임마스터와 함께 판타지 모험을 즐길 수 있습니다.
+- DungeonTalk는 AI와 함께하는 혁신적인 TRPG(테이블탑 롤플레잉 게임) 플랫폼입니다.
+- 실시간 채팅을 통해 AI 게임마스터와 함께 판타지 모험을 즐길 수 있습니다.
 
-### 🎯 주요 특징
+<br/>
 
-- 🤖 **AI 게임마스터**: 인공지능이 진행하는 역동적이고 상호작용적인 TRPG
+## 🎯 주요 특징
+
+- 🤖 **AI 게임마스터**: 역동적이고 상호작용적인 TRPG Dungeontalk 게임의 진행을 담당하는 게임마스터
 - ⚡ **실시간 통신**: WebSocket STOMP 기반 실시간 멀티플레이어 지원
 - 🎮 **자유형 게임플레이**: 제약 없는 창의적인 롤플레잉 경험
-- 🌍 **다양한 세계관**: 판타지, SF, 좀비 아포칼립스 등 다양한 테마
+- 🌍 **다양한 세계관**: 판타지, 좀비 아포칼립스 등의 테마로 구성
 - 👥 **매칭 시스템**: 세계관별 자동 매칭 및 대기열 관리
+
+<br/>
 
 ## 📸 프로젝트 이미지
 
@@ -118,6 +49,8 @@ DungeonTalk는 AI와 함께하는 혁신적인 TRPG(테이블탑 롤플레잉 �
 
 ## 🏗️ 시스템 아키텍처
 
+### 전반적인 흐름 구성도
+
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   Backend        │    │   AI Service    │
@@ -131,6 +64,11 @@ DungeonTalk는 AI와 함께하는 혁신적인 TRPG(테이블탑 롤플레잉 �
         │   (Main DB)  │ │ (Cache/Session)│ │(Vector DB) │
         └──────────────┘ └─────────────┘ └────────────┘
 ```
+
+### CI/CD 구성도
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/d0f18382-b2f4-4103-a5bb-23e6f6cf2784" />
+
+
 
 ## 🛠️ 기술 스택
 
