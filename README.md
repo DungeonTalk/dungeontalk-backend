@@ -335,7 +335,7 @@ src/
 - 주요 기능 개발 과정이 궁금하다. 👉 [기술 상세 정보 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-%EA%B8%B0%EC%88%A0-%EC%83%81%EC%84%B8-%EC%A0%95%EB%B3%B4)
 - CI/CD 구성 절차가 궁금하다. 👉 [CI-CD 구성 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/Dungeontalk-CI%E2%80%90CD-%EA%B5%AC%EC%84%B1)
 - ERD와 DB 정보에 대해 궁금하다. 👉 [ERD 정보 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%F0%9F%93%9A-ERD-%EC%A0%95%EB%B3%B4)
-- 트러블 슈팅에 대한 내용이 궁금하다. 👉 [트러블 슈팅 바로가기](https://github.com/codesche)
+- 트러블 슈팅에 대한 내용이 궁금하다. 👉 [트러블 슈팅 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-%ED%8A%B8%EB%9F%AC%EB%B8%94-%EC%8A%88%ED%8C%85)
 - 프로젝트 진행 과정에 대한 내용이 궁금하다. 👉 [DungeonTalk 기술 블로그](https://github.com/codesche)
 - 도메인별 테스트 코드 내용이 궁금하다. 👉 [DungeonTalk 도메인별 테스트 코드 작성](https://github.com/codesche)
 
