@@ -114,6 +114,7 @@
 
 | 구분               | 기술/도구                                                             |
 | ---------------- | ----------------------------------------------------------------- |
+| **Frontend** | HTML, CSS, JavaScript, Thymeleaf, SockJS |
 | **Backend** | Java 21 (LTS), Spring Boot 3.4.0, Spring Security, JWT            |
 | **DataBase**       | PostgreSQL 17 (pgvector 지원), MongoDB 7.0, Redis(Valkey) - (캐시/세션) |
 | **Main Tech Stack**       | WebSocket, STOMP, Redis (Valkey) Pub/Sub, RAG                                   |
