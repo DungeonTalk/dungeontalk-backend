@@ -74,11 +74,189 @@
 
 ## 🧭 ERD
 
-<div align="center">
+```mermaid
+erDiagram
+  %% =========================
+  %% RDB (PostgreSQL)
+  %% =========================
+  MEMBER {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string name
+    string nick_name
+    string password
+  }
 
-<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/cdffb2c1-4e69-486d-8e59-7e43b40dd785" />
+  AUTH {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string access_token
+    string token_type
+    string refresh_token
+    string email
+    string member_id FK
+  }
 
-</div>
+  %% 캐릭터(신규 스키마)
+  CHARACTER {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string member_id FK
+    int player_level
+    int total_exp
+    int unspent_points
+    int str
+    int dex
+    int int
+    int wil
+    int wis
+    int luk
+    int race_type_id FK
+  }
+
+  %% 캐릭터(기존/대안 스키마)
+  GAME_CHARACTER {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string member_id FK
+    int player_level
+    int total_exp
+    int unspent_points
+    int str
+    int dex
+    int int
+    int wil
+    int wis
+    int luk
+    int strength
+    int dexterity
+    int intelligence
+    int willpower
+    int wisdom
+    int luck
+    int race_id FK
+  }
+
+  RACE_STATS {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string race
+    int hp
+    int mp
+    int health_points
+    int mana_points
+    int accuracy
+    int dice_odds
+    int evasion_rate
+    int physical_attack
+    int magic_attack
+  }
+
+  WORLD_TYPES {
+    int id PK
+    string code
+    string display_name
+    string description
+    string game_settings
+    boolean is_active
+    int sort_order
+    datetime created_at
+    datetime updated_at
+  }
+
+  WORLD {
+    int world_id PK
+    string world_name
+    int clear_exp
+  }
+
+  REQUEST_EXP {
+    int level PK
+    int request_next_level_exp
+    int request_total_exp
+  }
+
+  %% RDB 관계
+  MEMBER ||--o{ AUTH           : has
+  MEMBER ||--o{ CHARACTER      : owns
+  MEMBER ||--o{ GAME_CHARACTER : owns
+  GAME_CHARACTER }o--|| RACE_STATS  : race_id_ref
+  CHARACTER     }o--|| WORLD_TYPES : race_type_ref
+
+  %% (선택) 캐릭터가 특정 월드 진행도를 가진다면 연결 가능
+  %% CHARACTER }o--o{ WORLD : progress_in
+
+  %% =========================
+  %% MongoDB (채팅/AI 게임)
+  %% =========================
+  CHAT_ROOM {
+    string id PK
+    string name
+    string room_type
+    int max_participants
+    string[] participants
+    datetime created_at
+    datetime updated_at
+  }
+
+  CHAT_MESSAGE {
+    string id PK
+    string room_id FK
+    string sender_id
+    string receiver_Id
+    string content
+    string message_type
+    datetime created_at
+    datetime updated_at
+  }
+ 
+  CHAT_ROOM_MEMBER {
+     string id PK
+     string room_id FK
+     string member_id
+     string status
+     datetime joinedAt
+     datetime updateAt
+     datetime leftAt
+  }
+
+  AI_GAME_ROOM {
+    string id PK
+    string base_room_id
+    string world_type
+    string prompt
+    string state
+    string[] participants
+    datetime created_at
+    datetime updated_at
+  }
+
+  AI_GAME_MESSAGE {
+    string id PK
+    string ai_game_room_id FK
+    string content
+    string message_type
+    int turn_number
+    int message_order
+    datetime created_at
+  }
+
+  CHAT_ROOM    ||--o{ CHAT_MESSAGE    : contains
+  AI_GAME_ROOM ||--o{ AI_GAME_MESSAGE : contains
+
+  %% =========================
+  %% Cross-DB (논리 연결)
+  %% =========================
+  MEMBER ||--o{ CHAT_ROOM     : participants_ref
+  MEMBER ||--o{ CHAT_MESSAGE  : sender_ref
+  MEMBER ||--o{ AI_GAME_ROOM  : participants_ref
+```
+
 
 ## 🏗️ 시스템 아키텍처
 
