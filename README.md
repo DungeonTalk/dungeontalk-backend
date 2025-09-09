@@ -153,7 +153,7 @@ src/
 더 궁금한 내용이 있으시면 아래를 참고해주세요.
 - 협업 방식을 알고 싶다. 👉 [협업 가이드 바로가기](https://github.com/codesche)
 - 도메인별 API 상세정보가 궁금하다. 👉 [DungeonTalk API 문서 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-API-%EB%AC%B8%EC%84%9C)
-- 사용한 기술에 대한 도입 배경이 궁금하다. 👉 [기술 스택 바로가기](https://github.com/codesche)
+- 사용한 기술에 대한 도입 배경이 궁금하다. 👉 [기술 스택 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%F0%9F%94%A8-%EA%B0%9C%EB%B0%9C-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%84%B1-&-%EA%B8%B0%EC%88%A0-%EC%8A%A4%ED%83%9D)
 - 주요 기능 개발 과정이 궁금하다. 👉 [기술 상세 정보 바로가기](https://github.com/codesche)
 - CI/CD 구성 절차가 궁금하다. 👉 [CI-CD 구성 바로가기](https://github.com/codesche)
 - ERD와 DB 정보에 대해 궁금하다. 👉 [ERD 정보 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%F0%9F%93%9A-ERD-%EC%A0%95%EB%B3%B4)
