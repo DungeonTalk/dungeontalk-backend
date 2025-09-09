@@ -152,13 +152,13 @@ src/
 ## 🗂 더 알아보고 싶은 내용이 있다면?
 더 궁금한 내용이 있으시면 아래를 참고해주세요.
 - 협업 방식을 알고 싶다. 👉 [협업 가이드 바로가기](https://github.com/codesche)
-- 사용한 기술에 대한 도입 배경이 궁금하다. 👉 [기술 스택 바로가기](https://github.com/codesche)
-- ERD와 DB 정보에 대해 궁금하다. 👉 [ERD 정보 바로가기](https://github.com/codesche)
 - 도메인별 API 상세정보가 궁금하다. 👉 [DungeonTalk API 문서 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-API-%EB%AC%B8%EC%84%9C)
+- ERD와 DB 정보에 대해 궁금하다. 👉 [ERD 정보 바로가기](https://github.com/codesche)
+- 사용한 기술에 대한 도입 배경이 궁금하다. 👉 [기술 스택 바로가기](https://github.com/codesche)
 - 주요 기능 개발 과정이 궁금하다. 👉 [기술 상세 정보 바로가기](https://github.com/codesche)
-- 트러블 슈팅에 대한 내용이 궁금하다. 👉 [트러블 슈팅 바로가기](https://github.com/codesche)
 - CI/CD 구성 절차가 궁금하다. 👉 [CI-CD 구성 바로가기](https://github.com/codesche)
-- 프로젝트 진행 과정에 대한 기록이 궁금하다. 👉 [DungeonTalk 기술 블로그](https://github.com/codesche)
+- 트러블 슈팅에 대한 내용이 궁금하다. 👉 [트러블 슈팅 바로가기](https://github.com/codesche)
+- 프로젝트 진행 과정에 대한 내용이 궁금하다. 👉 [DungeonTalk 기술 블로그](https://github.com/codesche)
 - 도메인별 테스트 코드 내용이 궁금하다. 👉 [DungeonTalk 도메인별 테스트 코드 작성](https://github.com/codesche)
 
 기타 다른 내용들은 [📝 팀 위키](https://github.com/DungeonTalk/dungeontalk-backend/wiki) 에서 확인할 수 있습니다.
