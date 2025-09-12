@@ -282,6 +282,13 @@ erDiagram
 ### 아키텍쳐 구성도
 <img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/55b1f124-0a41-4206-9c6d-4393074ff1f0" />
 
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/37a05700-92c1-4dc3-aa21-22b364eeb24f" />
+
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/0052d427-9dbd-46e6-a087-ba58852ba093" />
+
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/2934926f-8504-4770-a81f-794319fea331" />
+
+<br/>
 
 ### CI/CD 구성도
 <img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/d0f18382-b2f4-4103-a5bb-23e6f6cf2784" />
