@@ -342,7 +342,7 @@ src/
 
 ## 🗂 더 알아보고 싶은 내용이 있다면?
 더 궁금한 내용이 있으시면 아래를 참고해주세요.
-- 협업 방식을 알고 싶다. 👉 [협업 가이드 바로가기](https://github.com/codesche)
+- 협업 방식을 알고 싶다. 👉 [협업 가이드 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%F0%9F%93%9C-%ED%98%91%EC%97%85-%EA%B0%80%EC%9D%B4%EB%93%9C)
 - 도메인별 API 상세정보가 궁금하다. 👉 [DungeonTalk API 문서 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-API-%EB%AC%B8%EC%84%9C)
 - 사용한 기술 스택이 궁금하다. 👉 [기술 스택 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%F0%9F%94%A8-%EA%B0%9C%EB%B0%9C-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%84%B1-&-%EA%B8%B0%EC%88%A0-%EC%8A%A4%ED%83%9D)
 - 주요 기능 개발 과정이 궁금하다. 👉 [기술 상세 정보 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-%ED%99%9C%EC%9A%A9-%EA%B8%B0%EC%88%A0)
