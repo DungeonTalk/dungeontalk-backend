@@ -1,122 +1,272 @@
-# 🎲 DungeonTalk Backend
+# 🎲 DungeonTalk
 
-> **실시간 AI 기반 TRPG 플랫폼 - 백엔드 서버**  
-> Spring Boot 기반의 고성능 실시간 게임 서버
+## 🕰️ 진행 기간
+♠︎ **2025. 7. 29 ~ 2025. 8. 27** ♠︎
 
-<div align="center">
-
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/Valkey-7.0-red.svg)](https://valkey.io/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green.svg)](https://www.mongodb.com/)
-
-</div>
-
-## 👥 팀 소개
-
-<table>
-  <tr>
-    <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 1</b></sub>
-      <br />
-      <sub>Backend Developer</sub>
-    </td>
-    <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 2</b></sub>
-      <br />
-      <sub>Frontend Developer</sub>
-    </td>
-    <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 3</b></sub>
-      <br />
-      <sub>AI Developer</sub>
-    </td>
-    <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 4</b></sub>
-      <br />
-      <sub>DevOps</sub>
-    </td>
-        <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 4</b></sub>
-      <br />
-      <sub>DevOps</sub>
-    </td>
-        <td align="center" width="150px">
-      <a href="#">
-        <img src="https://github.com/github.png" width="100px;" alt=""/>
-      </a>
-      <br />
-      <sub><b>팀원 4</b></sub>
-      <br />
-      <sub>DevOps</sub>
-    </td>
-  </tr>
-</table>
+<br/>
 
 ## 📖 프로젝트 소개
 
-DungeonTalk는 AI와 함께하는 혁신적인 TRPG(테이블탑 롤플레잉 게임) 플랫폼입니다. 실시간 채팅을 통해 AI 게임마스터와 함께 판타지 모험을 즐길 수 있습니다.
+- DungeonTalk는 AI와 함께하는 혁신적인 TRPG(테이블탑 롤플레잉 게임) 플랫폼입니다.
+- 실시간 채팅을 통해 AI 게임마스터와 함께 특정 세계관에서의 모험을 즐길 수 있습니다.
+- 플레이어는 직접 게임 속의 캐릭터가 되어 직접 스토리를 만들어 나가면서 다양한 상황을 체험할 수 있습니다.
 
-### 🎯 주요 특징
+<br/>
 
-- 🤖 **AI 게임마스터**: 인공지능이 진행하는 역동적이고 상호작용적인 TRPG
+## 🎯 주요 특징
+
+- 🤖 **AI 게임마스터**: 역동적이고 상호작용적인 TRPG Dungeontalk 게임의 진행을 담당하는 게임마스터
 - ⚡ **실시간 통신**: WebSocket STOMP 기반 실시간 멀티플레이어 지원
 - 🎮 **자유형 게임플레이**: 제약 없는 창의적인 롤플레잉 경험
-- 🌍 **다양한 세계관**: 판타지, SF, 좀비 아포칼립스 등 다양한 테마
+- 🌍 **다양한 세계관**: 판타지, 좀비 아포칼립스 등의 테마로 구성
 - 👥 **매칭 시스템**: 세계관별 자동 매칭 및 대기열 관리
+
+<br/>
 
 ## 📸 프로젝트 이미지
 
-<!-- 여기에 프로젝트 스크린샷, 데모 이미지, 또는 아키텍처 다이어그램을 추가하세요 -->
-
+### DungeonTalk 로그인 화면
 <div align="center">
 
-![프로젝트 메인 이미지](https://via.placeholder.com/800x400/1e1e2e/cdd6f4?text=DungeonTalk+Main+Image)
-
-*DungeonTalk 메인 화면*
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/b717d001-94ad-4825-a55d-f42098a766f7" />
 
 </div>
 
-<details>
-<summary>📱 더 많은 이미지 보기</summary>
+<br/>
 
+### DungeonTalk 메인 화면
 <div align="center">
 
-![게임 화면 1](https://via.placeholder.com/600x300/313244/f5c2e7?text=Game+Screen+1)
-*AI와의 TRPG 게임 진행 화면*
-
-![게임 화면 2](https://via.placeholder.com/600x300/313244/a6e3a1?text=Game+Screen+2)
-*캐릭터 생성 및 관리 화면*
-
-![매칭 화면](https://via.placeholder.com/600x300/313244/fab387?text=Matching+Screen)
-*세계관별 매칭 시스템*
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/d8ec8baf-30b0-44ef-ab05-f44578f3ed6d" />
 
 </div>
 
-</details>
+<br/>
+
+### AI와의 게임 진행 화면
+
+<div align="center">
+
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/f59fb092-6f33-452a-b6c9-da1e302116e8" />
+
+</div>
+
+<br/>
+
+### 캐릭터 생성 및 관리 화면
+
+<div align="center">
+
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/404390e7-dd57-4170-b22a-4da094481dff" />
+
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/bbca9ea7-112c-4b32-9449-acab8ba4ab66" />
+
+<img width="1436" height="787" alt="image" src="https://github.com/user-attachments/assets/750fcdd4-582a-4d34-872c-5554b745bac2" />
+
+</div>
+
+<br/>
+
+### 세계관별 매칭 화면
+
+<div align="center">
+
+<img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/258777ca-35c2-4be6-be82-7612d121350e" />
+
+</div>
+
+<br/>
+
+## 🧭 ERD
+
+```mermaid
+erDiagram
+  %% =========================
+  %% RDB (PostgreSQL)
+  %% =========================
+  MEMBER {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string name
+    string nick_name
+    string password
+  }
+
+  AUTH {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string access_token
+    string token_type
+    string refresh_token
+    string email
+    string member_id FK
+  }
+
+  %% 캐릭터(신규 스키마)
+  CHARACTER {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string member_id FK
+    int player_level
+    int total_exp
+    int unspent_points
+    int str
+    int dex
+    int int
+    int wil
+    int wis
+    int luk
+    int race_type_id FK
+  }
+
+  %% 캐릭터(기존/대안 스키마)
+  GAME_CHARACTER {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string member_id FK
+    int player_level
+    int total_exp
+    int unspent_points
+    int str
+    int dex
+    int int
+    int wil
+    int wis
+    int luk
+    int strength
+    int dexterity
+    int intelligence
+    int willpower
+    int wisdom
+    int luck
+    int race_id FK
+  }
+
+  RACE_STATS {
+    string id PK
+    datetime created_at
+    datetime updated_at
+    string race
+    int hp
+    int mp
+    int health_points
+    int mana_points
+    int accuracy
+    int dice_odds
+    int evasion_rate
+    int physical_attack
+    int magic_attack
+  }
+
+  WORLD_TYPES {
+    int id PK
+    string code
+    string display_name
+    string description
+    string game_settings
+    boolean is_active
+    int sort_order
+    datetime created_at
+    datetime updated_at
+  }
+
+  WORLD {
+    int world_id PK
+    string world_name
+    int clear_exp
+  }
+
+  REQUEST_EXP {
+    int level PK
+    int request_next_level_exp
+    int request_total_exp
+  }
+
+  %% RDB 관계
+  MEMBER ||--o{ AUTH           : has
+  MEMBER ||--o{ CHARACTER      : owns
+  MEMBER ||--o{ GAME_CHARACTER : owns
+  GAME_CHARACTER }o--|| RACE_STATS  : race_id_ref
+  CHARACTER     }o--|| WORLD_TYPES : race_type_ref
+
+  %% (선택) 캐릭터가 특정 월드 진행도를 가진다면 연결 가능
+  %% CHARACTER }o--o{ WORLD : progress_in
+
+  %% =========================
+  %% MongoDB (채팅/AI 게임)
+  %% =========================
+  CHAT_ROOM {
+    string id PK
+    string name
+    string room_type
+    int max_participants
+    string[] participants
+    datetime created_at
+    datetime updated_at
+  }
+
+  CHAT_MESSAGE {
+    string id PK
+    string room_id FK
+    string sender_id
+    string receiver_Id
+    string content
+    string message_type
+    datetime created_at
+    datetime updated_at
+  }
+ 
+  CHAT_ROOM_MEMBER {
+     string id PK
+     string room_id FK
+     string member_id
+     string status
+     datetime joinedAt
+     datetime updateAt
+     datetime leftAt
+  }
+
+  AI_GAME_ROOM {
+    string id PK
+    string base_room_id
+    string world_type
+    string prompt
+    string state
+    string[] participants
+    datetime created_at
+    datetime updated_at
+  }
+
+  AI_GAME_MESSAGE {
+    string id PK
+    string ai_game_room_id FK
+    string content
+    string message_type
+    int turn_number
+    int message_order
+    datetime created_at
+  }
+
+  CHAT_ROOM    ||--o{ CHAT_MESSAGE    : contains
+  AI_GAME_ROOM ||--o{ AI_GAME_MESSAGE : contains
+
+  %% =========================
+  %% Cross-DB (논리 연결)
+  %% =========================
+  MEMBER ||--o{ CHAT_ROOM     : participants_ref
+  MEMBER ||--o{ CHAT_MESSAGE  : sender_ref
+  MEMBER ||--o{ AI_GAME_ROOM  : participants_ref
+```
+
 
 ## 🏗️ 시스템 아키텍처
+
+
+### 전반적인 흐름 구성도
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -132,28 +282,35 @@ DungeonTalk는 AI와 함께하는 혁신적인 TRPG(테이블탑 롤플레잉 �
         └──────────────┘ └─────────────┘ └────────────┘
 ```
 
+<br/>
+
+### 아키텍쳐 구성도
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/55b1f124-0a41-4206-9c6d-4393074ff1f0" />
+
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/37a05700-92c1-4dc3-aa21-22b364eeb24f" />
+
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/0052d427-9dbd-46e6-a087-ba58852ba093" />
+
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/2934926f-8504-4770-a81f-794319fea331" />
+
+<br/>
+
+### CI/CD 구성도
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/d0f18382-b2f4-4103-a5bb-23e6f6cf2784" />
+
+<br/>
+
 ## 🛠️ 기술 스택
 
-### Backend Core
-- **Java 21** - 최신 LTS 버전
-- **Spring Boot 3.4.0** - 웹 프레임워크
-- **Spring Security** - 인증/인가
-- **JWT** - 토큰 기반 인증
+| 구분               | 기술/도구                                                             |
+| ---------------- | ----------------------------------------------------------------- |
+| **Frontend** | HTML, CSS, JavaScript, Thymeleaf, SockJS |
+| **Backend** | Java 21 (LTS), Spring Boot 3.4.0, Spring Security, JWT            |
+| **DataBase**       | PostgreSQL 17 (pgvector 지원), MongoDB 7.0, Redis(Valkey) - (캐시/세션) |
+| **Main Tech Stack**       | WebSocket, STOMP, Redis (Valkey) Pub/Sub, RAG                                   |
+| **Dev Tools**        | Swagger/OpenAPI (API 문서화), JUnit 5, Mockito, Docker (컨테이너화), Discord          |
 
-### 데이터베이스
-- **PostgreSQL 17** - 메인 데이터베이스 (pgvector 지원)
-- **MongoDB 7.0** - 벡터 데이터베이스 (AI 임베딩)
-- **Valkey** - 캐시 및 세션 스토어
-
-### 실시간 통신
-- **WebSocket** - 실시간 양방향 통신
-- **STOMP** - 메시징 프로토콜
-- **Redis Pub/Sub** - 분산 메시징
-
-### 개발 도구
-- **Swagger/OpenAPI** - API 문서화
-- **JUnit 5** - 테스트 프레임워크
-- **Docker** - 컨테이너화
+<br/>
 
 ## 📁 프로젝트 구조
 
@@ -181,45 +338,20 @@ src/
 └── test/                          # 테스트 코드
 ```
 
-## 🎮 핵심 기능
+<br/>
 
-### 1. AI 채팅 시스템 (`aichat`)
-- **실시간 AI 대화**: WebSocket 기반 즉시 응답
-- **컨텍스트 관리**: 대화 히스토리 및 게임 상태 유지
-- **멀티플레이어**: 최대 4명까지 동시 플레이
-- **게임 페이즈**: 구조화된 게임 진행 단계
+## 🗂 더 알아보고 싶은 내용이 있다면?
+더 궁금한 내용이 있으시면 아래를 참고해주세요.
+- 협업 방식을 알고 싶다. 👉 [협업 가이드 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%F0%9F%93%9C-%ED%98%91%EC%97%85-%EA%B0%80%EC%9D%B4%EB%93%9C)
+- Moodbook의 Github Project. 👉[Github Project 바로가기](https://github.com/orgs/DungeonTalk/projects/1/views/1)
+- 도메인별 API 상세정보가 궁금하다. 👉 [DungeonTalk API 문서 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-API-%EB%AC%B8%EC%84%9C)
+- 사용한 기술 스택이 궁금하다. 👉 [기술 스택 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%F0%9F%94%A8-%EA%B0%9C%EB%B0%9C-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%84%B1-&-%EA%B8%B0%EC%88%A0-%EC%8A%A4%ED%83%9D)
+- 주요 기능 개발 과정이 궁금하다. 👉 [기술 상세 정보 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-%ED%99%9C%EC%9A%A9-%EA%B8%B0%EC%88%A0)
+- 활용한 디자인 패턴에 대해 알고 싶다. 👉 [DungeonTalk에서 활용한 디자인 패턴 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk%EC%97%90%EC%84%9C-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%94%94%EC%9E%90%EC%9D%B8-%ED%8C%A8%ED%84%B4)
+- CI/CD 구성 절차가 궁금하다. 👉 [CI-CD 구성 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/Dungeontalk-CI%E2%80%90CD-%EA%B5%AC%EC%84%B1)
+- ERD와 DB 정보에 대해 궁금하다. 👉 [ERD 정보 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%F0%9F%93%9A-ERD-%EC%A0%95%EB%B3%B4)
+- 트러블 슈팅에 대한 내용이 궁금하다. 👉 [트러블 슈팅 바로가기](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-%ED%8A%B8%EB%9F%AC%EB%B8%94-%EC%8A%88%ED%8C%85)
+- 프로젝트 진행 과정에 대한 내용이 궁금하다. 👉 [DungeonTalk 기술 블로그](https://github.com/DungeonTalk/dungeontalk-backend/wiki/DungeonTalk-%EA%B8%B0%EC%88%A0-%EB%B8%94%EB%A1%9C%EA%B7%B8)
+- 도메인별 테스트 코드 내용이 궁금하다. 👉 [DungeonTalk 도메인별 테스트 코드 작성](https://github.com/DungeonTalk/dungeontalk-backend/wiki/%EB%8F%84%EB%A9%94%EC%9D%B8%EB%B3%84-%ED%85%8C%EC%8A%A4%ED%8A%B8-%EC%A7%84%ED%96%89)
 
-### 2. 매칭 시스템 (`matching`)
-- **세계관별 매칭**: 판타지, SF, 좀비 등 테마별 대기열
-- **Redis 큐**: 고성능 매칭 알고리즘
-- **실시간 상태**: 매칭 진행 상황 실시간 업데이트
-
-### 3. 인증/인가 (`auth`)
-- **JWT 토큰**: stateless 인증 방식
-- **Refresh Token**: 보안 강화 토큰 갱신
-- **무차별 대입 방지**: Redis 기반 로그인 시도 제한
-
-### 4. 캐릭터 시스템 (`gamecharacter`)
-- **스탯 시스템**: D&D 스타일 능력치 관리
-- **레벨 시스템**: 경험치 기반 성장
-- **종족별 특성**: 다양한 판타지 종족 지원
-
-## 📚 상세 문서
-
-- [🏗️ 시스템 아키텍처](docs/aichat/architecture.md)
-- [🚀 API 가이드](docs/aichat/api-guide.md)
-- [⚡ WebSocket 가이드](docs/aichat/websocket-guide.md)
-- [🤖 AI 서비스 연동](docs/aichat/ai-service-integration.md)
-- [🎮 게임 로직](docs/aichat/game-logic.md)
-- [🧪 테스트 가이드](docs/aichat/testing-guide.md)
-- [🚨 트러블슈팅](docs/aichat/troubleshooting.md)
-
----
-
-<div align="center">
-
-**🎲 DungeonTalk와 함께 새로운 모험을 시작하세요! 🎲**
-
-[🌟 프로젝트 홈](https://github.com/your-repo/dungeontalk) · [📖 문서](docs/) · [🐛 이슈 신고](https://github.com/your-repo/dungeontalk/issues)
-
-</div>
+기타 다른 내용들은 [📝 팀 위키](https://github.com/DungeonTalk/dungeontalk-backend/wiki) 에서 확인할 수 있습니다.
