@@ -1,0 +1,90 @@
+package org.com.dungeontalk.domain.auth.service;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.com.dungeontalk.domain.auth.dto.request.AuthLoginRequest;
+import org.com.dungeontalk.domain.auth.dto.response.JwtTokenResponse;
+import org.com.dungeontalk.domain.auth.dto.response.TokenResponse;
+import org.com.dungeontalk.domain.auth.entity.Auth;
+import org.com.dungeontalk.domain.auth.manager.*;
+import org.com.dungeontalk.domain.member.entity.Member;
+import org.com.dungeontalk.global.exception.customException.MemberException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class AuthService {
+
+    private final CookieManager cookieManager;
+    private final BruteForceManager bruteForceManager;
+    private final ActualLoginManager actualLoginManager;
+    private final RtrManager rtrManager;
+    private final LogoutManager logoutManager;
+
+    // 보안 기능이 추가 된 로그인 메서드
+    public TokenResponse login(AuthLoginRequest request, HttpServletRequest httpServletRequest) throws InterruptedException {
+
+        bruteForceManager.preCheck(request.name(), httpServletRequest); // 로그인 시도 전 이상 행동 존재 유무 체크
+        try {
+            TokenResponse tokenResponse = actualLogin(request); // 실질적인 로그인 메서드 호출
+            bruteForceManager.loginSucceeded(request.name()); // 로그인 성공시 기존 실패/정지 기록 삭제
+            return tokenResponse;
+        } catch (MemberException ex) {
+            bruteForceManager.loginFailed(request.name()); // Delay, Cool Down 방어
+            throw ex;
+        }
+    }
+
+    // 실질적인 로그인 메서드
+    public TokenResponse actualLogin(AuthLoginRequest request) {
+
+        Member member = actualLoginManager.validateMember(request);
+        JwtTokenResponse jwtTokenResponse = actualLoginManager.generateToken(member);
+        actualLoginManager.updateMemberRefreshToken(member, jwtTokenResponse); // RefreshToken 갱신
+
+        return new TokenResponse(
+                jwtTokenResponse.getAccessToken(),
+                jwtTokenResponse.getRefreshToken()
+        );
+    }
+
+    // 리프레시 토큰을 통한 새로운 JWT 토큰 생성
+    public JwtTokenResponse refreshAccessToken(String refreshToken) {
+
+        rtrManager.validateRefreshToken(refreshToken);
+        Auth auth = rtrManager.findAuthByRefreshToken(refreshToken);
+        String newAccessToken = rtrManager.generateNewAccessToken(auth);
+        String newRefreshToken = rtrManager.generateNewRefreshToken(auth);
+        rtrManager.applyNewRefreshToken(auth, newRefreshToken);  // 새로운 JWT 적용 (Redis + DB 업데이트)
+
+        return new JwtTokenResponse(newAccessToken, newRefreshToken);
+    }
+
+    // 로그 아웃 메서드
+    public void logout(String authorizationHeader, String refreshToken){
+
+        String accessToken = logoutManager.parseAccessToken(authorizationHeader); // Access Token 추출
+        logoutManager.blacklistAccessToken(accessToken);
+        logoutManager.removeRefreshTokenFromDB(refreshToken);
+        logoutManager.removeRefreshTokenFromRedis(refreshToken);
+    }
+
+    // 리프레시 토큰을 쿠키에 세팅
+    public void saveRefreshTokenToCookie(HttpServletResponse response, String refreshToken) {
+        cookieManager.addRefreshTokenCookie(response, refreshToken);
+    }
+
+    /**
+     * @deprecated Use CookieManager.clearAllAuthCookies() instead
+     */
+    @Deprecated
+    public void removeRefreshTokenCookie(HttpServletResponse response) {
+        cookieManager.clearRefreshTokenCookie(response);
+    }
+
+}

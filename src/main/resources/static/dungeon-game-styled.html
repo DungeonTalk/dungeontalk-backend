@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>⚔️ 던전톡 - 모던 판타지 RPG</title>
+    
+    <!-- WebSocket 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    
+    <!-- 폰트 -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS 변수 - 골드 테마 */
+        :root {
+            /* 골드/황금색 판타지 색상 */
+            --primary: #d4af37;
+            --primary-light: #f4d03f;
+            --primary-dark: #b8941f;
+            
+            --accent: #ffd700;
+            --accent-light: #ffed4e;
+            --accent-dark: #e6c200;
+            
+            --magic: #daa520;
+            --magic-light: #f1c232;
+            --magic-dark: #b8860b;
+            
+            /* 상태 색상 */
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            
+            /* 배경 색상 */
+            --dark: #0f172a;
+            --dark-light: #1e293b;
+            --dark-lighter: #334155;
+            
+            --light: #f8fafc;
+            --light-dark: #f1f5f9;
+            --light-darker: #e2e8f0;
+            
+            /* 글래스 효과 */
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-dark: rgba(0, 0, 0, 0.2);
+            
+            /* 그라디언트 배경 */
+            --bg-gradient-start: #1a1a0f;
+            --bg-gradient-middle: #2e2a1a;
+            --bg-gradient-end: #3e3416;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-middle) 50%, var(--bg-gradient-end) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 세계관별 배경 테마 (골드 톤 유지) */
+        body.theme-fantasy {
+            background: linear-gradient(135deg, #1a1409 0%, #3e3416 50%, #2a2310 100%);
+        }
+        
+        body.theme-zombie {
+            background: linear-gradient(135deg, #1a0f0f 0%, #3e1616 50%, #2a1010 100%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 글래스모피즘 카드 */
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 
+                0 8px 32px rgba(31, 38, 135, 0.15),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 15px 40px rgba(212, 175, 55, 0.2),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+        }
+
+        /* 헤더 */
+        .header {
+            color: white;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-main {
+            text-align: center;
+            flex: 1;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* 모던 타이틀 */
+        .header h1 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 900;
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary-light), var(--magic-light), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            position: relative;
+            animation: logoGlow 3s ease-in-out infinite alternate;
+            display: inline-block;
+            text-shadow: none;
+            margin-bottom: 10px;
+        }
+
+        @keyframes logoGlow {
+            0% {
+                filter: brightness(1) drop-shadow(0 0 10px rgba(212, 175, 55, 0.5));
+            }
+            50% {
+                filter: brightness(1.2) drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+            }
+            100% {
+                filter: brightness(1) drop-shadow(0 0 10px rgba(212, 175, 55, 0.5));
+            }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            color: var(--light-dark);
+        }
+
+        /* 네오모피즘 버튼 */
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            border-radius: 12px;
+            padding: 12px 28px;
+            font-weight: 600;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 4px 15px rgba(212, 175, 55, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 6px 20px rgba(212, 175, 55, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 
+                0 2px 10px rgba(212, 175, 55, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 버튼 변형 */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #059669);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+        }
+
+        .btn-character {
+            background: linear-gradient(135deg, var(--success), #059669);
+        }
+
+        .btn-logout {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+
+        /* 게임 상태 카드 */
+        .game-status, .trpg-timer, .login-section, .matching-section {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 8px 32px rgba(31, 38, 135, 0.15),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .game-status h3, .trpg-timer h3, .login-section h3, .matching-section h3 {
+            color: var(--primary-light);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        /* 타이머 */
+        .timer-text {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--primary-light);
+            font-family: 'Courier New', monospace;
+            display: block;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .timer-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--warning) 50%, var(--danger) 100%);
+            border-radius: 6px;
+            transition: width 1s ease-in-out;
+            width: 100%;
+        }
+
+        /* 상태 그리드 */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .status-card {
+            background: var(--glass-dark);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid var(--primary);
+        }
+
+        .status-card strong {
+            color: var(--primary-light);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* 입력 필드 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--light-dark);
+        }
+
+        .form-group input, .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--glass-dark);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            color: var(--light);
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group input:focus, .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(212, 175, 55, 0.1);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+        }
+
+        .form-group input::placeholder, .form-control::placeholder {
+            color: rgba(241, 245, 249, 0.5);
+        }
+
+        /* 세계관 선택 카드 */
+        .world-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .world-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .world-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .world-card:hover::before {
+            opacity: 0.1;
+        }
+
+        .world-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(212, 175, 55, 0.3);
+        }
+
+        .world-card.selected {
+            border-color: var(--accent);
+            background: rgba(212, 175, 55, 0.1);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3);
+        }
+
+        .world-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--primary-light);
+        }
+
+        .world-card p {
+            opacity: 0.8;
+            line-height: 1.5;
+            color: var(--light-dark);
+        }
+
+        /* 게임 섹션 */
+        .game-section {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        /* 채팅 패널 */
+        .chat-panel {
+            background: var(--glass-dark);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-panel h3 {
+            color: var(--primary-light);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .chat-info {
+            padding: 10px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: var(--light-dark);
+        }
+
+        .chat-messages {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            margin-bottom: 15px;
+            height: 400px;
+            max-height: 400px;
+            flex: 1;
+        }
+
+        /* 스크롤바 스타일링 */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary), var(--magic));
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--primary-light), var(--magic-light));
+        }
+
+        /* 메시지 버블 */
+        .message {
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            border-radius: 16px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: messageSlide 0.3s ease;
+            line-height: 1.4;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            background: linear-gradient(135deg, var(--success), #34d399);
+            color: white;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            background: linear-gradient(135deg, var(--warning), var(--accent));
+            color: white;
+            text-align: center;
+            margin: 0 auto;
+            font-style: italic;
+        }
+
+        .message.other {
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--light-dark);
+            margin-right: auto;
+        }
+
+        .message code {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .message strong {
+            font-weight: bold;
+        }
+
+        .message em {
+            font-style: italic;
+        }
+
+        /* 채팅 입력 */
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--glass-dark);
+            border: 2px solid transparent;
+            border-radius: 25px;
+            color: var(--light);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .chat-input input::placeholder {
+            color: rgba(241, 245, 249, 0.5);
+        }
+
+        /* 모달 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .modal-content {
+            background: var(--dark);
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .modal-body {
+            padding: 25px;
+            background: var(--glass-dark);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            border-radius: 0 0 20px 20px;
+            background: var(--glass-dark);
+        }
+
+        /* 기타 스타일 */
+        .hidden {
+            display: none !important;
+        }
+
+        .matching-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(212, 175, 55, 0.3);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* AI 응답 대기 중 상태 */
+        .ai-waiting {
+            opacity: 0.6;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .ai-waiting::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: inherit;
+            z-index: 1;
+        }
+
+        .ai-loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            background: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* 스트리밍 효과 */
+        .streaming-cursor {
+            color: var(--primary);
+            font-weight: bold;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .message.streaming {
+            background: linear-gradient(135deg, var(--glass-dark), rgba(212, 175, 55, 0.1));
+            border-left: 3px solid var(--primary);
+        }
+
+        .phase-text {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary);
+            padding: 8px 16px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 20px;
+        }
+
+        .pressure-text {
+            font-size: 0.9em;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .pressure-relaxed { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .pressure-normal { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .pressure-urgent { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .pressure-critical { background: var(--danger); color: white; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* 캐릭터 정보 그리드 */
+        .character-info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+
+        .info-section {
+            background: var(--glass-dark);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-section h4 {
+            margin: 0 0 15px 0;
+            color: var(--primary-light);
+            font-size: 16px;
+            border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .info-grid, .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .info-item, .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--glass);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-label, .stat-label {
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+
+        .calculated-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .calculated-stat-item {
+            background: var(--glass);
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .calculated-stat-item .stat-name {
+            font-weight: 600;
+            color: var(--primary-light);
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .calculated-stat-item .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .game-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .world-selection {
+                grid-template-columns: 1fr;
+            }
+            
+            .character-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .character-info-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .info-section:last-child {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <div class="header-content">
+                <div class="header-main">
+                    <h1>⚔️ 던전톡</h1>
+                    <p>AI와 함께하는 랜덤 매칭 RPG 어드벤처</p>
+                </div>
+                <div class="header-actions" id="headerActions" style="display: none;">
+                    <button class="btn btn-character" onclick="showMyCharacterModal()">
+                        ⚔️ 내 캐릭터
+                    </button>
+                    <button class="btn btn-danger hidden" id="leaveGameHeaderBtn" onclick="leaveGame()" style="margin-right: 10px;">
+                        🚪 게임 나가기
+                    </button>
+                    <button class="btn btn-logout" onclick="logout()">
+                        🚪 로그아웃
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 15분 TRPG 타이머 -->
+        <div class="trpg-timer glass-card">
+            <h3>⏰ TRPG 게임 타이머</h3>
+            <div class="timer-display">
+                <div class="time-remaining">
+                    <span class="timer-text">15:00</span>
+                    <div class="timer-bar">
+                        <div class="timer-progress"></div>
+                    </div>
+                </div>
+                <div class="game-phase-info">
+                    <span class="phase-text">준비 중...</span>
+                    <span class="pressure-text">여유</span>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- 로그인 섹션 -->
+        <div class="login-section glass-card" id="loginSection">
+            <h3>🔐 로그인</h3>
+            <div class="form-group">
+                <label for="userId">사용자 ID</label>
+                <input type="text" id="userId" placeholder="사용자 ID를 입력하세요" value="player1">
+            </div>
+            <div class="form-group">
+                <label for="password">비밀번호</label>
+                <input type="password" id="password" placeholder="비밀번호를 입력하세요" value="password123">
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <button class="btn btn-primary" onclick="register()">회원가입</button>
+                <button class="btn btn-success" onclick="login()">로그인</button>
+            </div>
+        </div>
+        
+        <!-- 매칭 섹션 -->
+        <div class="matching-section glass-card hidden" id="matchingSection">
+            <h3>🌍 세계관 선택 & 매칭</h3>
+            <div class="world-selection">
+                <div class="world-card" onclick="selectWorld('FANTASY')" data-world="FANTASY">
+                    <h3>🏰 판타지 세계</h3>
+                    <p>⚔️ 마법과 검의 전설적 모험<br>
+                    🌲 드래곤, 엘프, 드워프들과 함께<br>
+                    ✨ 고대의 던전과 마법 아이템들</p>
+                </div>
+                <div class="world-card" onclick="selectWorld('ZOMBIE')" data-world="ZOMBIE">
+                    <h3>🧟 좀비 아포칼립스</h3>
+                    <p>🔫 생존을 위한 치열한 전투<br>
+                    🏚️ 폐허가 된 도시와 캠프<br>
+                    💊 의료품과 무기를 찾아서</p>
+                </div>
+            </div>
+            
+            <div id="matchingControls" style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-primary" id="startMatchingBtn" onclick="startMatching()" disabled>
+                    매칭 시작
+                </button>
+                <button class="btn btn-danger hidden" id="cancelMatchingBtn" onclick="cancelMatching()">
+                    매칭 취소
+                </button>
+            </div>
+            
+            <div id="matchingStatus" class="hidden" style="text-align: center; margin-top: 20px; padding: 20px; background: rgba(212, 175, 55, 0.1); border-radius: 10px;">
+                <div class="matching-spinner"></div>
+                <div id="matchingText">매칭을 찾는 중...</div>
+                <div id="queueInfo" style="margin-top: 10px; font-size: 14px; color: var(--light-dark);"></div>
+            </div>
+        </div>
+        
+        <!-- 게임 플레이 섹션 -->
+        <div class="game-section hidden" id="gameSection">
+            <!-- AI 채팅 패널 -->
+            <div class="chat-panel">
+                <h3>🤖 AI 게임 마스터</h3>
+                
+                <div class="chat-info" id="aiChatInfo">
+                    🎲 AI 게임 마스터와 RPG를 진행하세요. 행동을 입력하면 AI가 결과를 알려줍니다.
+                </div>
+                <div class="chat-messages" id="aiMessages"></div>
+                <div class="chat-input">
+                    <input type="text" id="aiMessageInput" placeholder="AI에게 행동이나 질문을 입력하세요... (예: 주변을 둘러본다, 문을 연다)" 
+                           onkeypress="if(event.key==='Enter') sendAiMessage()" disabled>
+                    <button class="btn btn-success" id="aiSendBtn" onclick="sendAiMessage()" disabled>🎮 행동</button>
+                    <button class="btn btn-warning" id="aiRequestBtn" onclick="requestAiResponse()" disabled style="margin-left: 10px;">🤖 AI 응답 요청</button>
+                </div>
+            </div>
+            
+            <!-- 플레이어 채팅 패널 -->
+            <div class="chat-panel">
+                <h3>👥 플레이어 채팅</h3>
+                
+                <div class="chat-info">
+                    💬 다른 플레이어들과 자유롭게 대화하세요. 전략을 논의하거나 잡담을 나눠보세요!
+                </div>
+                <div class="chat-messages" id="rightUserMessages"></div>
+                <div class="chat-input">
+                    <input type="text" id="rightUserMessageInput" placeholder="다른 플레이어들과 채팅하세요..." 
+                           onkeypress="if(event.key==='Enter') sendRightUserMessage()" disabled>
+                    <button class="btn btn-primary" id="rightUserSendBtn" onclick="sendRightUserMessage()" disabled>💬 채팅</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 캐릭터 생성 모달 -->
+    <div class="modal" id="characterCreationModal" style="display: none;">
+        <div class="modal-content" style="width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>🧙‍♂️ 캐릭터 생성</h3>
+                <p style="color: rgba(255,255,255,0.8); margin: 10px 0;">게임을 시작하기 위해 캐릭터를 생성해주세요.</p>
+            </div>
+            <div class="modal-body">
+                <div class="character-creation-form">
+                    <div class="form-group">
+                        <label for="raceSelect"><strong>🏛️ 종족 선택:</strong></label>
+                        <select id="raceSelect" class="form-control" style="width: 100%; padding: 10px; margin-top: 5px;">
+                            <option value="">종족을 선택하세요...</option>
+                        </select>
+                    </div>
+                    
+                    <div id="raceDescription" class="race-description" style="margin-top: 15px; padding: 15px; background: var(--glass); border-radius: 8px; display: none;">
+                        <h4 id="raceDescTitle" style="color: var(--primary-light);">종족 특성</h4>
+                        <p id="raceDescContent">종족을 선택하면 특성이 표시됩니다.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="createCharacterBtn" onclick="createCharacter()" disabled>
+                    ⚔️ 캐릭터 생성하고 게임 시작
+                </button>
+                <button class="btn btn-secondary" onclick="hideCharacterCreationModal()">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 내 캐릭터 모달 -->
+    <div class="modal" id="myCharacterModal" style="display: none;">
+        <div class="modal-content" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>⚔️ 내 캐릭터</h3>
+                <p style="color: rgba(255,255,255,0.8); margin: 10px 0;">캐릭터 정보 및 관리</p>
+            </div>
+            <div class="modal-body">
+                <!-- 캐릭터가 없는 경우 -->
+                <div id="noCharacterSection" style="display: none;">
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 64px; margin-bottom: 20px;">🎭</div>
+                        <h3 style="color: var(--primary-light);">캐릭터가 없습니다</h3>
+                        <p style="color: var(--light-dark); margin: 15px 0;">게임을 시작하려면 먼저 캐릭터를 생성해주세요.</p>
+                        <button class="btn btn-primary" onclick="hideMyCharacterModal(); showCharacterCreationModal();">
+                            ⚔️ 캐릭터 생성하기
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 캐릭터가 있는 경우 -->
+                <div id="hasCharacterSection" style="display: none;">
+                    <div class="character-info-grid">
+                        <!-- 기본 정보 -->
+                        <div class="info-section">
+                            <h4>📋 기본 정보</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">종족:</span>
+                                    <span id="charRace">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">레벨:</span>
+                                    <span id="charLevel">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">경험치:</span>
+                                    <span id="charExp">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">미사용 포인트:</span>
+                                    <span id="charUnspentPoints">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 기본 스탯 -->
+                        <div class="info-section">
+                            <h4>⚡ 기본 스탯</h4>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <span class="stat-label">힘 (STR):</span>
+                                    <span id="charStrength">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">의지 (WIL):</span>
+                                    <span id="charWillpower">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">지능 (INT):</span>
+                                    <span id="charIntelligence">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">지혜 (WIS):</span>
+                                    <span id="charWisdom">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">민첩 (DEX):</span>
+                                    <span id="charDexterity">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">행운 (LUK):</span>
+                                    <span id="charLuck">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 계산된 스탯 -->
+                        <div class="info-section">
+                            <h4>🔥 계산된 스탯</h4>
+                            <div id="calculatedStats" class="calculated-stats-grid">
+                                <!-- 동적으로 로드됨 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 종족 변경 버튼 -->
+                    <div style="margin-top: 30px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                        <button class="btn btn-secondary" onclick="changeCharacterRace()">
+                            🔄 종족 변경
+                        </button>
+                        <p style="color: var(--light-dark); font-size: 12px; margin-top: 10px;">
+                            * 종족 변경 시 기존 캐릭터가 삭제되고 새로운 캐릭터가 생성됩니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideMyCharacterModal()">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 외부 JavaScript 파일 로드 -->
+    <script src="js/dungeon-game.js"></script>
+</body>
+</html>

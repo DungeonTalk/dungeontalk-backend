@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>던전톡 로그인 테스트 (SSR)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center}
+    .card{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08);width:380px;padding:26px}
+    h1{margin:0 0 12px;font-size:20px}
+    .muted{color:#666;margin:0 0 16px}
+    label{font-weight:600;font-size:13px;display:block;margin:10px 0 6px}
+    input{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:15px}
+    button{width:100%;padding:12px;border:0;border-radius:10px;background:#667eea;color:#fff;font-weight:700;cursor:pointer;margin-top:12px}
+    button.secondary{background:#28a745}
+    .msg{margin-top:12px;font-size:14px}
+    .error{color:#d32f2f}.success{color:#2e7d32}
+    .hint{margin-top:16px;background:#f8f9fb;border:1px dashed #ddd;border-radius:10px;padding:10px;font-size:13px;color:#555}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>🎲 던전톡 로그인</h1>
+  <p class="muted">SSR 채팅 테스트를 위한 간단 로그인</p>
+
+  <label>사용자 ID</label>
+  <input id="userId" value="testuser1" />
+
+  <label>닉네임 (회원가입 시 사용)</label>
+  <input id="nickName" placeholder="예: 코드스쳐님" />
+
+  <label>비밀번호</label>
+  <input id="password" type="password" value="password123" />
+
+  <button onclick="login()">로그인</button>
+  <button class="secondary" onclick="register()">회원가입(테스트)</button>
+
+  <div id="message" class="msg"></div>
+
+  <div class="hint">
+    <div><b>샘플 계정</b></div>
+    <div>testuser1 / password123</div>
+    <div>testuser2 / password123</div>
+    <div>gm / gmpassword</div>
+  </div>
+</div>
+
+<script>
+  const DEBUG = true;
+  const log = (...a)=> DEBUG && console.log('[AUTH]', ...a);
+  const err = (...a)=> DEBUG && console.error('[AUTH]', ...a);
+
+  const API_LOGIN    = '/v1/auth/login';
+  const API_REGISTER = '/v1/member/register';
+  // API_ME 제거됨 - 서버사이드에서 직접 처리
+  const NEXT_PAGE    = '/chat-ssr-test.html';
+
+  function show(msg, type='success'){
+    const el = document.getElementById('message');
+    el.className = 'msg ' + (type==='error'?'error':'success');
+    el.textContent = msg;
+  }
+
+  async function register(){
+    const name = document.getElementById('userId').value.trim();
+    const nickName = document.getElementById('nickName').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if(!name || !password){ show('ID/비밀번호를 입력하세요','error'); return; }
+
+    const body = {
+      name: name,
+      nickName: nickName || (name + '님'),
+      password: password
+    };
+
+    try{
+      log('POST register', body);
+      const res = await fetch(API_REGISTER, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      log('POST register →', res.status);
+      if(!res.ok){ show('회원가입 실패: '+(await res.text()), 'error'); return; }
+      show('회원가입 성공! 이제 로그인하세요.');
+    }catch(e){ err('register error', e); show('회원가입 오류: '+e.message, 'error'); }
+  }
+
+  async function login(){
+    const name = document.getElementById('userId').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if(!name || !password){ show('ID/비밀번호를 입력하세요','error'); return; }
+
+    try{
+      log('POST login', {name});
+      const res = await fetch(API_LOGIN, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name:name, password:password })
+      });
+      log('POST login →', res.status);
+      if(!res.ok){ show('로그인 실패: '+(await res.text()), 'error'); return; }
+
+      const body = await res.json();
+      const data = body.data || body;
+      const token = data.accessToken;
+      const memberId = data.memberId;
+
+      localStorage.setItem('authToken', token);
+
+      // 사용자 정보는 서버사이드에서 처리
+      let profileNick = null, profileId = memberId;
+      log('사용자 정보는 서버에서 직접 처리됨');
+
+      localStorage.setItem('currentUser', JSON.stringify({
+        id: profileId,
+        nickname: profileNick || (name + '님')
+      }));
+
+      show('로그인 성공! 채팅 페이지로 이동합니다.');
+      setTimeout(function(){ location.href = NEXT_PAGE; }, 600);
+    }catch(e){ err('login error', e); show('로그인 오류: '+e.message,'error'); }
+  }
+</script>
+</body>
+</html>

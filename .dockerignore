@@ -1,0 +1,23 @@
+# 캐시/산출물
+.gradle/
+build/
+out/
+target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# env files
+.env
+.env.*

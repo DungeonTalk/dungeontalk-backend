@@ -2,6 +2,10 @@ HELP.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.properties
+
 !**/src/main/**/build/
 !**/src/test/**/build/
 
@@ -35,3 +39,36 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables ###
+.env*
+
+### Claude Code ###
+.claude/
+
+### pem ###
+.pem
+
+### Playwright E2E Testing ###
+node_modules/
+test-results/
+playwright-report/
+playwright/.cache/
+# 이미지/동영상 등은 테스트 산출물 디렉토리 무시로 충분
+# 필요 시 tests/** 경로 하위에 한정하여 패턴 추가 권장:
+tests/**/__screenshots__/
+tests/**/screenshots/
+tests/**/videos/
+tests/**/*.png
+tests/**/*.jpg
+tests/**/*.jpeg
+tests/**/*.webm
+tests/**/*.mp4
+
+### Node.js ###
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.playwright-mcp/
