@@ -3,6 +3,7 @@ package org.com.dungeontalk.global.config;
 import lombok.RequiredArgsConstructor;
 import org.com.dungeontalk.global.websocket.JwtHandshakeInterceptor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -42,7 +43,34 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             .setHeartbeatTime(30_000);          // SockJS 전송층 heartbeat
     }
 
-    //  전송 채널 튜닝 — 느린 네트워크/탭 슬립 시 안정성 개선
+    /**
+     * STOMP 클라이언트 인바운드 채널 설정
+     * - 클라이언트에서 서버로 들어오는 메시지 처리용 스레드 풀
+     * - 채팅방 참여자 수에 따라 조정 필요
+     */
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.taskExecutor()
+            .corePoolSize(20)           // 기본 스레드 수
+            .maxPoolSize(100)           // 최대 스레드 수
+            .queueCapacity(1000)        // 큐 용량
+            .keepAliveSeconds(60);      // 유휴 스레드 유지 시간
+    }
+
+    /**
+     * STOMP 클라이언트 아웃바운드 채널 설정
+     * - 서버에서 클라이언트로 나가는 메시지 처리용 스레드 풀
+     */
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration.taskExecutor()
+            .corePoolSize(20)           // 기본 스레드 수
+            .maxPoolSize(100);          // 최대 스레드 수
+    }
+
+    /**
+     * 전송 채널 튜닝 — 느린 네트워크/탭 슬립 시 안정성 개선
+     */
     @Override
     public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
         registry.setSendTimeLimit(20_000)

@@ -12,6 +12,7 @@ import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.redis.RedisPublisher;
 import org.com.dungeontalk.global.util.UuidV7Creator;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -30,8 +31,11 @@ public class ChatPresenceSystemMessageListener {
      * 트랜잭션 커밋 이후에만 실행 → DB 일관성 보장
      * @TransactionalEventListener(AFTER_COMMIT) 덕분에,
      * Mongo 기록이 커밋된 뒤에만 메시지가 저장/브로드캐스트돼서 불일치가 생기지 않음.
+     *
+     * @Async 추가로 비동기 처리 → 트랜잭션 커밋을 블로킹하지 않음
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async("chatEventExecutor")
     public void onPresence(ChatPresenceEvent ev) {
         try {
             String nickName = memberRepository.findById(ev.getMemberId())
@@ -55,8 +59,8 @@ public class ChatPresenceSystemMessageListener {
             ChatMessage saved = chatMessageRepository.save(msg);
             ChatMessageDto dto = ChatMessageDto.fromEntity(saved, nickName);
 
-            // Redis Pub/Sub (문자열로 발행: RedisSubscriber가 JSON 파싱)
-            redisPublisher.publish(ev.getRoomId(), objectMapper.writeValueAsString(dto));
+            // Redis Pub/Sub (문자열로 발행: RedisSubscriber가 JSON 파싱) - 비동기 처리
+            redisPublisher.publishAsync(ev.getRoomId(), objectMapper.writeValueAsString(dto));
         } catch (Exception e) {
             log.warn("시스템 메시지 발행 실패(roomId={}, memberId={}, type={}): {}",
                 ev.getRoomId(), ev.getMemberId(), ev.getType(), e.getMessage());

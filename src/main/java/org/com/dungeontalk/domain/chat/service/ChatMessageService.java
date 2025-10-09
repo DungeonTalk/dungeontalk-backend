@@ -65,9 +65,9 @@ public class ChatMessageService {
             default -> throw new ChatException(ErrorCode.CHAT_INVALID_MESSAGE_TYPE, "type=" + dto.getType());
         }
 
-        // TALK일 때만 브로드캐스트
+        // TALK일 때만 브로드캐스트 (비동기 처리)
         if (chatMessageDto != null) {
-            redisPublisher.publish(dto.getRoomId(), objectMapper.writeValueAsString(chatMessageDto));
+            redisPublisher.publishAsync(dto.getRoomId(), objectMapper.writeValueAsString(chatMessageDto));
         }
 
         return chatMessageDto;    // chatMessageDto null이면 컨트롤러는 아무 것도 브로드캐스트하지 않음
@@ -224,8 +224,8 @@ public class ChatMessageService {
                     .createdAt(warningMessage.getCreatedAt())
                     .build();
 
-            // Redis를 통해 브로드캐스트
-            redisPublisher.publish(roomId, objectMapper.writeValueAsString(warningChatDto));
+            // Redis를 통해 브로드캐스트 (비동기 처리)
+            redisPublisher.publishAsync(roomId, objectMapper.writeValueAsString(warningChatDto));
             
         } catch (Exception e) {
             log.error("플레이어 채팅 욕설 경고 메시지 전송 실패: roomId={}, userId={}", roomId, userId, e);
