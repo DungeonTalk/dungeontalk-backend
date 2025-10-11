@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.0'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'org.com'
@@ -76,6 +77,9 @@ dependencies {
     // redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
     // Spring Boot WebSocket + STOMP
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
@@ -115,6 +119,9 @@ dependencies {
     testImplementation 'org.testcontainers:mongodb'
     testImplementation 'org.testcontainers:postgresql'
 
+    // Kafka Test
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+
     // 컴파일 이슈로 인한 주석 처리
 //    testImplementation 'org.testcontainers:redis'
 //    testImplementation 'org.mockito:mockito-inline'
@@ -123,4 +130,41 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
     systemProperty "spring.profiles.active", "test"
+    finalizedBy jacocoTestReport
+}
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/config/**',
+                '**/exception/**',
+                '**/dto/**',
+                '**/entity/**',
+                '**/*Application.class'
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.70
+            }
+        }
+    }
 }

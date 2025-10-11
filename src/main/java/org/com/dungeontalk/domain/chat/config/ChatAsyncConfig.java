@@ -11,6 +11,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * Chat 도메인 전용 비동기 처리 설정
  * - 일반 채팅 메시지 처리용 스레드 풀
  * - Redis Pub/Sub 비동기 처리용 스레드 풀
+ * - Kafka 메시지 발행 비동기 처리용 스레드 풀
  * - Event Listener 비동기 처리용 스레드 풀
  */
 @Slf4j
@@ -70,6 +71,34 @@ public class ChatAsyncConfig {
 
         executor.initialize();
         log.info("chatRedisExecutor 초기화 완료: core={}, max={}, queue={}",
+            executor.getCorePoolSize(), executor.getMaxPoolSize(), executor.getQueueCapacity());
+
+        return executor;
+    }
+
+    /**
+     * Kafka 메시지 발행용 스레드 풀
+     * - Kafka 메시지 발행 비동기 처리
+     * - Kafka 작업 부하를 메인 스레드에서 분리
+     */
+    @Bean(name = "chatKafkaExecutor")
+    public Executor chatKafkaExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(15);
+        executor.setQueueCapacity(100);
+        executor.setKeepAliveSeconds(60);
+        executor.setThreadNamePrefix("Chat-Kafka-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+
+        executor.setRejectedExecutionHandler((runnable, threadPoolExecutor) -> {
+            log.warn("채팅 Kafka 실행자 큐가 가득 찼습니다. 호출 스레드에서 작업을 실행합니다.");
+            runnable.run();
+        });
+
+        executor.initialize();
+        log.info("chatKafkaExecutor 초기화 완료: core={}, max={}, queue={}",
             executor.getCorePoolSize(), executor.getMaxPoolSize(), executor.getQueueCapacity());
 
         return executor;

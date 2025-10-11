@@ -3,8 +3,10 @@ package org.com.dungeontalk.domain.chat.dto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.com.dungeontalk.domain.chat.common.MessageType;
 import org.com.dungeontalk.domain.chat.entity.ChatMessage;
@@ -12,6 +14,8 @@ import org.com.dungeontalk.domain.chat.entity.ChatMessage;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChatMessageDto {
 
     private String messageId;
