@@ -38,19 +38,22 @@ public class SecurityConfig {
             "/v1/auth/refresh",
             "/v1/auth/server-login",
             "/v1/auth/server-logout",
-            
+
             // 테스트 및 개발용
             "/v1/valkey/session/keys",
             "/v1/valkey/session/all",
             "/v1/valkey/session/test/save",
-            
+
             // 게임 데이터 조회 (읽기 전용)
             "/v1/stat/**",
             "/v1/characters/**",  // v1은 공개, v2는 인증 필요
             "/v1/match/queue-stats",
             "/v1/aichat/rooms/available",
             "/v1/worlds",
-            
+
+            // 채팅 (부하테스트용 - 개발 환경에서만 사용)
+            "/v1/chat/**",                              // 모든 채팅 API 허용
+
             // 초기화 및 WebSocket
             "/init/**",
             "/ws-chat/**"

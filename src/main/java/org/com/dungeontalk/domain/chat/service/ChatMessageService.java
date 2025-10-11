@@ -18,7 +18,7 @@ import org.com.dungeontalk.domain.member.entity.Member;
 import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.ChatException;
-import org.com.dungeontalk.global.redis.RedisPublisher;
+import org.com.dungeontalk.global.kafka.KafkaPublisher;
 import org.com.dungeontalk.global.util.UuidV7Creator;
 import org.com.dungeontalk.global.filter.ProfanityFilterService;
 import org.com.dungeontalk.global.filter.config.ProfanityFilterProperties;
@@ -34,7 +34,7 @@ public class ChatMessageService {
 
     private final ChatMessageRepository chatMessageRepository;
     private final MemberRepository memberRepository;
-    private final RedisPublisher redisPublisher;
+    private final KafkaPublisher kafkaPublisher;
     private final ObjectMapper objectMapper;
     private final ProfanityFilterService profanityFilterService;
     private final ProfanityFilterProperties profanityFilterProperties;
@@ -67,7 +67,7 @@ public class ChatMessageService {
 
         // TALK일 때만 브로드캐스트 (비동기 처리)
         if (chatMessageDto != null) {
-            redisPublisher.publishAsync(dto.getRoomId(), objectMapper.writeValueAsString(chatMessageDto));
+            kafkaPublisher.publishChatAsync(dto.getRoomId(), chatMessageDto);
         }
 
         return chatMessageDto;    // chatMessageDto null이면 컨트롤러는 아무 것도 브로드캐스트하지 않음
@@ -224,8 +224,8 @@ public class ChatMessageService {
                     .createdAt(warningMessage.getCreatedAt())
                     .build();
 
-            // Redis를 통해 브로드캐스트 (비동기 처리)
-            redisPublisher.publishAsync(roomId, objectMapper.writeValueAsString(warningChatDto));
+            // Kafka를 통해 브로드캐스트 (비동기 처리)
+            kafkaPublisher.publishChatAsync(roomId, warningChatDto);
             
         } catch (Exception e) {
             log.error("플레이어 채팅 욕설 경고 메시지 전송 실패: roomId={}, userId={}", roomId, userId, e);
