@@ -80,6 +80,11 @@ public class ValkeyService {
         return sessionRedis.keys("*");
     }
 
+    // 패턴 기반 키 조회
+    public Set<String> keys(String pattern) {
+        return sessionRedis.keys(pattern);
+    }
+
     // AI 채팅 시스템용 메서드들 추가
 
     // 만료 시간과 함께 키-값 저장

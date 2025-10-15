@@ -4,6 +4,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.com.dungeontalk.domain.chat.service.ChatRoomService;
+import org.com.dungeontalk.domain.chat.service.ChatSessionService;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.ChatException;
 import org.springframework.context.ApplicationListener;
@@ -18,6 +19,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 public class WebSocketDisconnectHandler implements ApplicationListener<SessionDisconnectEvent> {
 
     private final ChatRoomService chatRoomService;
+    private final ChatSessionService chatSessionService;  // 세션 관리 (신규)
 
     @Override
     public void onApplicationEvent(SessionDisconnectEvent event) {
@@ -42,7 +44,12 @@ public class WebSocketDisconnectHandler implements ApplicationListener<SessionDi
         if (handled != null && handled) return;
 
         try {
-            chatRoomService.leaveRoom(roomId, memberId);        // 멱등
+            // 세션 종료 (명시적)
+            chatSessionService.endSession(roomId, memberId);
+
+            // 퇴장 처리 (멱등)
+            chatRoomService.leaveRoom(roomId, memberId);
+
             log.info("WS disconnect handled: sessionId={}, memberId={}, roomId={}, close={}",
                 sessionId, memberId, roomId, close);
         } catch (ChatException e) {

@@ -32,6 +32,7 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberService chatRoomMemberService;  // MongoDB
     private final ChatRoomMemberManager chatRoomMemberManager;  // Redis
+    private final ChatSessionService chatSessionService;         // 세션 관리 (신규)
     private final SimpMessageSendingOperations messagingTemplate;
     private final MemberRepository memberRepository;
     private final ChatRoomProperties chatRoomProperties;
@@ -72,13 +73,19 @@ public class ChatRoomService {
             .toList();
     }
 
-    /** 참여자 입장 */
+    /** 참여자 입장 (세션 관리 통합) */
     @Transactional
     public boolean joinRoom(String roomId, String memberId) {
+        return joinRoom(roomId, memberId, null);
+    }
+
+    /** 참여자 입장 (WebSocket 세션 ID 포함) */
+    @Transactional
+    public boolean joinRoom(String roomId, String memberId, String websocketSessionId) {
         ChatRoom room = chatRoomRepository.findById(roomId)
             .orElseThrow(() -> new ChatException(ErrorCode.CHAT_ROOM_NOT_FOUND, "roomId=" + roomId));
 
-        // ✅ 유효 정원 계산: null → default, 0/음수 → 무제한
+        // 유효 정원 계산: null → default, 0/음수 → 무제한
         Integer capacity = (room.getMaxCapacity() != null) ? room.getMaxCapacity()
             : chatRoomProperties.getDefaultMaxCapacity();
         long current = chatRoomMemberManager.getUserCount(roomId);
@@ -95,7 +102,10 @@ public class ChatRoomService {
             .map(Member::getNickName)
             .orElse("알 수 없음");
 
-        // 입장
+        // 세션 시작 (세션 서비스)
+        chatSessionService.startSession(roomId, memberId, nickName, websocketSessionId);
+
+        // 입장 (기존 Redis Set/Hash 방식 - 호환성 유지)
         boolean added = chatRoomMemberManager.addUser(roomId, memberId, nickName);  // SADD 결과
 
         // 누적 참여자 동기화 (중복 방지)
@@ -109,9 +119,13 @@ public class ChatRoomService {
         return added;
     }
 
-    // 참여자 퇴장
+    // 참여자 퇴장 (세션 종료 통합)
     @Transactional
     public boolean leaveRoom(String roomId, String memberId) {
+        // 세션 종료 (세션 서비스)
+        chatSessionService.endSession(roomId, memberId);
+
+        // 퇴장 (기존 Redis Set/Hash 방식 - 호환성 유지)
         boolean removed = chatRoomMemberManager.removeUser(roomId, memberId); // SREM 기반
 
         if (removed) {
@@ -154,7 +168,7 @@ public class ChatRoomService {
         messagingTemplate.convertAndSend("/sub/chat/room/" + roomId, payload);
     }
 
-    // ✅ 정원 결정 로직 (null → 설정 기본값, ≤0 → 무제한 = 0)
+    // ✅ 정원 결정 로직 (null → 설정 기본값, ≤ 0 → 무제한 = 0)
     private Integer resolveEffectiveCapacity(ChatRoom room) {
         Integer capacity = Optional.ofNullable(room.getMaxCapacity())
             .orElse(chatRoomProperties.getDefaultMaxCapacity());

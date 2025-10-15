@@ -38,6 +38,7 @@ public class ChatMessageService {
     private final ObjectMapper objectMapper;
     private final ProfanityFilterService profanityFilterService;
     private final ProfanityFilterProperties profanityFilterProperties;
+    private final ChatSessionService chatSessionService;  // 세션 관리 (신규)
 
     // 참여자/인원/브로드캐스트는 ChatRoomService에 위임
     private final ChatRoomService chatRoomService;
@@ -74,7 +75,7 @@ public class ChatMessageService {
     }
 
     /**
-     * TALK 메시지 처리
+     * TALK 메시지 처리 (세션 연장 통합)
      */
     public ChatMessageDto handleTalkMessage(ChatMessageSendRequestDto dto) {
         if (dto.getRoomId() == null || dto.getSenderId() == null
@@ -82,12 +83,15 @@ public class ChatMessageService {
             throw new ChatException(ErrorCode.CHAT_INVALID_PAYLOAD, "roomId/senderId/content required");
         }
 
+        // 세션 연장 (메시지 전송 = 활동)
+        chatSessionService.extendSession(dto.getRoomId(), dto.getSenderId());
+
         // 욕설 필터링 처리 (플레이어 채팅에서 활성화된 경우에만)
         String processedContent = dto.getContent();
         if (profanityFilterProperties.isEnabled() && profanityFilterProperties.isFilterPlayerChat()) {
             MessageValidationResult validation = validateMessage(dto.getContent());
             processedContent = handlePlayerChatProfanityFiltering(dto, validation);
-            
+
             if (processedContent == null) {
                 // BLOCK 모드에서 욕설이 감지되면 null 반환 (메시지 차단)
                 return null;
