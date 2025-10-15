@@ -7,6 +7,8 @@ import org.com.dungeontalk.domain.worldtype.dto.request.WorldTypeUpdateRequest;
 import org.com.dungeontalk.domain.worldtype.dto.response.WorldTypeResponse;
 import org.com.dungeontalk.domain.worldtype.entity.WorldType;
 import org.com.dungeontalk.domain.worldtype.repository.WorldTypeRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +67,7 @@ public class WorldTypeService {
      * 세계관 생성
      */
     @Transactional
+    @CacheEvict(value = "worldTypes", allEntries = true)
     public WorldTypeResponse createWorldType(WorldTypeCreateRequest request) {
         // 코드 중복 확인
         if (worldTypeRepository.existsByCode(request.getCode())) {
@@ -90,6 +93,7 @@ public class WorldTypeService {
      * 세계관 수정
      */
     @Transactional
+    @CacheEvict(value = "worldTypes", allEntries = true)
     public WorldTypeResponse updateWorldType(Long id, WorldTypeUpdateRequest request) {
         WorldType worldType = worldTypeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("세계관을 찾을 수 없습니다: " + id));
@@ -109,6 +113,7 @@ public class WorldTypeService {
      * 세계관 활성화/비활성화
      */
     @Transactional
+    @CacheEvict(value = "worldTypes", allEntries = true)
     public WorldTypeResponse toggleWorldTypeStatus(Long id) {
         WorldType worldType = worldTypeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("세계관을 찾을 수 없습니다: " + id));
@@ -128,6 +133,7 @@ public class WorldTypeService {
      * 세계관 삭제
      */
     @Transactional
+    @CacheEvict(value = "worldTypes", allEntries = true)
     public void deleteWorldType(Long id) {
         WorldType worldType = worldTypeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("세계관을 찾을 수 없습니다: " + id));
@@ -158,8 +164,11 @@ public class WorldTypeService {
 
     /**
      * 모든 활성화된 WorldType 엔티티 조회 (내부 서비스 간 호출용)
+     * Caffeine 로컬 캐시 적용: 1시간 동안 메모리에 캐시 유지
      */
+    @Cacheable(value = "worldTypes", key = "'activeWorldTypes'")
     public List<WorldType> findAllActiveWorldTypeEntities() {
+        log.info("DB에서 활성화된 세계관 목록 조회 (캐시 미스)");
         return worldTypeRepository.findActiveWorldTypesOrderBySortOrder();
     }
 }

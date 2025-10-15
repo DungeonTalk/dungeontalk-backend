@@ -25,6 +25,7 @@ public class JacksonConfig {
 
         SimpleModule module = new SimpleModule();
         module.addSerializer(Instant.class, new InstantToKstSerializer());
+        module.addDeserializer(Instant.class, new InstantToKstDeserializer());
         objectMapper.registerModule(module);
 
         objectMapper.setTimeZone(TimeZone.getTimeZone(ZoneId.of("Asia/Seoul")));
