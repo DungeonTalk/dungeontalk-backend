@@ -4,6 +4,7 @@ package org.com.dungeontalk.domain.auth.manager;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,13 +16,23 @@ public class BruteForceManager {
 
     private final RedisTemplate<String, String> redisTemplate;
 
+    @Value("${brute-force.enabled:true}")
+    private boolean enabled;
+
+    @Value("${brute-force.max-attempts:5}")
+    private int maxAttempts;
+
+    @Value("${brute-force.delay-enabled:true}")
+    private boolean delayEnabled;
+
+    @Value("${brute-force.cooldown-minutes:10}")
+    private int cooldownMinutes;
+
     public BruteForceManager(@Qualifier("sessionRedisTemplate") RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
-    // 설정
-    private static final int MAX_ATTEMPTS = 5;
-    private static final Duration COOLDOWN_DURATION = Duration.ofMinutes(10);
+    // 기본값 (properties에서 오버라이드 가능)
     private static final int MAX_IP_ATTEMPTS_PER_MINUTE = 20;
 
     // 로그인 시도 전 이상 행동 존재 유무 체크
@@ -31,7 +42,7 @@ public class BruteForceManager {
         String ip = httpServletRequest.getHeader("X-Forwarded-For");
         if (ip == null) ip = httpServletRequest.getRemoteAddr();
 
-        checkIpRateLimit(ip);
+//        checkIpRateLimit(ip);
         checkAccountLock(username);
     }
 
@@ -43,6 +54,11 @@ public class BruteForceManager {
      * @throws InterruptedException
      */
     public void loginFailed(String username) throws InterruptedException {
+        if (!enabled) {
+            log.debug("BruteForce protection disabled");
+            return;
+        }
+
         String failKey = "login_fail:" + username;
         String failCountStr = redisTemplate.opsForValue().get(failKey);
         int failCount = failCountStr != null ? Integer.parseInt(failCountStr) : 0;
@@ -50,16 +66,19 @@ public class BruteForceManager {
         failCount++;
         redisTemplate.opsForValue().set(failKey, String.valueOf(failCount), Duration.ofMinutes(15));
 
-        // 1~4회 실패 → Delay 방어
-        if (failCount < MAX_ATTEMPTS) {
-            long delayMillis = (long) Math.pow(2, failCount - 1) * 1000L; // 1,2,4,8초
-            log.info("로그인 실패 ! {}유저는 {} ms동안 Delay가 됩니다.",username, delayMillis);
-            Thread.sleep(delayMillis);
+        // 1~N회 실패 → Delay 방어 (설정 가능)
+        if (failCount < maxAttempts) {
+            if (delayEnabled) {
+                long delayMillis = (long) Math.pow(2, failCount - 1) * 1000L;
+                log.info("로그인 실패 ! {}유저는 {} ms동안 Delay가 됩니다.",username, delayMillis);
+                Thread.sleep(delayMillis);
+            }
         } else {
-            // 5회 이상 → Cool Down 방어
+            // N회 이상 → Cool Down 방어
             String lockKey = "login_lock:" + username;
-            redisTemplate.opsForValue().set(lockKey, "LOCKED", COOLDOWN_DURATION);
-            log.warn("{} 유저는 5회 이상 로그인을 실패하여 {}분간 계정이 정지됩니다.", username, COOLDOWN_DURATION.toMinutes());
+            Duration cooldown = Duration.ofMinutes(cooldownMinutes);
+            redisTemplate.opsForValue().set(lockKey, "LOCKED", cooldown);
+            log.warn("{} 유저는 {}회 이상 로그인을 실패하여 {}분간 계정이 정지됩니다.", username, maxAttempts, cooldownMinutes);
         }
     }
 
