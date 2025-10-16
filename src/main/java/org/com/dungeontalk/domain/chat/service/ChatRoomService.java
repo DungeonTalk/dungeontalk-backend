@@ -21,6 +21,7 @@ import org.com.dungeontalk.domain.member.repository.MemberRepository;
 import org.com.dungeontalk.global.exception.ErrorCode;
 import org.com.dungeontalk.global.exception.customException.ChatException;
 import org.com.dungeontalk.global.redis.ChatRoomMemberManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +68,7 @@ public class ChatRoomService {
 
     /** 채팅방 전체 조회 */
     @Transactional(readOnly = true)
+    @Cacheable(value = "chatRooms", key = "'all'")
     public List<ChatRoomDto> getAllRooms() {
         return chatRoomRepository.findAll().stream()
             .map(ChatRoomDto::fromEntity)
