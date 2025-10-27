@@ -267,8 +267,7 @@ erDiagram
 
 ### 전반적인 흐름 구성도
 
-<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/423a5421-c342-4df0-8f22-f9205131efcb" />
-
+<img width="900" height="750" alt="Mermaid Chart - Create complex, visual diagrams with text -2025-10-27-072436" src="https://github.com/user-attachments/assets/2d7a1cd9-480c-4cac-b751-cbb80f2fb950" />
 
 <br/>
 
