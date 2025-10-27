@@ -267,7 +267,8 @@ erDiagram
 
 ### 전반적인 흐름 구성도
 
-<img width="704" height="799" alt="image" src="https://github.com/user-attachments/assets/e1edd029-b578-4aee-8e3c-6685afdb27c5" />
+<img width="900" height="750" alt="image" src="https://github.com/user-attachments/assets/423a5421-c342-4df0-8f22-f9205131efcb" />
+
 
 <br/>
 
